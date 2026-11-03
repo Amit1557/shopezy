@@ -215,3 +215,4 @@ export default function AdminProfileModal({ isOpen, onClose }) {
     </div>
   )
 }
+

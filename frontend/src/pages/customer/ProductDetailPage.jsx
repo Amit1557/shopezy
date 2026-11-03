@@ -71,7 +71,7 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-4 py-6 pb-24 md:pb-6">
       {/* Breadcrumb */}
       <nav className="text-xs text-gray-500 mb-6 flex items-center gap-1.5 flex-wrap">
         <Link to="/" className="hover:text-brand-600">Home</Link>
@@ -301,6 +301,22 @@ export default function ProductDetailPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Mobile Sticky Bottom Action Bar (App-like feel for phones) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 p-3 shadow-2xl z-30 flex gap-2.5 items-center">
+        <button
+          onClick={handleAddToCart}
+          className="flex-1 py-3 px-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+        >
+          <ShoppingCart className="w-4 h-4 text-gray-700" /> Add to Cart
+        </button>
+        <button
+          onClick={handleBuyNow}
+          className="flex-1 py-3 px-3 bg-gradient-to-r from-purple-700 to-brand-600 text-white font-black rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-200 transition-all cursor-pointer"
+        >
+          Buy Now (COD) <ArrowRight className="w-4 h-4" />
+        </button>
       </div>
     </div>
   )
