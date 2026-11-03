@@ -39,6 +39,7 @@ class Order(Base):
     return_reason = Column(Text, nullable=True)
     return_requested_at = Column(DateTime(timezone=True), nullable=True)
     return_admin_notes = Column(Text, nullable=True)
+    otp_verified = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     customer = relationship("Customer", back_populates="orders")

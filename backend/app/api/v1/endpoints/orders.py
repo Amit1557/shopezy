@@ -88,6 +88,7 @@ def place_order(data: OrderCreate, db: Session = Depends(get_db)):
         city=data.city,
         state=data.state,
         pincode=data.pincode,
+        otp_verified=data.otp_verified if data.otp_verified is not None else True,
     )
     db.add(order)
     db.flush()

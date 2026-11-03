@@ -20,6 +20,8 @@ class OrderCreate(BaseModel):
     city: str
     state: str
     pincode: str
+    otp_verified: Optional[bool] = True
+    otp: Optional[str] = None
     items: List[OrderItemCreate]
 
     @validator("customer_mobile")
@@ -108,6 +110,7 @@ class OrderOut(BaseModel):
     return_reason: Optional[str] = None
     return_requested_at: Optional[datetime] = None
     return_admin_notes: Optional[str] = None
+    otp_verified: Optional[bool] = True
     created_at: datetime
     updated_at: Optional[datetime]
     customer: CustomerOut

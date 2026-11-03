@@ -22,3 +22,10 @@ class AdminOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class AdminProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    current_password: Optional[str] = None
+    new_password: Optional[str] = None

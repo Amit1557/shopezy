@@ -36,6 +36,10 @@ api.interceptors.response.use(
 // Auth
 export const authAPI = {
   login: (email, password) => api.post('/auth/login', { email, password }),
+  getAdminProfile: () => api.get('/auth/me'),
+  updateAdminProfile: (data) => api.put('/auth/admin/profile', data),
+  sendOtp: (mobile) => api.post('/auth/otp/send', { mobile }),
+  verifyOtp: (mobile, otp) => api.post('/auth/otp/verify', { mobile, otp }),
 }
 
 // Categories

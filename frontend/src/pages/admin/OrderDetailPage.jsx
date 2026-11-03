@@ -377,7 +377,14 @@ Order Amount: ₹${order.total_amount}`
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div className="p-3 bg-gray-50 rounded-xl">
                 <span className="text-[10px] font-bold uppercase text-gray-400">Customer Name</span>
-                <div className="font-bold text-gray-900 text-sm mt-0.5">{order.customer?.name}</div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-bold text-gray-900 text-sm mt-0.5">{order.customer?.name}</div>
+                  {order.otp_verified && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">
+                      ✓ Mobile OTP Verified
+                    </span>
+                  )}
+                </div>
                 <div className="mt-2 text-gray-600">
                   <span className="font-semibold text-gray-800">Phone: </span>
                   <a href={`tel:${order.customer?.mobile}`} className="text-brand-600 font-bold hover:underline">

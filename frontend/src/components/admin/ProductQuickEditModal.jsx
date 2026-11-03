@@ -552,3 +552,4 @@ export default function ProductQuickEditModal({ isOpen, product, onClose, onUpda
     </div>
   )
 }
+

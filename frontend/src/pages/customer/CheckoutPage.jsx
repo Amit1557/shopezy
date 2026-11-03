@@ -5,6 +5,7 @@ import { useCart } from '../../context/CartContext'
 import { useCustomer } from '../../context/CustomerContext'
 import { ordersPublicAPI } from '../../services/api'
 import { formatPrice, validateMobile, validatePincode, INDIAN_STATES } from '../../utils/helpers'
+import CheckoutOtpModal from '../../components/customer/CheckoutOtpModal'
 import toast from 'react-hot-toast'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 
@@ -28,6 +29,7 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [orderPlaced, setOrderPlaced] = useState(null)
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false)
 
   useEffect(() => {
     if (isCustomerLoggedIn && customer) {
@@ -75,12 +77,20 @@ export default function CheckoutPage() {
     if (errors[name]) setErrors(er => ({ ...er, [name]: '' }))
   }
 
-  const handleSubmit = async (e) => {
+  // Triggered when clicking "Place Cash on Delivery Order"
+  const handleSubmit = (e) => {
     e.preventDefault()
     if (!validate()) {
       toast.error('Please complete all required fields')
       return
     }
+    // Open OTP Verification Modal
+    setIsOtpModalOpen(true)
+  }
+
+  // Called after customer verifies their 4-digit OTP
+  const handleConfirmedOrder = async () => {
+    setIsOtpModalOpen(false)
     setLoading(true)
     try {
       const payload = {
@@ -93,6 +103,7 @@ export default function CheckoutPage() {
         city: form.city.trim(),
         state: form.state,
         pincode: form.pincode.trim(),
+        otp_verified: true,
         items: cart.items.map(i => ({
           product_id: i.product_id,
           selected_size: i.selected_size,
@@ -122,7 +133,7 @@ export default function CheckoutPage() {
           </div>
           <h1 className="text-2xl font-black text-gray-900 mb-2">Order Confirmed! 🎉</h1>
           <p className="text-xs text-gray-500 mb-6">
-            Thank you! Your Cash on Delivery order has been registered and is being prepared.
+            Thank you! Your Cash on Delivery order has been verified via Mobile OTP and registered.
           </p>
 
           <div className="bg-brand-50/60 rounded-2xl p-5 mb-6 text-left border border-brand-100">
@@ -132,7 +143,12 @@ export default function CheckoutPage() {
               <span>Total Payable upon Delivery:</span>
               <span className="font-bold text-gray-900 text-sm">{formatPrice(orderPlaced.total_amount)}</span>
             </div>
-            <div className="text-[11px] text-gray-500 mt-1">Payment Method: <strong>Cash on Delivery (COD)</strong></div>
+            <div className="text-[11px] text-gray-500 mt-1 flex items-center gap-1.5">
+              <span>Payment Method: <strong>Cash on Delivery (COD)</strong></span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+                ✓ Mobile OTP Verified
+              </span>
+            </div>
           </div>
 
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-xs text-amber-800 text-left">
@@ -164,23 +180,26 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      {/* Title */}
       <div className="mb-6">
-        <h1 className="text-2xl font-extrabold text-gray-900">Checkout – Cash on Delivery</h1>
-        <p className="text-xs text-gray-500 mt-1">Please enter your exact delivery details. Payment will be collected at your door.</p>
+        <h1 className="text-2xl font-black text-gray-900">Cash on Delivery Checkout</h1>
+        <p className="text-xs text-gray-500 mt-0.5">Pay in cash when your parcel is delivered to your doorstep. Free Delivery across India.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Form Details */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Form */}
         <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-6">
+
           {/* 1. Contact Information */}
           <div className="card p-5">
             <h2 className="font-extrabold text-gray-900 mb-4 flex items-center gap-2 text-sm">
               <span className="w-6 h-6 bg-brand-600 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
-              Customer Contact Details
+              Contact Information
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
+
+            <div className="space-y-4">
+              <div>
                 <label className="label">Full Name <span className="text-red-500">*</span></label>
                 <div className="relative">
                   <input
@@ -188,7 +207,7 @@ export default function CheckoutPage() {
                     name="customer_name"
                     value={form.customer_name}
                     onChange={handleChange}
-                    placeholder="Enter customer full name"
+                    placeholder="Enter recipient full name"
                     className={`input-field pl-9 ${errors.customer_name ? 'border-red-400 focus:ring-red-200' : ''}`}
                   />
                   <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -210,6 +229,7 @@ export default function CheckoutPage() {
                   />
                   <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 </div>
+                <p className="text-[11px] text-gray-500 mt-1">We will send a quick 4-digit OTP to verify your mobile before order placement.</p>
                 {errors.customer_mobile && <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.customer_mobile}</p>}
               </div>
 
@@ -298,23 +318,23 @@ export default function CheckoutPage() {
                   onChange={handleChange}
                   className={`input-field ${errors.state ? 'border-red-400' : ''}`}
                 >
-                  <option value="">-- Choose State --</option>
-                  {INDIAN_STATES.map(s => (
-                    <option key={s} value={s}>{s}</option>
+                  <option value="">Select State</option>
+                  {INDIAN_STATES.map(st => (
+                    <option key={st} value={st}>{st}</option>
                   ))}
                 </select>
                 {errors.state && <p className="text-[11px] text-red-500 mt-1">{errors.state}</p>}
               </div>
 
               <div>
-                <label className="label">6-Digit PIN Code <span className="text-red-500">*</span></label>
+                <label className="label">PIN Code <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   name="pincode"
                   maxLength={6}
                   value={form.pincode}
                   onChange={handleChange}
-                  placeholder="e.g. 302001"
+                  placeholder="6-digit PIN code"
                   className={`input-field ${errors.pincode ? 'border-red-400' : ''}`}
                 />
                 {errors.pincode && <p className="text-[11px] text-red-500 mt-1">{errors.pincode}</p>}
@@ -322,20 +342,20 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* 3. Payment Mode Confirmation */}
+          {/* 3. Payment Method */}
           <div className="card p-5">
-            <h2 className="font-extrabold text-gray-900 mb-3 flex items-center gap-2 text-sm">
+            <h2 className="font-extrabold text-gray-900 mb-4 flex items-center gap-2 text-sm">
               <span className="w-6 h-6 bg-brand-600 text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
-              Payment Option
+              Payment Method
             </h2>
-            <div className="flex items-center justify-between p-4 bg-emerald-50 border-2 border-emerald-400 rounded-xl">
+            <div className="border-2 border-emerald-500 bg-emerald-50/50 rounded-2xl p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white">
-                  <Package className="w-5 h-5" />
+                <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-700 font-bold text-sm">
+                  COD
                 </div>
                 <div>
-                  <div className="text-xs font-extrabold text-emerald-900">Cash on Delivery (COD)</div>
-                  <div className="text-[11px] text-emerald-700">Pay cash in hand when the courier delivers your package.</div>
+                  <div className="font-bold text-gray-800 text-sm">Cash on Delivery (COD)</div>
+                  <div className="text-xs text-gray-500">Pay cash upon delivery. No advance online payment needed.</div>
                 </div>
               </div>
               <div className="w-5 h-5 rounded-full border-2 border-emerald-600 flex items-center justify-center bg-white">
@@ -352,7 +372,7 @@ export default function CheckoutPage() {
             {loading ? (
               <LoadingSpinner size="sm" color="white" />
             ) : (
-              <>Place Cash on Delivery Order <ChevronRight className="w-5 h-5" /></>
+              <>Verify Mobile & Place COD Order <ChevronRight className="w-5 h-5" /></>
             )}
           </button>
         </form>
@@ -406,7 +426,14 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+
+      {/* COD Mobile OTP Verification Modal */}
+      <CheckoutOtpModal
+        isOpen={isOtpModalOpen}
+        onClose={() => setIsOtpModalOpen(false)}
+        mobile={form.customer_mobile}
+        onVerified={handleConfirmedOrder}
+      />
     </div>
   )
 }
-

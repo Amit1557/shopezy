@@ -15,6 +15,16 @@ export function AuthProvider({ children }) {
         setAdmin(JSON.parse(adminData))
       } catch {}
     }
+    // Also fetch fresh admin info from server
+    if (token) {
+      authAPI.getAdminProfile()
+        .then(res => {
+          const fresh = { email: res.data.email, name: res.data.name }
+          localStorage.setItem('admin_data', JSON.stringify(fresh))
+          setAdmin(fresh)
+        })
+        .catch(() => {})
+    }
     setLoading(false)
   }, [])
 
@@ -22,10 +32,29 @@ export function AuthProvider({ children }) {
     const res = await authAPI.login(email, password)
     const { access_token } = res.data
     localStorage.setItem('admin_token', access_token)
-    const adminInfo = { email, name: 'Store Admin' }
-    localStorage.setItem('admin_data', JSON.stringify(adminInfo))
-    setAdmin(adminInfo)
+    
+    // Fetch actual admin details
+    try {
+      const meRes = await authAPI.getAdminProfile()
+      const adminInfo = { email: meRes.data.email, name: meRes.data.name || 'Store Owner' }
+      localStorage.setItem('admin_data', JSON.stringify(adminInfo))
+      setAdmin(adminInfo)
+    } catch {
+      const adminInfo = { email, name: 'Store Owner' }
+      localStorage.setItem('admin_data', JSON.stringify(adminInfo))
+      setAdmin(adminInfo)
+    }
     return res
+  }
+
+  const updateAdminInfo = (updatedAdmin, newToken) => {
+    if (newToken) {
+      localStorage.setItem('admin_token', newToken)
+    }
+    if (updatedAdmin) {
+      localStorage.setItem('admin_data', JSON.stringify(updatedAdmin))
+      setAdmin(updatedAdmin)
+    }
   }
 
   const logout = () => {
@@ -35,7 +64,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ admin, login, logout, loading, isAuthenticated: !!admin }}>
+    <AuthContext.Provider value={{ admin, login, logout, updateAdminInfo, loading, isAuthenticated: !!admin }}>
       {children}
     </AuthContext.Provider>
   )

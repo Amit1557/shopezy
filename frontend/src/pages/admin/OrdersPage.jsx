@@ -167,7 +167,14 @@ export default function OrdersPage() {
 
                     {/* Customer */}
                     <td className="py-3.5 px-4">
-                      <div className="font-semibold text-gray-900">{order.customer?.name}</div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-semibold text-gray-900">{order.customer?.name}</span>
+                        {order.otp_verified && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-100 text-emerald-800 tracking-wider">
+                            ✓ OTP
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[11px] font-mono text-gray-500">{order.customer?.mobile}</div>
                       <div className="text-[10px] text-gray-400 truncate max-w-[180px]">
                         {order.flat_number}, {order.street}, {order.city} - {order.pincode}

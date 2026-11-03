@@ -1,8 +1,9 @@
-import { Menu, Bell, RefreshCw } from 'lucide-react'
+import { Menu, Settings, ShieldCheck, User } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
-export default function AdminHeader({ onMenuClick }) {
+export default function AdminHeader({ onMenuClick, onOpenProfile }) {
   const { admin } = useAuth()
+
   return (
     <header className="bg-white border-b border-gray-100 px-4 lg:px-6 py-3 flex items-center justify-between sticky top-0 z-30">
       <div className="flex items-center gap-3">
@@ -13,14 +14,24 @@ export default function AdminHeader({ onMenuClick }) {
           <h1 className="text-base font-semibold text-gray-800 hidden sm:block">ShopEzy Seller Panel</h1>
         </div>
       </div>
+
       <div className="flex items-center gap-2">
-        <div className="text-right hidden sm:block">
-          <div className="text-sm font-medium text-gray-700">{admin?.name || 'Admin'}</div>
-          <div className="text-xs text-gray-400">Store Owner</div>
-        </div>
-        <div className="w-9 h-9 bg-brand-100 rounded-full flex items-center justify-center">
-          <span className="text-brand-700 font-bold text-sm">{admin?.name?.[0] || 'A'}</span>
-        </div>
+        <button
+          onClick={onOpenProfile}
+          title="Click to change Admin Name, Email ID & Password"
+          className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-purple-50 border border-transparent hover:border-purple-200 transition-all text-left group"
+        >
+          <div className="text-right hidden sm:block">
+            <div className="text-sm font-bold text-gray-800 group-hover:text-purple-700 transition-colors flex items-center gap-1 justify-end">
+              <span>{admin?.name || 'Admin'}</span>
+              <Settings className="w-3.5 h-3.5 text-gray-400 group-hover:text-purple-600 group-hover:rotate-45 transition-all" />
+            </div>
+            <div className="text-[11px] text-gray-400 group-hover:text-purple-500">{admin?.email || 'Store Owner'}</div>
+          </div>
+          <div className="w-9 h-9 bg-gradient-to-tr from-purple-600 to-brand-500 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-sm group-hover:scale-105 transition-transform">
+            {admin?.name?.[0]?.toUpperCase() || 'A'}
+          </div>
+        </button>
       </div>
     </header>
   )
