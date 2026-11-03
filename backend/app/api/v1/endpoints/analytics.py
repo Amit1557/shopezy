@@ -147,30 +147,65 @@ def get_customers(
 ):
     q = db.query(Customer)
     if search:
+        s = f"%{search.strip()}%"
         q = q.filter(or_(
-            Customer.name.ilike(f"%{search}%"),
-            Customer.mobile.ilike(f"%{search}%")
+            Customer.name.ilike(s),
+            Customer.mobile.ilike(s),
+            Customer.email.ilike(s)
         ))
     total = q.count()
     customers = q.order_by(Customer.created_at.desc()).offset((page-1)*limit).limit(limit).all()
     
+    # Summary stats across all customers
+    all_customers = db.query(Customer).all()
+    total_customers_count = len(all_customers)
+    total_registered_count = sum(1 for c in all_customers if c.hashed_password)
+    repeat_customers_count = 0
+    total_customer_revenue = 0.0
+
+    for c in all_customers:
+        cust_orders = db.query(Order).filter(Order.customer_id == c.id).all()
+        if len(cust_orders) >= 2:
+            repeat_customers_count += 1
+        total_customer_revenue += sum(o.total_amount for o in cust_orders if o.status not in ["CANCELLED", "RETURNED"])
+
     result = []
     for c in customers:
-        orders = db.query(Order).filter(Order.customer_id == c.id).all()
+        orders = db.query(Order).filter(Order.customer_id == c.id).order_by(Order.created_at.desc()).all()
         total_orders = len(orders)
         total_value = sum(o.total_amount for o in orders if o.status not in ["CANCELLED", "RETURNED"])
+        delivered = sum(1 for o in orders if o.status in ["DELIVERED", "COMPLETED"])
         cancelled = sum(1 for o in orders if o.status == "CANCELLED")
+        returned = sum(1 for o in orders if o.status in ["RETURN_REQUESTED", "RETURNED"])
+        last_order = orders[0].created_at if orders else None
+
         result.append({
             "id": c.id,
             "name": c.name,
             "mobile": c.mobile,
+            "email": c.email,
+            "has_account": bool(c.hashed_password),
             "total_orders": total_orders,
-            "total_value": round(total_value, 2),
+            "delivered_orders": delivered,
             "cancelled_orders": cancelled,
+            "returned_orders": returned,
+            "total_value": round(total_value, 2),
+            "last_order_date": last_order,
             "created_at": c.created_at
         })
     
-    return {"customers": result, "total": total, "page": page, "pages": (total+limit-1)//limit}
+    return {
+        "customers": result,
+        "total": total,
+        "page": page,
+        "pages": (total+limit-1)//limit if limit > 0 else 1,
+        "stats": {
+            "total_customers": total_customers_count,
+            "total_registered": total_registered_count,
+            "repeat_customers": repeat_customers_count,
+            "total_revenue": round(total_customer_revenue, 2)
+        }
+    }
 
 @router.get("/customers/{customer_id}")
 def get_customer_detail(
@@ -181,21 +216,65 @@ def get_customer_detail(
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(404, "Customer not found")
+
     orders = db.query(Order).filter(Order.customer_id == customer.id).order_by(Order.created_at.desc()).all()
+    
+    total_orders = len(orders)
+    total_spent = sum(o.total_amount for o in orders if o.status not in ["CANCELLED", "RETURNED"])
+    delivered_count = sum(1 for o in orders if o.status in ["DELIVERED", "COMPLETED"])
+    cancelled_count = sum(1 for o in orders if o.status == "CANCELLED")
+    returned_count = sum(1 for o in orders if o.status in ["RETURN_REQUESTED", "RETURNED"])
+
+    # Collect unique addresses
+    addresses = []
+    for o in orders:
+        addr = f"{o.flat_number}, {o.street}, {o.city}, {o.state} - {o.pincode}"
+        if addr not in addresses:
+            addresses.append(addr)
+
+    detailed_orders = []
+    for o in orders:
+        items = [
+            {
+                "id": it.id,
+                "product_id": it.product_id,
+                "product_name": it.product_name,
+                "product_image": it.product_image,
+                "selected_size": it.selected_size,
+                "selected_color": it.selected_color,
+                "quantity": it.quantity,
+                "unit_price": it.unit_price,
+                "total_price": it.total_price
+            }
+            for it in o.items
+        ]
+        detailed_orders.append({
+            "order_id": o.order_id,
+            "status": o.status,
+            "total_amount": o.total_amount,
+            "delivery_address": f"{o.flat_number}, {o.street}, {o.city}, {o.state} - {o.pincode}",
+            "return_reason": o.return_reason,
+            "return_requested_at": o.return_requested_at,
+            "created_at": o.created_at,
+            "items": items
+        })
+
     return {
         "id": customer.id,
         "name": customer.name,
         "mobile": customer.mobile,
         "alternate_mobile": customer.alternate_mobile,
+        "email": customer.email,
+        "has_account": bool(customer.hashed_password),
         "created_at": customer.created_at,
-        "orders": [
-            {
-                "order_id": o.order_id,
-                "status": o.status,
-                "total_amount": o.total_amount,
-                "created_at": o.created_at,
-                "items_count": len(o.items)
-            }
-            for o in orders
-        ]
+        "saved_addresses": addresses,
+        "stats": {
+            "total_orders": total_orders,
+            "delivered_count": delivered_count,
+            "cancelled_count": cancelled_count,
+            "returned_count": returned_count,
+            "lifetime_spent": round(total_spent, 2),
+            "average_order_value": round(total_spent / total_orders, 2) if total_orders > 0 else 0.0
+        },
+        "orders": detailed_orders
     }

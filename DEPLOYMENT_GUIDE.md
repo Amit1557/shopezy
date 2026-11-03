@@ -94,3 +94,4 @@ Once deployed, you can access your seller admin panel directly from any device:
 - URL: `https://your-site.vercel.app/admin`
 - Email: `admin@shopezy.com`
 - Password: `admin123` (or the custom password you set in Render)
+

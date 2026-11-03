@@ -9,6 +9,7 @@ import { formatPrice } from '../../utils/helpers'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import Pagination from '../../components/ui/Pagination'
 import MeeshoQuickImporterModal from '../../components/admin/MeeshoQuickImporterModal'
+import BulkProductImporterModal from '../../components/admin/BulkProductImporterModal'
 import toast from 'react-hot-toast'
 
 export default function ProductsAdminPage() {
@@ -19,6 +20,7 @@ export default function ProductsAdminPage() {
   const [pages, setPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [isImporterOpen, setIsImporterOpen] = useState(false)
+  const [isBulkOpen, setIsBulkOpen] = useState(false)
 
   const page = parseInt(searchParams.get('page') || '1')
   const search = searchParams.get('search') || ''
@@ -98,18 +100,28 @@ export default function ProductsAdminPage() {
           <h1 className="text-2xl font-black text-gray-900">Product Management</h1>
           <p className="text-xs text-gray-500 mt-0.5">Manage products sourced from Meesho, adjust selling prices & margins</p>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setIsImporterOpen(true)}
-            className="bg-gradient-to-r from-purple-700 to-brand-600 hover:from-purple-800 hover:to-brand-700 text-white text-xs py-2.5 px-4 rounded-xl font-black inline-flex items-center gap-1.5 shadow-md shadow-purple-200 transition-all cursor-pointer"
+            className="bg-gradient-to-r from-purple-700 to-brand-600 hover:from-purple-800 hover:to-brand-700 text-white text-xs py-2.5 px-3.5 rounded-xl font-black inline-flex items-center gap-1.5 shadow-md shadow-purple-200 transition-all cursor-pointer"
           >
             <Sparkles className="w-4 h-4 text-yellow-300" />
-            <span>⚡ 1-Click Fast Meesho Import</span>
+            <span>⚡ 1-Click Fast Import</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setIsBulkOpen(true)}
+            className="bg-gradient-to-r from-purple-900 to-indigo-800 hover:from-purple-950 hover:to-indigo-900 text-white text-xs py-2.5 px-3.5 rounded-xl font-black inline-flex items-center gap-1.5 shadow-md shadow-purple-200 transition-all cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-emerald-300" />
+            <span>⚡ Bulk Product Importer</span>
+          </button>
+
           <Link
             to="/admin/products/new"
-            className="btn-secondary text-xs py-2.5 px-3.5 inline-flex items-center gap-1.5 font-bold"
+            className="btn-secondary text-xs py-2.5 px-3 inline-flex items-center gap-1.5 font-bold"
           >
             <Plus className="w-4 h-4" /> Custom Form
           </Link>
@@ -123,20 +135,30 @@ export default function ProductsAdminPage() {
             <Sparkles className="w-6 h-6 text-yellow-300" />
           </div>
           <div>
-            <h2 className="text-sm sm:text-base font-black">Want to quickly import a product from Meesho?</h2>
+            <h2 className="text-sm sm:text-base font-black">Fast Single & Bulk Meesho Importer</h2>
             <p className="text-xs text-purple-200 mt-0.5">
-              Paste the Meesho link/details, review photos & set your custom selling price. One click publishes it live to your website!
+              List products one-by-one or import 10-20 products simultaneously from Meesho or CSV in 1 click!
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsImporterOpen(true)}
-          className="bg-white hover:bg-purple-50 text-purple-900 font-black text-xs py-2.5 px-5 rounded-xl shadow-md transition-all shrink-0 flex items-center gap-2 cursor-pointer"
-        >
-          <Sparkles className="w-4 h-4 text-purple-700" />
-          Open 1-Click Importer
-        </button>
+        <div className="flex gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsImporterOpen(true)}
+            className="bg-white hover:bg-purple-50 text-purple-900 font-black text-xs py-2.5 px-4 rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-700" />
+            Single Import
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsBulkOpen(true)}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs py-2.5 px-4 rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+            Bulk Import (1-Click)
+          </button>
+        </div>
       </div>
 
       {/* Filter & Search Bar */}
@@ -334,6 +356,16 @@ export default function ProductsAdminPage() {
         onClose={() => setIsImporterOpen(false)}
         onSuccess={() => {
           setIsImporterOpen(false)
+          fetchProducts()
+        }}
+      />
+
+      {/* 1-Click Bulk Product Importer Modal */}
+      <BulkProductImporterModal
+        isOpen={isBulkOpen}
+        onClose={() => setIsBulkOpen(false)}
+        onSuccess={() => {
+          setIsBulkOpen(false)
           fetchProducts()
         }}
       />

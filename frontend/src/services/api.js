@@ -67,6 +67,8 @@ export const productsAdminAPI = {
   }),
   parseMeesho: (data) => api.post('/products/parse-meesho', data),
   quickPublish: (data) => api.post('/products/quick-publish', data),
+  bulkPublish: (data) => api.post('/products/bulk-publish', data),
+  bulkParseMeesho: (data) => api.post('/products/bulk-parse-meesho', data),
 }
 
 // Customer Auth

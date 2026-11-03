@@ -436,3 +436,158 @@ def delete_product_image(
     db.delete(img)
     db.commit()
     return {"message": "Image deleted"}
+
+
+class BulkPublishRequest(BaseModel):
+    products: List[QuickPublishRequest]
+
+
+@router.post("/bulk-publish")
+def bulk_publish_products(
+    data: BulkPublishRequest,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
+    """
+    Atomic 1-Click Bulk Product Publisher.
+    Publishes multiple products, images, and variants simultaneously.
+    """
+    if not data.products:
+        raise HTTPException(400, "No products provided for bulk publishing")
+    
+    created_list = []
+    categories = db.query(Category).all()
+    cat_by_slug = {c.slug: c for c in categories}
+    cat_by_id = {c.id: c for c in categories}
+    default_cat = categories[0] if categories else None
+
+    for item in data.products:
+        if not item.name or not item.name.strip():
+            continue
+        
+        # Category resolution
+        cat = None
+        if item.category_id and item.category_id in cat_by_id:
+            cat = cat_by_id[item.category_id]
+        elif item.category_slug and item.category_slug in cat_by_slug:
+            cat = cat_by_slug[item.category_slug]
+        else:
+            cat = default_cat
+        
+        category_id = cat.id if cat else 1
+
+        selling_price = float(item.selling_price)
+        purchase_cost = float(item.purchase_cost or 0.0)
+        original_price = float(item.original_price or round((selling_price * 1.6) / 100) * 100 - 1)
+        if original_price <= selling_price:
+            original_price = selling_price + 199.0
+        
+        discount_pct = item.discount_percentage
+        if discount_pct is None or discount_pct <= 0:
+            discount_pct = round(((original_price - selling_price) / original_price) * 100)
+
+        slug = make_slug(item.name.strip(), db)
+
+        product = Product(
+            name=item.name.strip(),
+            slug=slug,
+            description=item.description or f"Premium quality {item.name.strip()}. Verified quality check with doorstep Cash on Delivery.",
+            specifications=item.specifications or {},
+            category_id=category_id,
+            purchase_cost=purchase_cost,
+            selling_price=selling_price,
+            original_price=original_price,
+            discount_percentage=discount_pct,
+            meesho_link=item.meesho_link or "",
+            is_active=item.is_active,
+            is_featured=item.is_featured,
+            cod_available=item.cod_available,
+            stock_quantity=item.stock_quantity,
+        )
+        db.add(product)
+        db.flush()
+
+        img_urls = [u.strip() for u in item.images if u.strip()]
+        if not img_urls:
+            cat_slug = cat.slug if cat else "mens-fashion"
+            fallback_img = CATEGORY_FALLBACK_IMAGES.get(cat_slug, "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop")
+            img_urls = [fallback_img]
+
+        for idx, url in enumerate(img_urls):
+            db.add(ProductImage(
+                product_id=product.id,
+                image_url=url,
+                is_primary=(idx == 0),
+                sort_order=idx
+            ))
+
+        sizes = item.sizes if item.sizes else ["Free Size"]
+        for s in sizes:
+            if s.strip():
+                db.add(ProductVariant(
+                    product_id=product.id,
+                    variant_type="size",
+                    value=s.strip(),
+                    is_available=True
+                ))
+
+        for c in item.colors:
+            if c.strip():
+                db.add(ProductVariant(
+                    product_id=product.id,
+                    variant_type="color",
+                    value=c.strip(),
+                    is_available=True
+                ))
+
+        created_list.append(product)
+
+    db.commit()
+    for p in created_list:
+        db.refresh(p)
+
+    return {
+        "success": True,
+        "count": len(created_list),
+        "message": f"Successfully published {len(created_list)} products in bulk to your live store!",
+        "products": [ProductAdmin.from_orm(p) for p in created_list]
+    }
+
+
+class BulkParseRequest(BaseModel):
+    raw_text: str
+    default_markup: Optional[float] = 250.0
+
+
+@router.post("/bulk-parse-meesho")
+def bulk_parse_meesho_products(
+    data: BulkParseRequest,
+    admin: Admin = Depends(get_current_admin)
+):
+    raw = data.raw_text.strip()
+    if not raw:
+        return {"items": [], "count": 0}
+
+    blocks = []
+    if "---" in raw:
+        blocks = [b.strip() for b in raw.split("---") if b.strip()]
+    elif "\n\n" in raw:
+        blocks = [b.strip() for b in raw.split("\n\n") if b.strip()]
+    else:
+        lines = [line.strip() for line in raw.splitlines() if line.strip()]
+        blocks = lines if lines else [raw]
+
+    parsed_items = []
+    for b in blocks:
+        try:
+            p = parse_meesho_data(b, margin_percent=60.0)
+            if p.get("name"):
+                if data.default_markup and p.get("purchase_cost", 0) > 0:
+                    cost = p["purchase_cost"]
+                    p["selling_price"] = cost + data.default_markup
+                    p["original_price"] = p["selling_price"] + 200
+                parsed_items.append(p)
+        except Exception:
+            continue
+
+    return {"items": parsed_items, "count": len(parsed_items)}
