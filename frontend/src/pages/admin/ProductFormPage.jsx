@@ -280,12 +280,13 @@ export default function ProductFormPage() {
         cod_available: codAvailable,
         stock_quantity: parseInt(stockQuantity) || 100,
         specifications: specsObj,
-        variants: variantsPayload
+        variants: variantsPayload,
+        images: images.map(img => typeof img === 'string' ? img : (img.image_url || '')).filter(Boolean),
+        sizes: sizes
       }
 
       if (isEdit) {
         await productsAdminAPI.update(id, payload)
-        // Also update variants explicitly
         await productsAdminAPI.updateVariants(id, variantsPayload)
         toast.success('Product updated successfully!')
       } else {

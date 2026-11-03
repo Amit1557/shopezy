@@ -10,6 +10,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import Pagination from '../../components/ui/Pagination'
 import MeeshoQuickImporterModal from '../../components/admin/MeeshoQuickImporterModal'
 import BulkProductImporterModal from '../../components/admin/BulkProductImporterModal'
+import ProductQuickEditModal from '../../components/admin/ProductQuickEditModal'
 import toast from 'react-hot-toast'
 
 export default function ProductsAdminPage() {
@@ -22,6 +23,7 @@ export default function ProductsAdminPage() {
   const [isImporterOpen, setIsImporterOpen] = useState(false)
   const [isBulkOpen, setIsBulkOpen] = useState(false)
   const [initialImportData, setInitialImportData] = useState(null)
+  const [editingProduct, setEditingProduct] = useState(null)
 
   // Listen for 1-Click Bookmarklet importData in URL
   useEffect(() => {
@@ -355,16 +357,18 @@ export default function ProductsAdminPage() {
                       {/* Action buttons */}
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          <Link
-                            to={`/admin/products/${p.id}/edit`}
-                            className="p-1.5 bg-gray-100 hover:bg-brand-50 hover:text-brand-600 rounded-lg text-gray-600 transition-colors"
-                            title="Edit Product"
+                          <button
+                            type="button"
+                            onClick={() => setEditingProduct(p)}
+                            className="bg-purple-50 hover:bg-purple-100 text-purple-700 hover:text-purple-900 text-xs py-1 px-2.5 rounded-lg font-bold inline-flex items-center gap-1 border border-purple-200 transition-colors cursor-pointer"
+                            title="Edit Price, Photos, Sizes & Details"
                           >
                             <Edit className="w-3.5 h-3.5" />
-                          </Link>
+                            <span>Edit</span>
+                          </button>
                           <button
                             onClick={() => handleDelete(p.id, p.name)}
-                            className="p-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-600 rounded-lg text-gray-600 transition-colors"
+                            className="p-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-600 rounded-lg text-gray-600 transition-colors cursor-pointer"
                             title="Delete Product"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -381,6 +385,17 @@ export default function ProductsAdminPage() {
       </div>
 
       <Pagination page={page} pages={pages} onPageChange={p => updateParam('page', p)} />
+
+      {/* Quick Edit Modal (Price, Photos, Sizes, Details) */}
+      <ProductQuickEditModal
+        isOpen={Boolean(editingProduct)}
+        product={editingProduct}
+        onClose={() => setEditingProduct(null)}
+        onUpdated={() => {
+          setEditingProduct(null)
+          fetchProducts()
+        }}
+      />
 
       {/* 1-Click Meesho Fast Importer Modal */}
       <MeeshoQuickImporterModal

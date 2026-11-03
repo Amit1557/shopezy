@@ -191,8 +191,41 @@ def update_product(
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(404, "Product not found")
-    for k, v in data.dict(exclude_none=True).items():
+
+    update_dict = data.dict(exclude_none=True)
+    images_list = update_dict.pop("images", None)
+    sizes_list = update_dict.pop("sizes", None)
+
+    for k, v in update_dict.items():
         setattr(product, k, v)
+
+    # Update product images if provided
+    if images_list is not None:
+        db.query(ProductImage).filter(ProductImage.product_id == product_id).delete()
+        for idx, img_url in enumerate(images_list):
+            if img_url and isinstance(img_url, str):
+                db.add(ProductImage(
+                    product_id=product_id,
+                    image_url=img_url,
+                    is_primary=(idx == 0),
+                    sort_order=idx
+                ))
+
+    # Update product size variants if provided
+    if sizes_list is not None:
+        db.query(ProductVariant).filter(
+            ProductVariant.product_id == product_id,
+            ProductVariant.variant_type == "size"
+        ).delete()
+        for sz in sizes_list:
+            if sz and isinstance(sz, str):
+                db.add(ProductVariant(
+                    product_id=product_id,
+                    variant_type="size",
+                    value=sz.strip(),
+                    is_available=True
+                ))
+
     db.commit()
     db.refresh(product)
     return product

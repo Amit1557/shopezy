@@ -60,6 +60,8 @@ class ProductUpdate(BaseModel):
     is_featured: Optional[bool] = None
     cod_available: Optional[bool] = None
     stock_quantity: Optional[int] = None
+    images: Optional[List[str]] = None
+    sizes: Optional[List[str]] = None
 
 
 # Public product (NO purchase_cost, NO meesho_link exposed)
