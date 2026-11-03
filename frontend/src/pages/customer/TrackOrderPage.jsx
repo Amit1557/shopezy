@@ -243,6 +243,21 @@ export default function TrackOrderPage() {
               ))}
             </div>
           </div>
+
+          {/* Quick WhatsApp Support Help */}
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center">
+            <p className="text-xs text-emerald-900 font-semibold mb-2">
+              Need assistance or want to update your delivery address?
+            </p>
+            <a
+              href={`https://wa.me/917668351703?text=${encodeURIComponent(`Hi ShopEzy! I need help with my Order ${order.order_id}.`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-xs transition-colors"
+            >
+              <span>💬 Chat with ShopEzy Support on WhatsApp</span>
+            </a>
+          </div>
         </div>
       )}
     </div>

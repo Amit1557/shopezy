@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Package, ChevronRight, CheckCircle, AlertCircle, ShieldCheck, MapPin, Phone, User, Sparkles } from 'lucide-react'
+import { Package, ChevronRight, CheckCircle, AlertCircle, ShieldCheck, MapPin, Phone, User, Sparkles, MessageCircle, Copy, Check } from 'lucide-react'
 import { useCart } from '../../context/CartContext'
 import { useCustomer } from '../../context/CustomerContext'
 import { ordersPublicAPI } from '../../services/api'
 import { formatPrice, validateMobile, validatePincode, INDIAN_STATES } from '../../utils/helpers'
-import CheckoutOtpModal from '../../components/customer/CheckoutOtpModal'
 import toast from 'react-hot-toast'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 
@@ -29,7 +28,8 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [orderPlaced, setOrderPlaced] = useState(null)
-  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false)
+  const [placedItems, setPlacedItems] = useState([])
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (isCustomerLoggedIn && customer) {
@@ -78,21 +78,16 @@ export default function CheckoutPage() {
   }
 
   // Triggered when clicking "Place Cash on Delivery Order"
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!validate()) {
       toast.error('Please complete all required fields')
       return
     }
-    // Open OTP Verification Modal
-    setIsOtpModalOpen(true)
-  }
 
-  // Called after customer verifies their 4-digit OTP
-  const handleConfirmedOrder = async () => {
-    setIsOtpModalOpen(false)
     setLoading(true)
     try {
+      const currentCartItems = [...cart.items]
       const payload = {
         customer_name: form.customer_name.trim(),
         customer_mobile: form.customer_mobile.trim(),
@@ -103,7 +98,7 @@ export default function CheckoutPage() {
         city: form.city.trim(),
         state: form.state,
         pincode: form.pincode.trim(),
-        otp_verified: true,
+        otp_verified: false,
         items: cart.items.map(i => ({
           product_id: i.product_id,
           selected_size: i.selected_size,
@@ -112,9 +107,10 @@ export default function CheckoutPage() {
         }))
       }
       const res = await ordersPublicAPI.place(payload)
+      setPlacedItems(currentCartItems)
       clearCart()
       setOrderPlaced(res.data)
-      toast.success('Order placed successfully via Cash on Delivery!')
+      toast.success('Order placed successfully! Confirm on WhatsApp for fast dispatch.')
     } catch (err) {
       const msg = err.response?.data?.detail || 'Failed to place order. Please review your address.'
       toast.error(typeof msg === 'string' ? msg : 'Failed to place order')
@@ -123,49 +119,138 @@ export default function CheckoutPage() {
     }
   }
 
+  // Construct WhatsApp Confirmation URL
+  const getWhatsAppUrl = () => {
+    if (!orderPlaced) return '#'
+    const storeWhatsApp = '917668351703'
+
+    const itemsList = placedItems.length > 0
+      ? placedItems.map(item => `• ${item.product?.name || 'Item'} (Qty: ${item.quantity}${item.selected_size ? `, Size: ${item.selected_size}` : ''})`).join('\n')
+      : '• Ordered Items'
+
+    const message = `Namaste ShopEzy! 🙏
+Please confirm my Cash on Delivery Order *${orderPlaced.order_id}*.
+
+📦 *Order Details:*
+${itemsList}
+
+💰 *Total Payable on Delivery:* ₹${orderPlaced.total_amount}
+
+📍 *Delivery Address:*
+${form.customer_name}
+Phone: ${form.customer_mobile}${form.customer_alternate_mobile ? ` / ${form.customer_alternate_mobile}` : ''}
+${form.flat_number}, ${form.street}
+${form.landmark ? `Landmark: ${form.landmark}\n` : ''}${form.city}, ${form.state} - ${form.pincode}
+
+Please pack and dispatch my order. Thank you!`
+
+    return `https://wa.me/${storeWhatsApp}?text=${encodeURIComponent(message)}`
+  }
+
+  const copyOrderDetails = () => {
+    if (!orderPlaced) return
+    const text = `Order ID: ${orderPlaced.order_id}
+Customer: ${form.customer_name}
+Mobile: ${form.customer_mobile}
+Address: ${form.flat_number}, ${form.street}, ${form.city}, ${form.state} - ${form.pincode}
+Total Amount: ₹${orderPlaced.total_amount} (Cash on Delivery)`
+
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    toast.success('Order details copied!')
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   // Order Confirmed Screen
   if (orderPlaced) {
     return (
-      <div className="max-w-xl mx-auto px-4 py-12">
-        <div className="card p-8 text-center animate-slide-up border-green-100 shadow-md">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
-            <CheckCircle className="w-10 h-10 text-green-600" />
+      <div className="max-w-xl mx-auto px-4 py-10 animate-fade-in">
+        <div className="card p-6 sm:p-8 text-center border-green-100 shadow-xl rounded-3xl relative overflow-hidden">
+          {/* Top Decorative Header */}
+          <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-green-200">
+            <CheckCircle className="w-9 h-9 text-green-600" />
           </div>
-          <h1 className="text-2xl font-black text-gray-900 mb-2">Order Confirmed! 🎉</h1>
+
+          <h1 className="text-2xl font-black text-gray-900 mb-1.5">Order Placed Successfully! 🎉</h1>
           <p className="text-xs text-gray-500 mb-6">
-            Thank you! Your Cash on Delivery order has been verified via Mobile OTP and registered.
+            Thank you, <strong className="text-gray-800">{form.customer_name || 'Customer'}</strong>! Your Cash on Delivery order is registered.
           </p>
 
-          <div className="bg-brand-50/60 rounded-2xl p-5 mb-6 text-left border border-brand-100">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Your Unique Order ID</div>
-            <div className="text-2xl font-black text-brand-700 font-mono mt-1 select-all">{orderPlaced.order_id}</div>
-            <div className="flex items-center justify-between text-xs text-gray-700 mt-3 pt-3 border-t border-brand-100">
-              <span>Total Payable upon Delivery:</span>
-              <span className="font-bold text-gray-900 text-sm">{formatPrice(orderPlaced.total_amount)}</span>
+          {/* High Priority WhatsApp Confirmation Card */}
+          <div className="bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-2xl p-6 mb-6 text-center shadow-lg shadow-emerald-500/25 relative overflow-hidden">
+            <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-4 opacity-10">
+              <MessageCircle className="w-32 h-32" />
             </div>
-            <div className="text-[11px] text-gray-500 mt-1 flex items-center gap-1.5">
-              <span>Payment Method: <strong>Cash on Delivery (COD)</strong></span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
-                ✓ Mobile OTP Verified
-              </span>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-[11px] font-bold uppercase tracking-wider mb-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-200 animate-ping" />
+              ⚡ Fast Dispatch Step
+            </div>
+
+            <h3 className="text-lg font-black mb-1.5 leading-snug">
+              Confirm Your Order on WhatsApp
+            </h3>
+            <p className="text-xs text-emerald-50 mb-5 leading-relaxed">
+              Apna parcel turant pack aur dispatch karwane ke liye niche WhatsApp button dabayein:
+            </p>
+
+            <a
+              href={getWhatsAppUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2.5 w-full bg-white hover:bg-gray-50 text-emerald-800 font-black text-sm px-6 py-3.5 rounded-xl shadow-md transition-all transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            >
+              <svg className="w-5 h-5 fill-[#25D366]" viewBox="0 0 24 24">
+                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.669-.699c.969.53 1.771.82 2.791.82 3.181 0 5.768-2.587 5.768-5.768 0-3.18-2.587-5.766-5.768-5.766zm9.969 5.766c0 5.518-4.482 10-10 10-1.745 0-3.377-.45-4.808-1.236l-5.192 1.36 1.385-5.064c-.878-1.488-1.385-3.224-1.385-5.06 0-5.518 4.482-10 10-10 5.518 0 10 4.482 10 10z"/>
+              </svg>
+              <span>Confirm on WhatsApp (1-Click)</span>
+            </a>
+
+            <div className="text-[11px] text-emerald-100/90 mt-3 font-medium">
+              ✓ Direct chat with ShopEzy team & Instant Delivery updates
             </div>
           </div>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-xs text-amber-800 text-left">
-            <div className="font-bold flex items-center gap-1.5 mb-1">
-              <Package className="w-4 h-4 text-amber-600" /> Please save your Order ID!
+          {/* Order Details Summary Card */}
+          <div className="bg-gray-50 rounded-2xl p-4 mb-5 text-left border border-gray-200/80">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Order ID</span>
+              <button
+                type="button"
+                onClick={copyOrderDetails}
+                className="text-xs text-brand-600 hover:text-brand-800 font-semibold inline-flex items-center gap-1 cursor-pointer"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copied ? 'Copied' : 'Copy Details'}</span>
+              </button>
             </div>
-            <div>
-              You can track your parcel anytime by entering your Order ID <strong>{orderPlaced.order_id}</strong> and mobile number.
+            <div className="text-xl font-black text-gray-900 font-mono select-all">{orderPlaced.order_id}</div>
+
+            <div className="mt-3 pt-3 border-t border-gray-200 space-y-1.5 text-xs text-gray-700">
+              <div className="flex justify-between">
+                <span>Payment Mode:</span>
+                <span className="font-bold text-gray-900">Cash on Delivery (COD)</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Total Payable:</span>
+                <span className="font-black text-brand-700 text-sm">{formatPrice(orderPlaced.total_amount)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Delivery To:</span>
+                <span className="text-right text-gray-600 truncate max-w-[220px]">
+                  {form.city}, {form.state} ({form.pincode})
+                </span>
+              </div>
             </div>
           </div>
 
+          {/* Action Navigation Buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
             <Link
               to={`/track-order?order_id=${orderPlaced.order_id}&mobile=${form.customer_mobile}`}
               className="flex-1 btn-secondary text-xs py-3 text-center font-bold"
             >
-              Track This Order
+              Track Order Status
             </Link>
             <Link
               to="/products"
@@ -426,14 +511,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
-
-      {/* COD Mobile OTP Verification Modal */}
-      <CheckoutOtpModal
-        isOpen={isOtpModalOpen}
-        onClose={() => setIsOtpModalOpen(false)}
-        mobile={form.customer_mobile}
-        onVerified={handleConfirmedOrder}
-      />
     </div>
   )
 }
