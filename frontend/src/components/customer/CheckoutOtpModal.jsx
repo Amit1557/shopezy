@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 export default function CheckoutOtpModal({ isOpen, onClose, mobile, onVerified }) {
   const [digits, setDigits] = useState(['', '', '', ''])
   const [demoOtp, setDemoOtp] = useState('')
+  const [isLiveSms, setIsLiveSms] = useState(false)
   const [sending, setSending] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [countdown, setCountdown] = useState(30)
@@ -35,11 +36,18 @@ export default function CheckoutOtpModal({ isOpen, onClose, mobile, onVerified }
     setSending(true)
     try {
       const res = await authAPI.sendOtp(mobile)
-      if (res.data?.demo_otp) {
-        setDemoOtp(res.data.demo_otp)
+      if (res.data?.is_live_sms) {
+        setIsLiveSms(true)
+        setDemoOtp('')
+        toast.success(`SMS verification code sent to +91 ${mobile}`)
+      } else {
+        setIsLiveSms(false)
+        if (res.data?.demo_otp) {
+          setDemoOtp(res.data.demo_otp)
+        }
+        toast.success(`Verification code sent to +91 ${mobile}`)
       }
       setCountdown(30)
-      toast.success(`Verification code sent to +91 ${mobile}`)
       setTimeout(() => inputRefs[0]?.current?.focus(), 100)
     } catch (err) {
       console.error(err)
@@ -139,23 +147,32 @@ export default function CheckoutOtpModal({ isOpen, onClose, mobile, onVerified }
           </div>
         </div>
 
-        {/* Demo OTP Banner for Easy Testing */}
-        <div className="bg-purple-50 border border-purple-200 rounded-2xl p-3 mb-5 text-center">
-          <div className="text-[11px] font-bold text-purple-900 flex items-center justify-center gap-1">
-            <span>✨ Test Demo OTP:</span>
-            <button
-              type="button"
-              onClick={() => fillCode(demoOtp || '1234')}
-              className="font-mono bg-purple-600 text-white px-2 py-0.5 rounded text-xs hover:bg-purple-700 transition-colors cursor-pointer"
-              title="Click to auto-fill"
-            >
-              {demoOtp || '1234'}
-            </button>
+        {/* SMS Status / Testing Banner */}
+        {isLiveSms ? (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 mb-5 text-center flex items-center justify-center gap-2">
+            <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <p className="text-xs font-semibold text-emerald-800">
+              SMS sent to your mobile phone! Please enter the 4-digit code.
+            </p>
           </div>
-          <p className="text-[10px] text-purple-700 mt-0.5">
-            (Universal test code <strong className="font-mono">1234</strong> is also accepted)
-          </p>
-        </div>
+        ) : (
+          <div className="bg-purple-50/70 border border-purple-200/60 rounded-2xl p-2.5 mb-5 text-center">
+            <div className="text-[11px] font-semibold text-purple-900 flex items-center justify-center gap-1.5 flex-wrap">
+              <span>Testing Mode:</span>
+              <button
+                type="button"
+                onClick={() => fillCode(demoOtp || '1234')}
+                className="font-mono bg-purple-600 hover:bg-purple-700 text-white px-2 py-0.5 rounded text-[11px] font-bold transition-all shadow-xs"
+                title="Click to fill test code"
+              >
+                Auto-fill: {demoOtp || '1234'}
+              </button>
+            </div>
+            <p className="text-[10px] text-purple-600 mt-1">
+              (Add <strong>FAST2SMS_API_KEY</strong> in Render to send real SMS to phones)
+            </p>
+          </div>
+        )}
 
         {/* 4-digit input inputs */}
         <form onSubmit={handleVerify}>

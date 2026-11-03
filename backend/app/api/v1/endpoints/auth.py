@@ -10,6 +10,7 @@ from ....core.security import verify_password, create_access_token, get_password
 from ....schemas.admin import AdminLogin, Token, AdminOut, AdminProfileUpdate
 from ....schemas.customer import CustomerRegister, CustomerLogin, CustomerAuthResponse, CustomerProfile
 from ....core.config import settings
+from ....services.sms_service import send_sms_otp
 from .deps import get_current_admin, get_current_customer
 
 router = APIRouter()
@@ -96,7 +97,7 @@ class VerifyOtpRequest(BaseModel):
 
 
 @router.post("/otp/send")
-def send_otp(data: SendOtpRequest):
+async def send_otp(data: SendOtpRequest):
     mobile = data.mobile.strip().replace("+91", "").replace(" ", "").replace("-", "")
     if len(mobile) != 10 or not mobile.isdigit():
         raise HTTPException(400, "Please enter a valid 10-digit Indian mobile number")
@@ -109,12 +110,22 @@ def send_otp(data: SendOtpRequest):
         "expires_at": expires_at
     }
 
-    return {
+    # Attempt to dispatch real SMS via SMS gateway
+    sms_result = await send_sms_otp(mobile, otp_code)
+
+    response_payload = {
         "success": True,
         "message": f"Verification code sent to +91 {mobile}",
-        "demo_otp": otp_code,
-        "expires_in_seconds": 600
+        "expires_in_seconds": 600,
+        "is_live_sms": bool(sms_result.get("sent"))
     }
+
+    # Only attach demo_otp if no live SMS gateway is configured (dev/mock mode)
+    if not sms_result.get("sent"):
+        response_payload["demo_otp"] = otp_code
+        response_payload["is_mock"] = True
+
+    return response_payload
 
 
 @router.post("/otp/verify")
