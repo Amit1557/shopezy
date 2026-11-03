@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.env
+
+# Builds
+dist/
+build/
+*.egg-info/
+
+# Databases
+*.db
+*.sqlite3
+
+# Uploads
+uploads/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
