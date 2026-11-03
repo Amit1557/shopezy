@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   Plus, Search, Edit, Trash2, Eye, EyeOff, Star,
-  Package, ExternalLink, RefreshCw, AlertCircle, Sparkles
+  Package, ExternalLink, RefreshCw, AlertCircle, Sparkles,
+  Download, Upload
 } from 'lucide-react'
 import { productsAdminAPI, categoriesAPI } from '../../services/api'
 import { formatPrice } from '../../utils/helpers'
@@ -112,6 +113,55 @@ export default function ProductsAdminPage() {
     }
   }
 
+  const [backingUp, setBackingUp] = useState(false)
+  const [restoring, setRestoring] = useState(false)
+  const fileInputRef = useRef(null)
+
+  const handleExportBackup = async () => {
+    setBackingUp(true)
+    try {
+      const res = await productsAdminAPI.backupAll()
+      const data = res.data
+      const jsonStr = JSON.stringify(data.products, null, 2)
+      const blob = new Blob([jsonStr], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `shopezy-products-backup-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success(`🎉 Backup exported! (${data.count} products saved)`)
+    } catch {
+      toast.error('Failed to export backup')
+    } finally {
+      setBackingUp(false)
+    }
+  }
+
+  const handleImportRestore = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setRestoring(true)
+    try {
+      const text = await file.text()
+      const parsed = JSON.parse(text)
+      const list = Array.isArray(parsed) ? parsed : (parsed.products || [])
+      if (!list.length) {
+        toast.error('No products found in this backup file')
+        return
+      }
+      const res = await productsAdminAPI.restoreAll({ products: list })
+      toast.success(`🎉 Successfully restored ${res.data.restored_count} products!`)
+      fetchProducts()
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to restore products. Invalid JSON file.')
+    } finally {
+      setRestoring(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -121,6 +171,36 @@ export default function ProductsAdminPage() {
           <p className="text-xs text-gray-500 mt-0.5">Manage products sourced from Meesho, adjust selling prices & margins</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExportBackup}
+            disabled={backingUp}
+            className="btn-secondary text-xs py-2 px-3 inline-flex items-center gap-1.5 font-bold"
+            title="Download JSON backup of all your products"
+          >
+            <Download className="w-3.5 h-3.5 text-purple-600" />
+            <span>{backingUp ? 'Exporting...' : 'Backup JSON'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={restoring}
+            className="btn-secondary text-xs py-2 px-3 inline-flex items-center gap-1.5 font-bold"
+            title="Restore products from JSON backup"
+          >
+            <Upload className="w-3.5 h-3.5 text-emerald-600" />
+            <span>{restoring ? 'Restoring...' : 'Restore'}</span>
+          </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleImportRestore}
+            className="hidden"
+          />
+
           <button
             type="button"
             onClick={() => setIsImporterOpen(true)}

@@ -661,3 +661,119 @@ def bulk_parse_meesho_products(
             continue
 
     return {"items": parsed_items, "count": len(parsed_items)}
+
+
+@router.get("/admin/backup-all")
+def backup_all_products(
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
+    products = db.query(Product).options(
+        joinedload(Product.images),
+        joinedload(Product.variants),
+        joinedload(Product.category)
+    ).all()
+
+    backup_data = []
+    for p in products:
+        backup_data.append({
+            "name": p.name,
+            "description": p.description,
+            "category_slug": p.category.slug if p.category else None,
+            "purchase_cost": p.purchase_cost,
+            "selling_price": p.selling_price,
+            "original_price": p.original_price,
+            "discount_percentage": p.discount_percentage,
+            "meesho_link": p.meesho_link,
+            "is_featured": p.is_featured,
+            "is_active": p.is_active,
+            "cod_available": p.cod_available,
+            "stock_quantity": p.stock_quantity,
+            "images": [img.image_url for img in p.images],
+            "sizes": [v.value for v in p.variants if v.variant_type == "size"],
+            "colors": [v.value for v in p.variants if v.variant_type == "color"]
+        })
+
+    return {"count": len(backup_data), "products": backup_data}
+
+
+class RestoreProductsRequest(BaseModel):
+    products: List[Dict[str, Any]]
+
+
+@router.post("/admin/restore-all")
+def restore_all_products(
+    data: RestoreProductsRequest,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
+    from ....models.category import Category
+    restored_count = 0
+
+    for item in data.products:
+        name = item.get("name")
+        if not name:
+            continue
+
+        existing = db.query(Product).filter(Product.name == name).first()
+        if existing:
+            continue
+
+        cat_slug = item.get("category_slug")
+        cat = db.query(Category).filter(Category.slug == cat_slug).first() if cat_slug else None
+
+        slug = make_slug(name, db)
+        cost = float(item.get("purchase_cost", 0.0))
+        selling = float(item.get("selling_price", 0.0))
+        orig = float(item.get("original_price") or (selling + 200))
+        disc = round(((orig - selling) / orig) * 100, 1) if orig > selling else 0.0
+
+        p = Product(
+            name=name,
+            slug=slug,
+            description=item.get("description"),
+            category_id=cat.id if cat else None,
+            purchase_cost=cost,
+            selling_price=selling,
+            original_price=orig,
+            discount_percentage=disc,
+            meesho_link=item.get("meesho_link"),
+            is_active=item.get("is_active", True),
+            is_featured=item.get("is_featured", False),
+            cod_available=item.get("cod_available", True),
+            stock_quantity=item.get("stock_quantity", 100)
+        )
+        db.add(p)
+        db.flush()
+
+        for idx, img_url in enumerate(item.get("images", [])):
+            if img_url:
+                db.add(ProductImage(
+                    product_id=p.id,
+                    image_url=img_url,
+                    is_primary=(idx == 0),
+                    sort_order=idx
+                ))
+
+        for s in item.get("sizes", []):
+            if s:
+                db.add(ProductVariant(
+                    product_id=p.id,
+                    variant_type="size",
+                    value=s,
+                    is_available=True
+                ))
+
+        for c in item.get("colors", []):
+            if c:
+                db.add(ProductVariant(
+                    product_id=p.id,
+                    variant_type="color",
+                    value=c,
+                    is_available=True
+                ))
+
+        restored_count += 1
+
+    db.commit()
+    return {"success": True, "restored_count": restored_count}

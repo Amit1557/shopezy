@@ -73,6 +73,8 @@ export const productsAdminAPI = {
   quickPublish: (data) => api.post('/products/quick-publish', data),
   bulkPublish: (data) => api.post('/products/bulk-publish', data),
   bulkParseMeesho: (data) => api.post('/products/bulk-parse-meesho', data),
+  backupAll: () => api.get('/products/admin/backup-all'),
+  restoreAll: (data) => api.post('/products/admin/restore-all', data),
 }
 
 // Customer Auth
