@@ -40,6 +40,11 @@ def get_public_products(
     search: Optional[str] = None,
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
+    min_rating: Optional[float] = None,
+    min_discount: Optional[float] = None,
+    size: Optional[str] = None,
+    color: Optional[str] = None,
+    gender: Optional[str] = None,
     sort: Optional[str] = "newest",
     featured: Optional[bool] = None,
     db: Session = Depends(get_db),
@@ -61,6 +66,32 @@ def get_public_products(
         q = q.filter(Product.selling_price >= min_price)
     if max_price is not None:
         q = q.filter(Product.selling_price <= max_price)
+    if min_rating is not None:
+        q = q.filter(Product.average_rating >= min_rating)
+    if min_discount is not None:
+        q = q.filter(Product.discount_percentage >= min_discount)
+    if size:
+        q = q.filter(
+            Product.variants.any(
+                and_(ProductVariant.variant_type == "size", ProductVariant.value == size)
+            )
+        )
+    if color:
+        q = q.filter(
+            or_(
+                Product.name.ilike(f"%{color}%"),
+                Product.variants.any(
+                    and_(ProductVariant.variant_type == "color", ProductVariant.value.ilike(f"%{color}%"))
+                ),
+            )
+        )
+    if gender:
+        q = q.filter(
+            or_(
+                Product.name.ilike(f"%{gender}%"),
+                Product.description.ilike(f"%{gender}%"),
+            )
+        )
     if featured is not None:
         q = q.filter(Product.is_featured == featured)
 
