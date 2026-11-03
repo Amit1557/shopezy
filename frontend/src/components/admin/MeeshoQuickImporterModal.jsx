@@ -123,8 +123,19 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
       if (initialData.images && initialData.images.length > 0) {
         setImages(initialData.images)
       }
-      if (initialData.sizes && initialData.sizes.length > 0) {
+      if (initialData.sizes && initialData.sizes.length > 0 && !(initialData.sizes.length === 1 && initialData.sizes[0] === 'Free Size')) {
         setSizes(initialData.sizes)
+      } else {
+        const lowerName = (initialData.name || '').toLowerCase()
+        if (/jean|cargo|jogger|pant|trouser|bottom/i.test(lowerName)) {
+          setSizes(['30', '32', '34', '36'])
+        } else if (/shoe|sneaker|footwear|sandal/i.test(lowerName)) {
+          setSizes(['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10'])
+        } else if (/shirt|kurti|dress|t-shirt|top/i.test(lowerName)) {
+          setSizes(['S', 'M', 'L', 'XL', 'XXL'])
+        } else if (initialData.sizes && initialData.sizes.length > 0) {
+          setSizes(initialData.sizes)
+        }
       }
       if (initialData.description) setDescription(initialData.description)
       toast.success('⚡ Product loaded from Meesho via 1-Click Bookmarklet!')
@@ -210,9 +221,18 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
       if (data.meesho_link) setMeeshoLink(data.meesho_link)
       if (data.description) setDescription(data.description)
       
-      // Auto-set intelligent sizes (IND-6..10 for shoes, S..XXL for apparel)
+      // Auto-set intelligent sizes (IND-6..10 for shoes, 30..36 for bottomwear, S..XXL for apparel)
       if (data.sizes && data.sizes.length > 0) {
         setSizes(data.sizes)
+      } else {
+        const lowerName = (data.name || rawText).toLowerCase()
+        if (/jean|cargo|jogger|pant|trouser|bottom/i.test(lowerName)) {
+          setSizes(['30', '32', '34', '36'])
+        } else if (/shoe|sneaker|footwear/i.test(lowerName)) {
+          setSizes(['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10'])
+        } else if (/shirt|kurti|dress|t-shirt|top/i.test(lowerName)) {
+          setSizes(['S', 'M', 'L', 'XL', 'XXL'])
+        }
       }
 
       // Auto-attach photos
@@ -275,7 +295,9 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
 
   // Quick Preset Sizes
   const applySizePreset = (presetType) => {
-    if (presetType === 'shoes') {
+    if (presetType === 'jeans') {
+      setSizes(['28', '30', '32', '34', '36', '38'])
+    } else if (presetType === 'shoes') {
       setSizes(['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10'])
     } else if (presetType === 'clothing') {
       setSizes(['S', 'M', 'L', 'XL', 'XXL'])
@@ -804,11 +826,18 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
                 </div>
               </div>
 
-              {/* AVAILABLE SIZES (Shoes IND-6..10, Clothes S..XXL) */}
+              {/* AVAILABLE SIZES (Jeans 28..38, Shoes IND-6..10, Clothes S..XXL) */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-1">
                   <label className="text-xs font-bold text-gray-700">Available Sizes</label>
-                  <div className="flex gap-1">
+                  <div className="flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      onClick={() => applySizePreset('jeans')}
+                      className="text-[10px] bg-purple-50 text-purple-700 hover:bg-purple-100 px-2 py-0.5 rounded font-bold transition-colors"
+                    >
+                      👖 Jeans (28-36)
+                    </button>
                     <button
                       type="button"
                       onClick={() => applySizePreset('shoes')}
@@ -834,7 +863,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 items-center">
-                  {['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10', 'S', 'M', 'L', 'XL', 'XXL', '3XL', 'Free Size'].map((s) => {
+                  {['28', '30', '32', '34', '36', '38', 'IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10', 'S', 'M', 'L', 'XL', 'XXL', '3XL', 'Free Size'].map((s) => {
                     const active = sizes.includes(s)
                     return (
                       <button
@@ -843,7 +872,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
                         onClick={() => toggleSize(s)}
                         className={`text-xs px-2.5 py-1 rounded-md font-bold transition-colors ${
                           active
-                            ? 'bg-purple-600 text-white shadow-sm'
+                            ? 'bg-purple-600 text-white shadow-sm ring-1 ring-purple-600'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >

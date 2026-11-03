@@ -154,15 +154,22 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
             if spec.lower() == "color" and val:
                 result["colors"] = [c.strip() for c in val.split('/')]
 
-    # Sizes extraction - support Indian shoe sizes IND-6..10 as well as apparel S..XXL
+    # Sizes extraction - support Indian shoe sizes IND-6..10, waist sizes 28..40, and apparel S..XXL
     found_sizes = []
     
-    # 1. Indian shoe sizes e.g. IND-6, IND-7, IND-8, IND-9, IND-10 or UK-6, UK 7
+    # 1. Bottomwear waist sizes e.g. 28, 30, 32, 34, 36, 38, 40 (for Jeans, Cargo, Joggers, Pants)
+    is_bottomwear = any(k in lower_text for k in ['jean', 'cargo', 'jogger', 'pant', 'trouser', 'chinos', 'bottomwear'])
+    if is_bottomwear:
+        waist_matches = re.findall(r'\b(2[8]|3[02468]|4[02])\b', raw_input)
+        if waist_matches:
+            found_sizes.extend(list(dict.fromkeys(waist_matches)))
+    
+    # 2. Indian shoe sizes e.g. IND-6, IND-7, IND-8, IND-9, IND-10 or UK-6, UK 7
     ind_sizes = re.findall(r'(?:IND|UK)\s*[-:]?\s*([0-9]{1,2})', raw_input, re.IGNORECASE)
     if ind_sizes:
         found_sizes.extend([f"IND-{s}" for s in dict.fromkeys(ind_sizes)])
     
-    # 2. Apparel sizes
+    # 3. Apparel sizes
     sizes_match = re.search(r'Sizes?\s*:\s*([^\n\r]+(?:\n[^\n\r]+)*)', raw_input, re.IGNORECASE)
     if sizes_match:
         sizes_text = sizes_match.group(1)
@@ -180,7 +187,9 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
         result["sizes"] = list(dict.fromkeys(found_sizes))
     else:
         cat = result["category_slug"]
-        if cat in ["bags-footwear", "footwear"] or any(k in lower_text for k in ['shoe', 'sneaker', 'sandal', 'slipper', 'footwear']):
+        if is_bottomwear:
+            result["sizes"] = ["30", "32", "34", "36"]
+        elif cat in ["bags-footwear", "footwear"] or any(k in lower_text for k in ['shoe', 'sneaker', 'sandal', 'slipper', 'footwear']):
             result["sizes"] = ["IND-6", "IND-7", "IND-8", "IND-9", "IND-10"]
         elif cat in ["men", "mens-fashion", "women-western", "womens-fashion", "kurti-saree-lehenga"]:
             result["sizes"] = ["S", "M", "L", "XL", "XXL"]
