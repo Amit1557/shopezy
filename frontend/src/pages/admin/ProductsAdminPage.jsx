@@ -146,35 +146,49 @@ export default function ProductsAdminPage() {
         </div>
       </div>
 
-      {/* 1-Click Quick Import Callout Banner */}
-      <div className="bg-gradient-to-r from-purple-900 via-brand-800 to-purple-800 rounded-2xl p-4 sm:p-5 text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg border border-purple-700">
+      {/* Tareeka A: 1-Click Meesho Direct Bookmarklet Importer */}
+      <div className="bg-gradient-to-r from-purple-950 via-purple-900 to-pink-800 rounded-2xl p-4 sm:p-5 text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl border border-purple-700">
         <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/20">
-            <Sparkles className="w-6 h-6 text-yellow-300" />
+          <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/25 shadow-inner">
+            <Sparkles className="w-6 h-6 text-yellow-300 animate-pulse" />
           </div>
           <div>
-            <h2 className="text-sm sm:text-base font-black">Fast Single & Bulk Meesho Importer</h2>
-            <p className="text-xs text-purple-200 mt-0.5">
-              List products one-by-one or import 10-20 products simultaneously from Meesho or CSV in 1 click!
+            <div className="flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-black tracking-tight">
+                ⚡ 1-Click Meesho Direct Auto-Importer
+              </h2>
+              <span className="text-[10px] bg-yellow-400 text-purple-950 font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                Tareeka A (Recommended)
+              </span>
+            </div>
+            <p className="text-xs text-purple-100 mt-1 max-w-2xl leading-relaxed">
+              Neeche diye gaye yellow button ko apne Chrome Bookmarks bar (press <kbd className="px-1.5 py-0.5 bg-white/20 rounded font-mono text-[11px] font-bold">Ctrl+Shift+B</kbd>) me drag karein. Meesho par koi bhi item dekhte waqt bas 1 click karein—Photos, Meesho Price, Sizes aur Category turant auto-import ho jayenge!
             </p>
           </div>
         </div>
-        <div className="flex gap-2 shrink-0">
+
+        <div className="flex items-center gap-2.5 shrink-0">
+          <a
+            href={`javascript:(function(){try{var t=document.querySelector('h1')?.innerText||document.title.replace(/\\s*\\|.*$/,'').trim();var p=0;var pm=document.body.innerText.match(/₹\\s*([0-9]+)/);if(pm)p=parseFloat(pm[1]);var imgs=[];document.querySelectorAll('img[src*="images.meesho.com"]').forEach(function(el){var s=el.src;if(s&&!s.includes('avatar')&&!s.includes('icon')&&imgs.indexOf(s)===-1){var c=s.replace(/_[0-9]+\\.(jpg|webp|jpeg)/,'.jpg');if(imgs.indexOf(c)===-1)imgs.push(c);}});var sizes=[];var sm=document.body.innerText.match(/\\b(IND-\\d+|UK-\\d+|XS|S|M|L|XL|XXL|3XL|Free Size)\\b/gi);if(sm){sm.forEach(function(s){var u=s.toUpperCase();if(sizes.indexOf(u)===-1&&sizes.length<8)sizes.push(u);});}var d={name:t,purchase_cost:p,meesho_link:window.location.href,images:imgs.slice(0,6),sizes:sizes.length?sizes:['Free Size']};window.open('${typeof window !== 'undefined' ? window.location.origin : ''}/admin/products?importData='+encodeURIComponent(JSON.stringify(d)),'_blank');}catch(e){alert('Error: '+e.message);}})();`}
+            onClick={(e) => {
+              if (e.button === 0) {
+                toast('📌 Is yellow button ko apne Chrome Bookmarks Bar me drag & drop karein!', { icon: '💡' })
+              }
+            }}
+            className="bg-yellow-400 hover:bg-yellow-300 text-purple-950 font-black text-xs sm:text-sm py-3 px-5 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95 flex items-center gap-2 cursor-grab active:cursor-grabbing border-2 border-yellow-200"
+            title="Drag this button to your Chrome Bookmarks Bar"
+          >
+            <Sparkles className="w-4 h-4 text-purple-950 fill-purple-950" />
+            <span>⚡ Add to ShopEzy</span>
+          </a>
+
           <button
             type="button"
             onClick={() => setIsImporterOpen(true)}
-            className="bg-white hover:bg-purple-50 text-purple-900 font-black text-xs py-2.5 px-4 rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+            className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs py-3 px-3.5 rounded-xl border border-white/20 transition-all cursor-pointer"
+            title="Open Importer Popup"
           >
-            <Sparkles className="w-3.5 h-3.5 text-purple-700" />
-            Single Import
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsBulkOpen(true)}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs py-2.5 px-4 rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-            Bulk Import (1-Click)
+            Open Popup
           </button>
         </div>
       </div>
