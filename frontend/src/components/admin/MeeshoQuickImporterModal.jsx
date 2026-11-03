@@ -2,12 +2,57 @@ import { useState, useEffect } from 'react'
 import {
   Sparkles, Link as LinkIcon, DollarSign, Image as ImageIcon,
   CheckCircle, ArrowRight, ExternalLink, X, Plus, Trash2,
-  TrendingUp, ShieldCheck, RefreshCw, Upload, AlertCircle
+  TrendingUp, ShieldCheck, RefreshCw, Upload, AlertCircle,
+  Clipboard, HelpCircle, Check
 } from 'lucide-react'
 import { productsAdminAPI, categoriesAPI } from '../../services/api'
 import { formatPrice } from '../../utils/helpers'
 import LoadingSpinner from '../ui/LoadingSpinner'
 import toast from 'react-hot-toast'
+
+// Curated high-converting showcase photos by category
+const CATEGORY_SHOWCASE_PHOTOS = {
+  'mens-fashion': [
+    'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
+  ],
+  'womens-fashion': [
+    'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=800&q=80',
+  ],
+  'footwear': [
+    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1607522370275-f14206abe5d3?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=800&q=80',
+  ],
+  'accessories': [
+    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1508296695146-257a814070b4?auto=format&fit=crop&w=800&q=80',
+  ],
+  'home-kitchen': [
+    'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80',
+  ],
+  'kids-fashion': [
+    'https://images.unsplash.com/photo-1622290291468-a28f7a7dc6a8?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1519457431-44ccd64a579b?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?auto=format&fit=crop&w=800&q=80',
+  ],
+  'beauty-lifestyle': [
+    'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=800&q=80',
+  ]
+}
 
 export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess }) {
   const [categories, setCategories] = useState([])
@@ -19,6 +64,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
 
   // Input fields
   const [rawText, setRawText] = useState('')
+  const [quickCost, setQuickCost] = useState('')
   const [name, setName] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [categorySlug, setCategorySlug] = useState('mens-fashion')
@@ -28,7 +74,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
   const [meeshoLink, setMeeshoLink] = useState('')
   const [images, setImages] = useState([])
   const [imageUrlInput, setImageUrlInput] = useState('')
-  const [sizes, setSizes] = useState(['S', 'M', 'L', 'XL'])
+  const [sizes, setSizes] = useState(['S', 'M', 'L', 'XL', 'XXL'])
   const [newSize, setNewSize] = useState('')
   const [description, setDescription] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -37,9 +83,11 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
   useEffect(() => {
     if (isOpen) {
       categoriesAPI.getAll(false).then(res => {
-        setCategories(res.data || [])
-        if (res.data?.length > 0 && !categoryId) {
-          setCategoryId(String(res.data[0].id))
+        const catList = res.data || []
+        setCategories(catList)
+        if (catList.length > 0 && !categoryId) {
+          setCategoryId(String(catList[0].id))
+          setCategorySlug(catList[0].slug)
         }
       }).catch(() => {})
     }
@@ -63,8 +111,8 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
               const formData = new FormData()
               formData.append('file', blob, `pasted-image-${Date.now()}.png`)
               const res = await productsAdminAPI.uploadImage(formData)
-              setImages(prev => [...prev, res.data.image_url])
-              toast.success('Pasted image attached successfully!')
+              setImages(prev => [res.data.image_url, ...prev])
+              toast.success('Pasted Meesho image attached successfully!')
             } catch {
               toast.error('Failed to attach pasted image')
             } finally {
@@ -86,6 +134,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
   const resetForm = () => {
     setPublishedProduct(null)
     setRawText('')
+    setQuickCost('')
     setName('')
     setPurchaseCost('')
     setSellingPrice('')
@@ -93,7 +142,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
     setMeeshoLink('')
     setImages([])
     setImageUrlInput('')
-    setSizes(['S', 'M', 'L', 'XL'])
+    setSizes(['S', 'M', 'L', 'XL', 'XXL'])
     setDescription('')
   }
 
@@ -106,21 +155,32 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
 
     setParsing(true)
     try {
+      const costToSend = quickCost ? parseFloat(quickCost) : (purchaseCost ? parseFloat(purchaseCost) : undefined)
       const res = await productsAdminAPI.parseMeesho({
         raw_text: rawText.trim(),
-        meesho_cost: purchaseCost ? parseFloat(purchaseCost) : undefined
+        meesho_cost: costToSend
       })
       const data = res.data
 
       if (data.name) setName(data.name)
-      if (data.purchase_cost) setPurchaseCost(String(data.purchase_cost))
+      if (data.purchase_cost) {
+        setPurchaseCost(String(data.purchase_cost))
+        setQuickCost(String(data.purchase_cost))
+      }
       if (data.selling_price) setSellingPrice(String(data.selling_price))
       if (data.original_price) setOriginalPrice(String(data.original_price))
       if (data.meesho_link) setMeeshoLink(data.meesho_link)
       if (data.description) setDescription(data.description)
-      if (data.sizes?.length > 0) setSizes(data.sizes)
-      if (data.images?.length > 0) {
-        setImages(prev => Array.from(new Set([...prev, ...data.images])))
+      
+      // Auto-set intelligent sizes
+      if (data.sizes && data.sizes.length > 0) {
+        setSizes(data.sizes)
+      }
+
+      // Auto-attach photos
+      if (data.images && data.images.length > 0) {
+        const cleanImgs = data.images.filter(img => img && img.startsWith('http') && !img.includes('meesho.com/p/'))
+        setImages(cleanImgs)
       }
 
       // Match category
@@ -130,24 +190,75 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
         if (match) setCategoryId(String(match.id))
       }
 
-      toast.success('Meesho details extracted! Set your selling price below and click publish.')
+      toast.success('Meesho details extracted! Price, sizes & photos ready.')
     } catch {
-      toast.error('Could not auto-parse Meesho text. You can still fill in the details manually.')
+      toast.error('Could not auto-parse Meesho text. You can fill details manually.')
     } finally {
       setParsing(false)
     }
   }
 
-  // Handle local file upload
+  // Handle Category Change & sync default sizes and photos
+  const handleCategoryChange = (newCatId) => {
+    setCategoryId(newCatId)
+    const cat = categories.find(c => String(c.id) === String(newCatId))
+    if (!cat) return
+    const slug = cat.slug
+    setCategorySlug(slug)
+
+    // Auto-update sizes when category changes
+    if (slug === 'footwear') {
+      setSizes(['UK 6', 'UK 7', 'UK 8', 'UK 9', 'UK 10'])
+    } else if (slug === 'mens-fashion' || slug === 'womens-fashion') {
+      setSizes(['S', 'M', 'L', 'XL', 'XXL'])
+    } else if (slug === 'kids-fashion') {
+      setSizes(['2-3 Yrs', '3-4 Yrs', '4-5 Yrs', '5-6 Yrs'])
+    } else {
+      setSizes(['Free Size'])
+    }
+
+    // Auto-suggest image if no custom image added yet
+    if (images.length === 0 && CATEGORY_SHOWCASE_PHOTOS[slug]) {
+      setImages([CATEGORY_SHOWCASE_PHOTOS[slug][0]])
+    }
+  }
+
+  // Handle Cost Change -> auto calculate selling price & MRP
+  const handleCostChange = (val) => {
+    setPurchaseCost(val)
+    const cost = parseFloat(val) || 0
+    if (cost > 0) {
+      const suggestedSell = cost <= 250 ? cost + 200 : (cost <= 500 ? cost + 280 : Math.round(cost * 1.55))
+      const roundedSell = Math.max(cost + 150, Math.round(suggestedSell / 10) * 10 - 1)
+      setSellingPrice(String(roundedSell))
+      setOriginalPrice(String(roundedSell + 400))
+    }
+  }
+
+  // Quick Preset Sizes
+  const applySizePreset = (presetType) => {
+    if (presetType === 'clothing') {
+      setSizes(['S', 'M', 'L', 'XL', 'XXL'])
+    } else if (presetType === 'shoes') {
+      setSizes(['UK 6', 'UK 7', 'UK 8', 'UK 9', 'UK 10'])
+    } else if (presetType === 'free') {
+      setSizes(['Free Size'])
+    } else if (presetType === 'kids') {
+      setSizes(['2-3 Yrs', '3-4 Yrs', '4-5 Yrs', '5-6 Yrs'])
+    }
+  }
+
+  // Image Upload via File
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
+
     setUploading(true)
     try {
       const formData = new FormData()
       formData.append('file', file)
       const res = await productsAdminAPI.uploadImage(formData)
-      setImages(prev => [...prev, res.data.image_url])
+      setImages(prev => [res.data.image_url, ...prev])
       toast.success('Image uploaded!')
     } catch {
       toast.error('Image upload failed')
@@ -161,8 +272,12 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
   const handleAddImageUrl = () => {
     if (!imageUrlInput.trim()) return
     const url = imageUrlInput.trim()
+    if (url.includes('meesho.com/p/')) {
+      toast.error('This is a webpage link, not a photo URL. Right click the photo on Meesho and choose "Copy image" instead!')
+      return
+    }
     if (!images.includes(url)) {
-      setImages(prev => [...prev, url])
+      setImages(prev => [url, ...prev])
       setImageUrlInput('')
       toast.success('Image URL added')
     }
@@ -171,6 +286,14 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
   // Remove image
   const removeImage = (idx) => {
     setImages(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  // Select showcase photo
+  const selectShowcasePhoto = (photoUrl) => {
+    if (!images.includes(photoUrl)) {
+      setImages(prev => [photoUrl, ...prev])
+      toast.success('Photo added as main photo!')
+    }
   }
 
   // Size toggle
@@ -219,7 +342,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
         category_slug: categorySlug,
         description: description || undefined,
         meesho_link: meeshoLink || undefined,
-        images: images,
+        images: images.filter(img => img && img.startsWith('http') && !img.includes('meesho.com/p/')),
         sizes: sizes.length > 0 ? sizes : ['Free Size'],
         colors: [],
         is_active: true,
@@ -240,6 +363,8 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
     }
   }
 
+  const showcaseOptions = CATEGORY_SHOWCASE_PHOTOS[categorySlug] || CATEGORY_SHOWCASE_PHOTOS['mens-fashion']
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-fade-in">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-purple-100 my-auto">
@@ -248,75 +373,86 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
         <div className="bg-gradient-to-r from-purple-800 to-brand-600 px-6 py-4 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-md">
-              <Sparkles className="w-5 h-5 text-yellow-300" />
+              <Sparkles className="w-5 h-5 text-amber-300" />
             </div>
             <div>
-              <h2 className="text-base font-black tracking-wide">1-Click Fast Meesho Importer</h2>
-              <p className="text-xs text-purple-200">Auto-import Meesho product, set your selling price & publish in 1 click</p>
+              <h2 className="font-black text-base flex items-center gap-2">
+                1-Click Fast Meesho Importer
+              </h2>
+              <p className="text-[11px] text-purple-100">
+                Paste link or copied text, set price & publish in 1 click
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-5">
-          
-          {/* SUCCESS SCREEN IF PUBLISHED */}
-          {publishedProduct ? (
-            <div className="text-center py-6 space-y-5 animate-fade-in">
-              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
-                <CheckCircle className="w-10 h-10" />
-              </div>
+        <div className="p-6 overflow-y-auto space-y-5">
 
+          {publishedProduct ? (
+            /* SUCCESS VIEW */
+            <div className="py-8 text-center space-y-4">
+              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                <CheckCircle className="w-9 h-9" />
+              </div>
               <div>
-                <span className="badge badge-success text-xs font-bold px-3 py-1 mb-2 inline-block">
-                  Live on Storefront
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                  Successfully Published
                 </span>
-                <h3 className="text-xl font-black text-gray-900 mt-1">{publishedProduct.name}</h3>
+                <h3 className="text-xl font-black text-gray-900 mt-2">
+                  {publishedProduct.name}
+                </h3>
                 <p className="text-xs text-gray-500 mt-1">
-                  Product successfully added to catalog and published with Free Cash on Delivery.
+                  Live on your store with Free Cash on Delivery!
                 </p>
               </div>
 
-              {/* Price & Margin Pill */}
-              <div className="bg-purple-50 rounded-xl p-4 max-w-md mx-auto border border-purple-100 grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <div className="text-[10px] text-gray-500 uppercase font-bold">Meesho Cost</div>
-                  <div className="text-sm font-extrabold text-gray-700">{formatPrice(publishedProduct.purchase_cost)}</div>
+              {/* Profit Card */}
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-4 rounded-xl border border-emerald-200 max-w-md mx-auto text-left">
+                <div className="flex justify-between items-center text-xs pb-2 border-b border-emerald-100">
+                  <span className="text-gray-600">Meesho Cost:</span>
+                  <span className="font-bold text-gray-800">
+                    {formatPrice(publishedProduct.purchase_cost || 0)}
+                  </span>
                 </div>
-                <div>
-                  <div className="text-[10px] text-gray-500 uppercase font-bold">Selling Price</div>
-                  <div className="text-base font-black text-brand-600">{formatPrice(publishedProduct.selling_price)}</div>
+                <div className="flex justify-between items-center text-xs py-2 border-b border-emerald-100">
+                  <span className="text-gray-600">Customer Selling Price:</span>
+                  <span className="font-black text-brand-600 text-sm">
+                    {formatPrice(publishedProduct.selling_price)}
+                  </span>
                 </div>
-                <div>
-                  <div className="text-[10px] text-emerald-600 uppercase font-bold">Your Profit</div>
-                  <div className="text-sm font-black text-emerald-600">
-                    +{formatPrice(publishedProduct.selling_price - publishedProduct.purchase_cost)}
-                  </div>
+                <div className="flex justify-between items-center text-sm pt-2">
+                  <span className="font-bold text-emerald-800">Your Expected Profit:</span>
+                  <span className="font-black text-emerald-600 text-base">
+                    +{formatPrice(publishedProduct.selling_price - (publishedProduct.purchase_cost || 0))}
+                  </span>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
-                <a
-                  href={`/product/${publishedProduct.slug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-primary text-xs py-2.5 px-5 inline-flex items-center justify-center gap-2 font-bold shadow-brand"
-                >
-                  <ExternalLink className="w-4 h-4" /> View Live on Website
-                </a>
+              <div className="flex gap-3 justify-center pt-2">
                 <button
+                  type="button"
                   onClick={resetForm}
-                  className="btn-secondary text-xs py-2.5 px-5 font-bold inline-flex items-center justify-center gap-1.5"
+                  className="btn-secondary text-xs py-2 px-4 flex items-center gap-1.5 font-bold"
                 >
-                  <Plus className="w-4 h-4" /> Import Another Meesho Product
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Import Another Product
                 </button>
+                <a
+                  href={`/product/${publishedProduct.slug || publishedProduct.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-primary text-xs py-2 px-4 flex items-center gap-1.5 font-bold"
+                >
+                  <span>View on Live Store</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
               </div>
             </div>
           ) : (
@@ -328,28 +464,50 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                     <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] flex items-center justify-center font-bold">1</span>
                     Paste Meesho Product Link or Copied Description
                   </label>
-                  <span className="text-[11px] text-purple-700 font-medium">Smart Auto-Detect</span>
+                  <span className="text-[11px] text-purple-700 font-semibold bg-purple-100 px-2 py-0.5 rounded-full">
+                    Auto-Extract Details
+                  </span>
                 </div>
 
-                <div className="relative">
+                <div className="space-y-2">
                   <textarea
-                    rows={3}
+                    rows={2}
                     value={rawText}
                     onChange={(e) => setRawText(e.target.value)}
-                    placeholder="Paste Meesho link (e.g. https://www.meesho.com/s/p/...) or WhatsApp share text..."
+                    placeholder="Paste Meesho product URL (e.g. https://www.meesho.com/.../p/...) or copied description..."
                     className="input-field text-xs resize-none bg-white font-mono leading-relaxed"
                   />
+
+                  {/* Optional Quick Cost Input */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-purple-200">
+                      <span className="text-[11px] font-bold text-gray-700">Meesho Cost (₹):</span>
+                      <input
+                        type="number"
+                        value={quickCost}
+                        onChange={(e) => {
+                          setQuickCost(e.target.value)
+                          handleCostChange(e.target.value)
+                        }}
+                        placeholder="e.g. 320"
+                        className="w-20 text-xs font-bold text-purple-700 border-none p-0 focus:ring-0 outline-none"
+                      />
+                    </div>
+                    <span className="text-[10px] text-gray-500">
+                      (Type cost here or paste text — profit will auto-calculate!)
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex justify-between items-center gap-2 pt-1">
                   <p className="text-[11px] text-gray-500">
-                    Paste any Meesho URL or text. We will extract title, cost, sizes & images.
+                    Extracts title, sizes (S, M, L, XL or shoes), category & photos automatically.
                   </p>
                   <button
                     type="button"
                     onClick={handleParse}
                     disabled={parsing || !rawText.trim()}
-                    className="btn-primary text-xs py-1.5 px-4 font-bold flex items-center gap-1.5 shrink-0"
+                    className="btn-primary text-xs py-1.5 px-4 font-bold flex items-center gap-1.5 shrink-0 shadow-sm"
                   >
                     {parsing ? <LoadingSpinner size="sm" /> : <Sparkles className="w-3.5 h-3.5" />}
                     Extract Details
@@ -373,7 +531,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                   <label className="text-xs font-bold text-gray-700">Category *</label>
                   <select
                     value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
                     className="input-field text-xs"
                   >
                     {categories.map((c) => (
@@ -383,23 +541,31 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                 </div>
               </div>
 
-              {/* STEP 2: PHOTO / IMAGES (As requested by user: photo auto-upload & copy-paste) */}
-              <div className="space-y-2 border-t border-gray-100 pt-3">
+              {/* STEP 2: PHOTO / IMAGES */}
+              <div className="space-y-2.5 border-t border-gray-100 pt-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-black text-gray-900 flex items-center gap-1.5">
                     <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] flex items-center justify-center font-bold">2</span>
                     Product Photo(s)
                   </label>
-                  <span className="text-[10px] text-gray-400">
-                    Tip: Press <kbd className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 border font-mono">Ctrl+V</kbd> anywhere to paste copied Meesho image
+                  <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    💡 Tip: Meesho photo par Right-Click ➔ "Copy image" karein, yahan Ctrl+V dabayein!
                   </span>
                 </div>
 
-                {/* Image Thumbnails */}
+                {/* Attached Images */}
                 <div className="flex flex-wrap gap-2 items-center">
                   {images.map((img, idx) => (
-                    <div key={idx} className="relative group w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 shrink-0">
-                      <img src={img} alt="Product" className="w-full h-full object-cover" />
+                    <div key={idx} className="relative group w-16 h-16 rounded-lg overflow-hidden border-2 border-purple-300 bg-gray-50 shrink-0 shadow-sm">
+                      <img
+                        src={img}
+                        alt="Product"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Replace broken image with high quality category photo
+                          e.target.src = showcaseOptions[0]
+                        }}
+                      />
                       {idx === 0 && (
                         <span className="absolute bottom-0 inset-x-0 bg-purple-600 text-white text-[8px] font-black text-center py-0.5">
                           MAIN
@@ -409,6 +575,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                         type="button"
                         onClick={() => removeImage(idx)}
                         className="absolute top-1 right-1 bg-red-600 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove photo"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -430,13 +597,13 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                         value={imageUrlInput}
                         onChange={(e) => setImageUrlInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddImageUrl() } }}
-                        placeholder="Paste image URL (e.g. from Meesho)..."
+                        placeholder="Paste image link or right click Meesho photo..."
                         className="input-field text-xs flex-1"
                       />
                       <button
                         type="button"
                         onClick={handleAddImageUrl}
-                        className="btn-secondary text-xs px-2.5 font-bold shrink-0"
+                        className="btn-secondary text-xs px-3 py-1 font-bold shrink-0"
                       >
                         Add URL
                       </button>
@@ -444,23 +611,50 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                   </div>
                 </div>
 
-                {images.length === 0 && (
-                  <p className="text-[11px] text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200 flex items-center gap-1.5">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    No image added yet. If left blank, a high-quality product photo matching this category will be auto-assigned.
-                  </p>
-                )}
+                {/* 1-Click Pick from Category Showcase Photos */}
+                <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-200 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-gray-700 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-purple-600" />
+                      Or pick from high-converting category photos in 1 click:
+                    </span>
+                    <span className="text-[10px] text-gray-400">Click to set as photo</span>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {showcaseOptions.map((photo, i) => {
+                      const isSelected = images.includes(photo)
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => selectShowcasePhoto(photo)}
+                          className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 shrink-0 transition-transform hover:scale-105 ${
+                            isSelected ? 'border-purple-600 ring-2 ring-purple-200' : 'border-gray-200 opacity-80 hover:opacity-100'
+                          }`}
+                        >
+                          <img src={photo} alt="Showcase" className="w-full h-full object-cover" />
+                          {isSelected && (
+                            <span className="absolute inset-0 bg-purple-600/30 flex items-center justify-center text-white">
+                              <Check className="w-4 h-4 stroke-[3]" />
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
               </div>
 
-              {/* STEP 3: PRICE SETTING & PROFIT MARGIN (Under user's direct control) */}
-              <div className="bg-gradient-to-br from-emerald-50/70 to-purple-50/70 p-4 rounded-xl border border-emerald-200 space-y-3">
+              {/* STEP 3: PRICING & MARGIN CONTROL */}
+              <div className="bg-gradient-to-br from-purple-50/50 to-pink-50/40 p-4 rounded-xl border border-purple-100 space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-black text-gray-900 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] flex items-center justify-center font-bold">3</span>
+                    <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] flex items-center justify-center font-bold">3</span>
                     Pricing & Profit Margin Control (You Decide)
                   </label>
-                  <span className="badge badge-success text-[10px] font-extrabold flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3" /> Live Margin Calculator
+                  <span className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    Live Margin Calculator
                   </span>
                 </div>
 
@@ -473,14 +667,14 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                       <input
                         type="number"
                         value={purchaseCost}
-                        onChange={(e) => setPurchaseCost(e.target.value)}
+                        onChange={(e) => handleCostChange(e.target.value)}
                         placeholder="e.g. 320"
                         className="input-field pl-7 text-xs font-semibold bg-white"
                       />
                     </div>
                   </div>
 
-                  {/* Customer Selling Price (Highlight) */}
+                  {/* Customer Selling Price */}
                   <div className="space-y-1">
                     <label className="text-xs font-black text-brand-700 flex items-center gap-1">
                       Selling Price (₹) *
@@ -515,7 +709,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                 </div>
 
                 {/* Profit Summary Bar */}
-                <div className="bg-white p-3 rounded-lg border border-emerald-100 flex items-center justify-between text-xs">
+                <div className="bg-white p-3 rounded-lg border border-emerald-100 flex items-center justify-between text-xs shadow-sm">
                   <div>
                     <span className="text-gray-500 text-[11px]">Your Expected Profit per Order:</span>
                     <div className="text-base font-black text-emerald-600">
@@ -534,11 +728,37 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                 </div>
               </div>
 
-              {/* SIZES */}
+              {/* AVAILABLE SIZES */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-700">Available Sizes</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-700">Available Sizes</label>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => applySizePreset('clothing')}
+                      className="text-[10px] bg-purple-50 text-purple-700 hover:bg-purple-100 px-2 py-0.5 rounded font-bold transition-colors"
+                    >
+                      👕 S - XXL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applySizePreset('shoes')}
+                      className="text-[10px] bg-purple-50 text-purple-700 hover:bg-purple-100 px-2 py-0.5 rounded font-bold transition-colors"
+                    >
+                      👟 UK 6 - 10
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applySizePreset('free')}
+                      className="text-[10px] bg-purple-50 text-purple-700 hover:bg-purple-100 px-2 py-0.5 rounded font-bold transition-colors"
+                    >
+                      Free Size
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex flex-wrap gap-1.5 items-center">
-                  {['S', 'M', 'L', 'XL', 'XXL', 'Free Size', 'UK 6', 'UK 7', 'UK 8', 'UK 9'].map((s) => {
+                  {['S', 'M', 'L', 'XL', 'XXL', '3XL', 'Free Size', 'UK 6', 'UK 7', 'UK 8', 'UK 9', 'UK 10'].map((s) => {
                     const active = sizes.includes(s)
                     return (
                       <button
@@ -547,7 +767,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                         onClick={() => toggleSize(s)}
                         className={`text-xs px-2.5 py-1 rounded-md font-bold transition-colors ${
                           active
-                            ? 'bg-purple-600 text-white'
+                            ? 'bg-purple-600 text-white shadow-sm'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
@@ -578,13 +798,12 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                   {publishing ? (
                     <>
                       <LoadingSpinner size="sm" />
-                      Publishing to Live Website...
+                      <span>Publishing to Your Live Store...</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4 text-yellow-300" />
-                      <span>🚀 1-Click Import & Publish to Store Now</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                      <span>🚀 1-Click Import & Publish to Store Now &rarr;</span>
                     </>
                   )}
                 </button>
@@ -600,4 +819,3 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
     </div>
   )
 }
-
