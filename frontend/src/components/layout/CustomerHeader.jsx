@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { ShoppingCart, Search, Menu, X, Package, ChevronDown, User, LogOut, ChevronRight } from 'lucide-react'
 import { useCart } from '../../context/CartContext'
 import { useCustomer } from '../../context/CustomerContext'
@@ -17,6 +17,13 @@ export default function CustomerHeader() {
   const userMenuRef = useRef(null)
   const megaMenuTimeoutRef = useRef(null)
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // Sync search input with URL search param
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    setSearch(params.get('search') || '')
+  }, [location.search])
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -30,7 +37,20 @@ export default function CustomerHeader() {
 
   const handleSearch = (e) => {
     e.preventDefault()
-    if (search.trim()) navigate(`/products?search=${encodeURIComponent(search.trim())}`)
+    const query = search.trim()
+    if (location.pathname === '/products') {
+      const p = new URLSearchParams(location.search)
+      if (query) p.set('search', query)
+      else p.delete('search')
+      p.delete('page')
+      navigate(`/products?${p.toString()}`, { replace: true })
+    } else {
+      if (query) {
+        navigate(`/products?search=${encodeURIComponent(query)}`)
+      } else {
+        navigate('/products')
+      }
+    }
   }
 
   const handleMouseEnterCategory = (cat) => {

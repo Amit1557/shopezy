@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useParams, Link } from 'react-router-dom'
-import { Filter, X, ShoppingBag, ArrowUpDown, SlidersHorizontal } from 'lucide-react'
+import { Filter, X, ShoppingBag, ArrowUpDown, SlidersHorizontal, Search } from 'lucide-react'
 import { productsPublicAPI, categoriesAPI } from '../../services/api'
 import ProductCard from '../../components/customer/ProductCard'
 import MeeshoFilterSidebar from '../../components/customer/MeeshoFilterSidebar'
 import Pagination from '../../components/ui/Pagination'
-import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import EmptyState from '../../components/ui/EmptyState'
 
 const SORT_OPTIONS = [
@@ -28,6 +27,10 @@ export default function ProductsPage() {
   const page = parseInt(searchParams.get('page') || '1')
   const sort = searchParams.get('sort') || 'popular'
   const search = searchParams.get('search') || ''
+  const subcategory = searchParams.get('subcategory') || ''
+  const shape = searchParams.get('shape') || ''
+  const strap = searchParams.get('strap') || ''
+  const fabric = searchParams.get('fabric') || ''
   const categoryId = searchParams.get('category_id') || ''
   const categorySlugParam = searchParams.get('category') || ''
   const activeCategorySlug = slug || categorySlugParam
@@ -46,11 +49,16 @@ export default function ProductsPage() {
   }, [])
 
   useEffect(() => {
+    let isCurrent = true
     const fetchProducts = async () => {
       setLoading(true)
       try {
         const params = { page, sort, limit: 16 }
-        if (search) params.search = search
+
+        // Combine search terms smoothly without page refresh
+        const searchTerms = [search, subcategory, shape, strap, fabric].filter(Boolean).join(' ')
+        if (searchTerms) params.search = searchTerms
+
         if (categoryId) params.category_id = categoryId
         if (activeCategorySlug && activeCategorySlug !== 'popular') params.category_slug = activeCategorySlug
         if (minPrice) params.min_price = minPrice
@@ -63,16 +71,22 @@ export default function ProductsPage() {
         if (featured) params.featured = featured
 
         const res = await productsPublicAPI.getAll(params)
-        setProducts(res.data.products || [])
-        setTotal(res.data.total || 0)
-        setPages(res.data.pages || 1)
+        if (isCurrent) {
+          setProducts(res.data.products || [])
+          setTotal(res.data.total || 0)
+          setPages(res.data.pages || 1)
+        }
       } catch {
-        setProducts([])
+        if (isCurrent) setProducts([])
       } finally {
-        setLoading(false)
+        if (isCurrent) setLoading(false)
       }
     }
+
     fetchProducts()
+    return () => {
+      isCurrent = false
+    }
   }, [searchParams, slug])
 
   const updateParam = (key, value) => {
@@ -80,11 +94,11 @@ export default function ProductsPage() {
     if (value) p.set(key, value)
     else p.delete(key)
     p.delete('page')
-    setSearchParams(p)
+    setSearchParams(p, { replace: true })
   }
 
   const clearFilters = () => {
-    setSearchParams({})
+    setSearchParams({}, { replace: true })
   }
 
   const activeFiltersCount = [
@@ -98,6 +112,10 @@ export default function ProductsPage() {
     gender,
     featured,
     search,
+    subcategory,
+    shape,
+    strap,
+    fabric,
   ].filter(Boolean).length
 
   // Find active category name
@@ -106,7 +124,7 @@ export default function ProductsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
-      {/* Breadcrumb / Top Bar */}
+      {/* Top Bar / Breadcrumb */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-gray-100">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight capitalize">
@@ -118,7 +136,7 @@ export default function ProductsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Mobile Filter Toggle */}
+          {/* Mobile Filter Button */}
           <button
             onClick={() => setShowMobileFilters(true)}
             className={`lg:hidden btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 font-bold ${
@@ -167,13 +185,20 @@ export default function ProductsPage() {
         <div className="flex-1 min-w-0">
           {/* Active Filter Chips */}
           {activeFiltersCount > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 mb-4 p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+            <div className="flex flex-wrap items-center gap-1.5 mb-4 p-2.5 bg-gray-50 rounded-xl border border-gray-100 animate-fade-in">
               <span className="text-[11px] text-gray-500 font-bold uppercase tracking-wider mr-1">Active:</span>
 
               {activeCategorySlug && (
                 <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full font-bold">
                   <span>{categoryTitle}</span>
                   <button onClick={() => updateParam('category', '')} className="hover:text-purple-950"><X className="w-3 h-3" /></button>
+                </span>
+              )}
+
+              {subcategory && (
+                <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full font-bold">
+                  <span>{subcategory}</span>
+                  <button onClick={() => updateParam('subcategory', '')} className="hover:text-purple-950"><X className="w-3 h-3" /></button>
                 </span>
               )}
 
@@ -205,6 +230,27 @@ export default function ProductsPage() {
                 </span>
               )}
 
+              {shape && (
+                <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full font-bold capitalize">
+                  <span>Shape: {shape}</span>
+                  <button onClick={() => updateParam('shape', '')} className="hover:text-purple-950"><X className="w-3 h-3" /></button>
+                </span>
+              )}
+
+              {strap && (
+                <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full font-bold capitalize">
+                  <span>Strap: {strap}</span>
+                  <button onClick={() => updateParam('strap', '')} className="hover:text-purple-950"><X className="w-3 h-3" /></button>
+                </span>
+              )}
+
+              {fabric && (
+                <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full font-bold capitalize">
+                  <span>Fabric: {fabric}</span>
+                  <button onClick={() => updateParam('fabric', '')} className="hover:text-purple-950"><X className="w-3 h-3" /></button>
+                </span>
+              )}
+
               {minRating && (
                 <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full font-bold">
                   <span>{minRating}★ & Above</span>
@@ -228,17 +274,24 @@ export default function ProductsPage() {
 
               <button
                 onClick={clearFilters}
-                className="text-xs font-bold text-red-600 hover:underline ml-auto pl-2"
+                className="text-xs font-bold text-red-600 hover:underline ml-auto pl-2 cursor-pointer"
               >
                 Clear All
               </button>
             </div>
           )}
 
-          {/* Product Grid - Exactly like Meesho */}
+          {/* Product Grid - Smooth Meesho Experience (No Screen Flashing) */}
           {loading ? (
-            <div className="py-24 flex justify-center items-center">
-              <LoadingSpinner size="lg" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                <div key={n} className="bg-white rounded-2xl border border-gray-100 p-2.5 shadow-sm animate-pulse space-y-2.5">
+                  <div className="aspect-[3/4] bg-gray-100 rounded-xl w-full" />
+                  <div className="h-3.5 bg-gray-200 rounded w-4/5" />
+                  <div className="h-4 bg-gray-200 rounded w-1/2" />
+                  <div className="h-3 bg-gray-100 rounded w-1/3" />
+                </div>
+              ))}
             </div>
           ) : products.length === 0 ? (
             <EmptyState
@@ -249,8 +302,8 @@ export default function ProductsPage() {
               onAction={clearFilters}
             />
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
-              {products.map(product => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 animate-fade-in">
+              {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>

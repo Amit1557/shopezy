@@ -37,6 +37,49 @@ const DISCOUNT_OPTIONS = [
   { label: '50% and above', value: '50' },
 ]
 
+// Category-specific subcategories for Meesho search refinement
+const WATCH_SUBCATEGORIES = [
+  'Analog Watches',
+  'Chronograph Watches',
+  'Digital Watches',
+  'Kids Watches',
+  'Men Analog Watches',
+  'Men Sports Watches',
+  'Men Watches',
+  'Smartwatches',
+]
+
+const FOOTWEAR_SUBCATEGORIES = [
+  'Sports Shoes',
+  'Casual Shoes',
+  'Running Shoes',
+  'Sneakers',
+  'Formal Shoes',
+  'Sandals & Floaters',
+  'Loafers',
+]
+
+const JEANS_SUBCATEGORIES = [
+  'Jeans',
+  'Men Jeans',
+  'Slim Fit Jeans',
+  'Straight Fit Jeans',
+  'Washed Denim',
+]
+
+const KURTI_SAREE_SUBCATEGORIES = [
+  'Anarkali Kurtis',
+  'Cotton Kurtis',
+  'Rayon Kurtis',
+  'Cotton Sarees',
+  'Georgette Sarees',
+  'Silk Sarees',
+]
+
+const WATCH_DIAL_SHAPES = ['Round', 'Square', 'Rectangle']
+const WATCH_STRAP_MATERIALS = ['Stainless Steel', 'Leather', 'Silicon', 'Metal']
+const APPAREL_FABRICS = ['Cotton', 'Georgette', 'Denim', 'Silk', 'Rayon', 'Polyester']
+
 export default function MeeshoFilterSidebar({
   categories = [],
   activeCategorySlug = '',
@@ -46,20 +89,42 @@ export default function MeeshoFilterSidebar({
   clearAllFilters,
   onCloseMobile,
 }) {
-  // Accordion state - default open Category, Gender, Price, Size
+  // Accordion open/collapse states
   const [openSections, setOpenSections] = useState({
     category: true,
     gender: true,
     price: true,
     size: true,
-    color: false,
+    color: true,
+    dialShape: true,
+    strap: true,
+    fabric: true,
     rating: false,
     discount: false,
-    combo: false,
     assurance: false,
   })
 
-  // Local state for custom price inputs
+  // URL query params
+  const searchQuery = (searchParams.get('search') || '').toLowerCase()
+  const currentSlug = (activeCategorySlug || '').toLowerCase()
+  const context = `${searchQuery} ${currentSlug}`
+
+  // Context Detection (smart Meesho filtering)
+  const isWatch = context.includes('watch') || context.includes('clock')
+  const isElectronics = context.includes('electronic') || context.includes('audio') || context.includes('earbud') || context.includes('headphone') || context.includes('charger') || context.includes('speaker') || context.includes('gadget')
+  const isJewellery = context.includes('jewel') || context.includes('ring') || context.includes('necklace') || context.includes('bangle') || context.includes('earring')
+  const isHomeKitchen = context.includes('home') || context.includes('kitchen') || context.includes('chopper') || context.includes('bedsheet') || context.includes('bottle')
+  const isBeauty = context.includes('beauty') || context.includes('health') || context.includes('makeup') || context.includes('cream') || context.includes('perfume')
+
+  const isFootwear = context.includes('shoe') || context.includes('footwear') || context.includes('sneaker') || context.includes('sandal') || context.includes('slipper') || context.includes('loafer') || context.includes('boot')
+  const isJeans = context.includes('jean') || context.includes('denim')
+  const isKurtiSaree = context.includes('kurti') || context.includes('saree') || context.includes('lehenga') || context.includes('ethnic')
+  const isApparel = isJeans || isKurtiSaree || context.includes('shirt') || context.includes('t-shirt') || context.includes('tshirt') || context.includes('top') || context.includes('dress') || context.includes('pant') || context.includes('jacket') || context.includes('western') || context.includes('lingerie') || context.includes('men') || context.includes('women')
+
+  // Rule: Watches, electronics, jewellery, kitchen, beauty DO NOT HAVE SIZES!
+  const hasNoSize = isWatch || isElectronics || isJewellery || isHomeKitchen || isBeauty
+  const showSizeFilter = !hasNoSize
+
   const currentMinPrice = searchParams.get('min_price') || ''
   const currentMaxPrice = searchParams.get('max_price') || ''
   const currentGender = searchParams.get('gender') || ''
@@ -67,6 +132,7 @@ export default function MeeshoFilterSidebar({
   const currentColor = searchParams.get('color') || ''
   const currentRating = searchParams.get('min_rating') || ''
   const currentDiscount = searchParams.get('min_discount') || ''
+  const currentSubcategory = searchParams.get('subcategory') || ''
 
   const [customMin, setCustomMin] = useState(currentMinPrice)
   const [customMax, setCustomMax] = useState(currentMaxPrice)
@@ -83,7 +149,6 @@ export default function MeeshoFilterSidebar({
       setCustomMax('')
       return
     }
-    // Toggle off if already active
     if (String(currentMinPrice) === String(min || '') && String(currentMaxPrice) === String(max || '')) {
       updateParam('min_price', '')
       updateParam('max_price', '')
@@ -111,8 +176,21 @@ export default function MeeshoFilterSidebar({
     currentSize ||
     currentColor ||
     currentRating ||
-    currentDiscount
+    currentDiscount ||
+    currentSubcategory
   )
+
+  // Determine which subcategories to show under Category
+  let categoryListToRender = null
+  if (isWatch) {
+    categoryListToRender = WATCH_SUBCATEGORIES
+  } else if (isFootwear) {
+    categoryListToRender = FOOTWEAR_SUBCATEGORIES
+  } else if (isJeans) {
+    categoryListToRender = JEANS_SUBCATEGORIES
+  } else if (isKurtiSaree) {
+    categoryListToRender = KURTI_SAREE_SUBCATEGORIES
+  }
 
   return (
     <aside className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden text-xs">
@@ -135,7 +213,7 @@ export default function MeeshoFilterSidebar({
       </div>
 
       <div className="divide-y divide-gray-100 max-h-[calc(100vh-180px)] overflow-y-auto scrollbar-thin">
-        {/* 1. Category Filter */}
+        {/* 1. Category / Subcategory Filter */}
         <div className="p-4">
           <button
             type="button"
@@ -147,38 +225,76 @@ export default function MeeshoFilterSidebar({
           </button>
 
           {openSections.category && (
-            <div className="mt-3 space-y-2 max-h-48 overflow-y-auto pr-1">
-              <label
-                onClick={() => updateParam('category', '')}
-                className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-colors ${!activeCategorySlug ? 'bg-purple-50 text-purple-900 font-bold' : 'hover:bg-gray-50 text-gray-700'}`}
-              >
-                <input
-                  type="checkbox"
-                  checked={!activeCategorySlug}
-                  onChange={() => {}}
-                  className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4 border-gray-300"
-                />
-                <span className="truncate">All Categories</span>
-              </label>
-
-              {categories.map(cat => {
-                const isSelected = activeCategorySlug === cat.slug
-                return (
+            <div className="mt-3 space-y-1.5 max-h-52 overflow-y-auto pr-1">
+              {categoryListToRender ? (
+                // Contextual subcategories (e.g. for Watches, Shoes, Jeans)
+                categoryListToRender.map((subcat) => {
+                  const isChecked = currentSubcategory.toLowerCase() === subcat.toLowerCase() ||
+                    searchQuery.toLowerCase().includes(subcat.toLowerCase().replace('watches', 'watch'))
+                  return (
+                    <label
+                      key={subcat}
+                      onClick={() => {
+                        if (isChecked) {
+                          updateParam('subcategory', '')
+                        } else {
+                          updateParam('subcategory', subcat)
+                        }
+                      }}
+                      className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-colors ${
+                        isChecked ? 'bg-purple-50 text-purple-900 font-bold' : 'hover:bg-gray-50 text-gray-700'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {}}
+                        className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4 border-gray-300"
+                      />
+                      <span className="truncate">{subcat}</span>
+                    </label>
+                  )
+                })
+              ) : (
+                // General store categories
+                <>
                   <label
-                    key={cat.id}
-                    onClick={() => updateParam('category', isSelected ? '' : cat.slug)}
-                    className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-colors ${isSelected ? 'bg-purple-50 text-purple-900 font-bold' : 'hover:bg-gray-50 text-gray-700'}`}
+                    onClick={() => updateParam('category', '')}
+                    className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-colors ${
+                      !activeCategorySlug ? 'bg-purple-50 text-purple-900 font-bold' : 'hover:bg-gray-50 text-gray-700'
+                    }`}
                   >
                     <input
                       type="checkbox"
-                      checked={isSelected}
+                      checked={!activeCategorySlug}
                       onChange={() => {}}
                       className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4 border-gray-300"
                     />
-                    <span className="truncate">{cat.name}</span>
+                    <span className="truncate">All Categories</span>
                   </label>
-                )
-              })}
+
+                  {categories.map((cat) => {
+                    const isSelected = activeCategorySlug === cat.slug
+                    return (
+                      <label
+                        key={cat.id}
+                        onClick={() => updateParam('category', isSelected ? '' : cat.slug)}
+                        className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-colors ${
+                          isSelected ? 'bg-purple-50 text-purple-900 font-bold' : 'hover:bg-gray-50 text-gray-700'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {}}
+                          className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4 border-gray-300"
+                        />
+                        <span className="truncate">{cat.name}</span>
+                      </label>
+                    )
+                  })}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -196,7 +312,7 @@ export default function MeeshoFilterSidebar({
 
           {openSections.gender && (
             <div className="mt-3 flex flex-wrap gap-2">
-              {GENDER_OPTIONS.map(g => {
+              {GENDER_OPTIONS.map((g) => {
                 const isSelected = currentGender.toLowerCase() === g.toLowerCase()
                 return (
                   <button
@@ -217,7 +333,264 @@ export default function MeeshoFilterSidebar({
           )}
         </div>
 
-        {/* 3. Price Filter */}
+        {/* 3. Watch Specific: Dial Shape */}
+        {isWatch && (
+          <div className="p-4">
+            <button
+              type="button"
+              onClick={() => toggleSection('dialShape')}
+              className="w-full flex items-center justify-between text-left font-bold text-gray-900 text-xs"
+            >
+              <span>Dial Shape</span>
+              {openSections.dialShape ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+            </button>
+
+            {openSections.dialShape && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {WATCH_DIAL_SHAPES.map((shape) => {
+                  const isSelected = searchParams.get('shape')?.toLowerCase() === shape.toLowerCase()
+                  return (
+                    <button
+                      key={shape}
+                      type="button"
+                      onClick={() => updateParam('shape', isSelected ? '' : shape.toLowerCase())}
+                      className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-all ${
+                        isSelected
+                          ? 'border-purple-600 bg-purple-50 text-purple-700 ring-1 ring-purple-600 shadow-sm'
+                          : 'border-gray-200 hover:border-gray-300 text-gray-700 bg-white'
+                      }`}
+                    >
+                      {shape}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 4. Watch Specific: Strap Material */}
+        {isWatch && (
+          <div className="p-4">
+            <button
+              type="button"
+              onClick={() => toggleSection('strap')}
+              className="w-full flex items-center justify-between text-left font-bold text-gray-900 text-xs"
+            >
+              <span>Strap Material</span>
+              {openSections.strap ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+            </button>
+
+            {openSections.strap && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {WATCH_STRAP_MATERIALS.map((mat) => {
+                  const isSelected = searchParams.get('strap')?.toLowerCase() === mat.toLowerCase()
+                  return (
+                    <button
+                      key={mat}
+                      type="button"
+                      onClick={() => updateParam('strap', isSelected ? '' : mat.toLowerCase())}
+                      className={`px-2.5 py-1 rounded-lg border text-xs font-medium transition-all ${
+                        isSelected
+                          ? 'border-purple-600 bg-purple-50 text-purple-700 font-bold ring-1 ring-purple-600'
+                          : 'border-gray-200 hover:border-gray-300 text-gray-700 bg-white'
+                      }`}
+                    >
+                      {mat}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 5. Apparel Specific: Fabric */}
+        {isApparel && !hasNoSize && (
+          <div className="p-4">
+            <button
+              type="button"
+              onClick={() => toggleSection('fabric')}
+              className="w-full flex items-center justify-between text-left font-bold text-gray-900 text-xs"
+            >
+              <span>Fabric</span>
+              {openSections.fabric ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+            </button>
+
+            {openSections.fabric && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {APPAREL_FABRICS.map((fab) => {
+                  const isSelected = searchParams.get('fabric')?.toLowerCase() === fab.toLowerCase()
+                  return (
+                    <button
+                      key={fab}
+                      type="button"
+                      onClick={() => updateParam('fabric', isSelected ? '' : fab.toLowerCase())}
+                      className={`px-2.5 py-1 rounded-lg border text-xs font-medium transition-all ${
+                        isSelected
+                          ? 'border-purple-600 bg-purple-50 text-purple-700 font-bold ring-1 ring-purple-600'
+                          : 'border-gray-200 hover:border-gray-300 text-gray-700 bg-white'
+                      }`}
+                    >
+                      {fab}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 6. Size Filter (ONLY SHOWN WHEN RELEVANT - HIDDEN FOR WATCHES, ELECTRONICS, JEWELLERY, ETC.) */}
+        {showSizeFilter && (
+          <div className="p-4">
+            <button
+              type="button"
+              onClick={() => toggleSection('size')}
+              className="w-full flex items-center justify-between text-left font-bold text-gray-900 text-xs"
+            >
+              <span>Size</span>
+              {openSections.size ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+            </button>
+
+            {openSections.size && (
+              <div className="mt-3 space-y-2.5">
+                {/* If footwear category or search, only show footwear sizes */}
+                {isFootwear ? (
+                  <>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase">Footwear Sizes</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {FOOTWEAR_SIZES.map((s) => {
+                        const isSelected = currentSize.toLowerCase() === s.toLowerCase()
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => updateParam('size', isSelected ? '' : s)}
+                            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-all ${
+                              isSelected
+                                ? 'border-purple-600 bg-purple-600 text-white shadow-sm'
+                                : 'border-gray-200 hover:border-purple-300 text-gray-700 bg-white'
+                            }`}
+                          >
+                            {s}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </>
+                ) : isApparel ? (
+                  <>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase">Apparel Sizes</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {APPAREL_SIZES.map((s) => {
+                        const isSelected = currentSize.toLowerCase() === s.toLowerCase()
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => updateParam('size', isSelected ? '' : s)}
+                            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-all ${
+                              isSelected
+                                ? 'border-purple-600 bg-purple-600 text-white shadow-sm'
+                                : 'border-gray-200 hover:border-purple-300 text-gray-700 bg-white'
+                            }`}
+                          >
+                            {s}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase">Apparel Sizes</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {APPAREL_SIZES.map((s) => {
+                        const isSelected = currentSize.toLowerCase() === s.toLowerCase()
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => updateParam('size', isSelected ? '' : s)}
+                            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-all ${
+                              isSelected
+                                ? 'border-purple-600 bg-purple-600 text-white shadow-sm'
+                                : 'border-gray-200 hover:border-purple-300 text-gray-700 bg-white'
+                            }`}
+                          >
+                            {s}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    <div className="text-[10px] font-bold text-gray-400 uppercase pt-2">Footwear Sizes</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {FOOTWEAR_SIZES.map((s) => {
+                        const isSelected = currentSize.toLowerCase() === s.toLowerCase()
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => updateParam('size', isSelected ? '' : s)}
+                            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-all ${
+                              isSelected
+                                ? 'border-purple-600 bg-purple-600 text-white shadow-sm'
+                                : 'border-gray-200 hover:border-purple-300 text-gray-700 bg-white'
+                            }`}
+                          >
+                            {s}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 7. Color Filter */}
+        <div className="p-4">
+          <button
+            type="button"
+            onClick={() => toggleSection('color')}
+            className="w-full flex items-center justify-between text-left font-bold text-gray-900 text-xs"
+          >
+            <span>Color</span>
+            {openSections.color ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+          </button>
+
+          {openSections.color && (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {POPULAR_COLORS.map((c) => {
+                const isSelected = currentColor.toLowerCase() === c.name.toLowerCase()
+                return (
+                  <button
+                    key={c.name}
+                    type="button"
+                    onClick={() => updateParam('color', isSelected ? '' : c.name.toLowerCase())}
+                    className={`flex items-center gap-2 p-1.5 rounded-lg border text-left transition-all ${
+                      isSelected
+                        ? 'border-purple-600 bg-purple-50 font-bold text-purple-900 ring-1 ring-purple-600'
+                        : 'border-gray-200 hover:border-gray-300 text-gray-700 bg-white'
+                    }`}
+                  >
+                    <span
+                      className={`w-4 h-4 rounded-full flex-shrink-0 ${c.border ? 'border border-gray-300' : ''}`}
+                      style={{ backgroundColor: c.hex }}
+                    />
+                    <span className="truncate text-xs">{c.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* 8. Price Filter */}
         <div className="p-4">
           <button
             type="button"
@@ -280,103 +653,7 @@ export default function MeeshoFilterSidebar({
           )}
         </div>
 
-        {/* 4. Size Filter */}
-        <div className="p-4">
-          <button
-            type="button"
-            onClick={() => toggleSection('size')}
-            className="w-full flex items-center justify-between text-left font-bold text-gray-900 text-xs"
-          >
-            <span>Size</span>
-            {openSections.size ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
-          </button>
-
-          {openSections.size && (
-            <div className="mt-3 space-y-2">
-              <div className="text-[10px] font-bold text-gray-400 uppercase">Apparel Sizes</div>
-              <div className="flex flex-wrap gap-1.5">
-                {APPAREL_SIZES.map(s => {
-                  const isSelected = currentSize.toLowerCase() === s.toLowerCase()
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => updateParam('size', isSelected ? '' : s)}
-                      className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-all ${
-                        isSelected
-                          ? 'border-purple-600 bg-purple-600 text-white shadow-sm'
-                          : 'border-gray-200 hover:border-purple-300 text-gray-700 bg-white'
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  )
-                })}
-              </div>
-
-              <div className="text-[10px] font-bold text-gray-400 uppercase pt-2">Footwear Sizes</div>
-              <div className="flex flex-wrap gap-1.5">
-                {FOOTWEAR_SIZES.map(s => {
-                  const isSelected = currentSize.toLowerCase() === s.toLowerCase()
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => updateParam('size', isSelected ? '' : s)}
-                      className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-all ${
-                        isSelected
-                          ? 'border-purple-600 bg-purple-600 text-white shadow-sm'
-                          : 'border-gray-200 hover:border-purple-300 text-gray-700 bg-white'
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 5. Color Filter */}
-        <div className="p-4">
-          <button
-            type="button"
-            onClick={() => toggleSection('color')}
-            className="w-full flex items-center justify-between text-left font-bold text-gray-900 text-xs"
-          >
-            <span>Color</span>
-            {openSections.color ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
-          </button>
-
-          {openSections.color && (
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {POPULAR_COLORS.map(c => {
-                const isSelected = currentColor.toLowerCase() === c.name.toLowerCase()
-                return (
-                  <button
-                    key={c.name}
-                    type="button"
-                    onClick={() => updateParam('color', isSelected ? '' : c.name.toLowerCase())}
-                    className={`flex items-center gap-2 p-1.5 rounded-lg border text-left transition-all ${
-                      isSelected
-                        ? 'border-purple-600 bg-purple-50 font-bold text-purple-900 ring-1 ring-purple-600'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-700 bg-white'
-                    }`}
-                  >
-                    <span
-                      className={`w-4 h-4 rounded-full flex-shrink-0 ${c.border ? 'border border-gray-300' : ''}`}
-                      style={{ backgroundColor: c.hex }}
-                    />
-                    <span className="truncate text-xs">{c.name}</span>
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* 6. Rating Filter */}
+        {/* 9. Rating Filter */}
         <div className="p-4">
           <button
             type="button"
@@ -389,7 +666,7 @@ export default function MeeshoFilterSidebar({
 
           {openSections.rating && (
             <div className="mt-3 space-y-1.5">
-              {RATING_OPTIONS.map(r => {
+              {RATING_OPTIONS.map((r) => {
                 const isSelected = currentRating === r.value
                 return (
                   <label
@@ -416,7 +693,7 @@ export default function MeeshoFilterSidebar({
           )}
         </div>
 
-        {/* 7. Discount Filter */}
+        {/* 10. Discount Filter */}
         <div className="p-4">
           <button
             type="button"
@@ -429,7 +706,7 @@ export default function MeeshoFilterSidebar({
 
           {openSections.discount && (
             <div className="mt-3 space-y-1.5">
-              {DISCOUNT_OPTIONS.map(d => {
+              {DISCOUNT_OPTIONS.map((d) => {
                 const isSelected = currentDiscount === d.value
                 return (
                   <label
@@ -453,7 +730,7 @@ export default function MeeshoFilterSidebar({
           )}
         </div>
 
-        {/* 8. Assurance & Highlights (Meesho Mall / Gold Style) */}
+        {/* 11. Assurance & Highlights (Meesho Mall / Gold Style) */}
         <div className="p-4">
           <button
             type="button"
