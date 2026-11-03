@@ -36,6 +36,7 @@ def get_public_products(
     page: int = 1,
     limit: int = 20,
     category_id: Optional[int] = None,
+    category_slug: Optional[str] = None,
     search: Optional[str] = None,
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
@@ -49,6 +50,11 @@ def get_public_products(
 
     if category_id:
         q = q.filter(Product.category_id == category_id)
+    elif category_slug and category_slug != 'popular':
+        from ....models.category import Category
+        cat = db.query(Category).filter(Category.slug == category_slug).first()
+        if cat:
+            q = q.filter(Product.category_id == cat.id)
     if search:
         q = q.filter(Product.name.ilike(f"%{search}%"))
     if min_price is not None:

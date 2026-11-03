@@ -3,24 +3,37 @@ from urllib.parse import urlparse
 from typing import Dict, Any, List
 
 CATEGORY_FALLBACK_IMAGES = {
+    "kurti-saree-lehenga": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80",
+    "women-western": "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=800&q=80",
+    "lingerie": "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=800&q=80",
+    "men": "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=800&q=80",
+    "kids-toys": "https://images.unsplash.com/photo-1622290291468-a28f7a7dc6a8?auto=format&fit=crop&w=800&q=80",
+    "home-kitchen": "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=800&q=80",
+    "beauty-health": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80",
+    "jewellery-accessories": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80",
+    "bags-footwear": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
+    "electronics": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80",
+    "watches": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=800&q=80",
+    "sports-fitness": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80",
+    # Backward compatibility
     "mens-fashion": "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=800&q=80",
     "womens-fashion": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80",
     "footwear": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
     "kids-fashion": "https://images.unsplash.com/photo-1622290291468-a28f7a7dc6a8?auto=format&fit=crop&w=800&q=80",
     "accessories": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80",
-    "home-kitchen": "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=800&q=80",
     "beauty-lifestyle": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80",
 }
 
 KEYWORD_SPECIFIC_IMAGES = [
-    (['gym', 'sport', 'jogger', 'track', 'fitness'], "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80"),
-    (['shoe', 'sneaker', 'running'], "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"),
+    (['gym', 'sport', 'jogger', 'fitness', 'track'], "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80"),
+    (['shoe', 'sneaker', 'running', 'footwear', 'loafer'], "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"),
     (['saree', 'silk', 'kanjivaram'], "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80"),
-    (['kurti', 'anarkali', 'suit'], "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80"),
+    (['kurti', 'anarkali', 'lehenga', 'suit'], "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80"),
     (['shirt', 'cotton', 'formal'], "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80"),
     (['tshirt', 't-shirt', 'round neck'], "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80"),
     (['watch', 'analog', 'smartwatch'], "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=800&q=80"),
-    (['bottle', 'chopper', 'cookware'], "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=800&q=80"),
+    (['earbuds', 'earphone', 'headphone', 'audio', 'speaker'], "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80"),
+    (['bottle', 'chopper', 'cookware', 'kitchen'], "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=800&q=80"),
 ]
 
 def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent: float = 60.0) -> Dict[str, Any]:
@@ -31,7 +44,7 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
     raw_input = raw_input.strip()
     result = {
         "name": "",
-        "category_slug": "mens-fashion",
+        "category_slug": "men",
         "description": "",
         "purchase_cost": 0.0,
         "selling_price": 0.0,
@@ -50,7 +63,6 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
         url = url_match.group(0).rstrip('.,;)')
         result["meesho_link"] = url
         
-        # Extract title from slug
         parsed_url = urlparse(url)
         path_parts = [p for p in parsed_url.path.split('/') if p]
         
@@ -82,8 +94,8 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
         except ValueError:
             pass
     else:
-        # Fallback: check if text has standalone 3-4 digit price (e.g. 299, 349, 499) excluding years 2020-2030
-        digits = re.findall(r'\b([1-9][0-9]{2,3})\b', raw_input)
+        # Fallback: check if text has standalone 3-4 digit price (e.g. 274, 299, 349) excluding years
+        digits = re.findall(r'\b([1-9][0-9]{1,3})\b', raw_input)
         valid_digits = [float(d) for d in digits if not (2020 <= int(d) <= 2030)]
         if valid_digits:
             result["purchase_cost"] = valid_digits[0]
@@ -100,27 +112,39 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
         else:
             result["name"] = "Trendy Meesho Sourced Product"
 
-    # Category heuristic detection
+    # Precise Meesho Category Mapping
     lower_text = (result["name"] + " " + raw_input).lower()
-    if any(w in lower_text for w in ['saree', 'kurti', 'anarkali', 'lehenga', 'women', 'dress', 'gown', 'dupatta', 'suit']):
-        result["category_slug"] = "womens-fashion"
-    elif any(w in lower_text for w in ['kid', 'baby', 'boy', 'girl', 'child', 'toddler']):
-        result["category_slug"] = "kids-fashion"
-    elif any(w in lower_text for w in ['shoe', 'sneaker', 'sandal', 'slipper', 'boot', 'footwear', 'crocs', 'loafers']):
-        result["category_slug"] = "footwear"
-    elif any(w in lower_text for w in ['shirt', 'tshirt', 't-shirt', 'men ', 'mens', "men's", 'gym', 'jogger', 'jeans', 'trouser', 'blazer']):
-        result["category_slug"] = "mens-fashion"
-    elif any(w in lower_text for w in ['watch', 'belt', 'wallet', 'sunglasses', 'jewel', 'ring', 'necklace', 'handbag', 'bag']):
-        result["category_slug"] = "accessories"
-    elif any(w in lower_text for w in ['kitchen', 'home', 'bottle', 'chopper', 'bedsheet', 'curtain', 'cookware']):
+    if any(w in lower_text for w in ['saree', 'kurti', 'anarkali', 'lehenga', 'dupatta', 'suit material', 'salwar']):
+        result["category_slug"] = "kurti-saree-lehenga"
+    elif any(w in lower_text for w in ['shoe', 'sneaker', 'sandal', 'slipper', 'boot', 'footwear', 'loafer', 'crocs', 'heel', 'flat', 'bag', 'backpack', 'tote', 'duffle', 'luggage']):
+        result["category_slug"] = "bags-footwear"
+    elif any(w in lower_text for w in ['bra', 'panty', 'panties', 'lingerie', 'nighty', 'nightwear', 'sleepwear', 'babydoll']):
+        result["category_slug"] = "lingerie"
+    elif any(w in lower_text for w in ['earphone', 'headphone', 'earbuds', 'bluetooth', 'speaker', 'charger', 'cable', 'mobile case', 'power bank']):
+        result["category_slug"] = "electronics"
+    elif any(w in lower_text for w in ['watch', 'smartwatch']):
+        result["category_slug"] = "watches"
+    elif any(w in lower_text for w in ['gym', 'dumbbell', 'yoga mat', 'fitness', 'sport']):
+        result["category_slug"] = "sports-fitness"
+    elif any(w in lower_text for w in ['kid', 'baby', 'toy', 'boy', 'girl', 'child', 'toddler', 'diaper']):
+        result["category_slug"] = "kids-toys"
+    elif any(w in lower_text for w in ['dress', 'western', 'top', 'tunic', 'jumpsuit', 'gown', 'skirt']):
+        result["category_slug"] = "women-western"
+    elif any(w in lower_text for w in ['kitchen', 'home', 'bottle', 'chopper', 'bedsheet', 'curtain', 'cookware', 'storage']):
         result["category_slug"] = "home-kitchen"
-    elif any(w in lower_text for w in ['beauty', 'cream', 'perfume', 'makeup', 'serum', 'lotion', 'lipstick', 'skincare']):
-        result["category_slug"] = "beauty-lifestyle"
+    elif any(w in lower_text for w in ['beauty', 'cream', 'perfume', 'makeup', 'serum', 'lotion', 'lipstick', 'skincare', 'hair']):
+        result["category_slug"] = "beauty-health"
+    elif any(w in lower_text for w in ['jewel', 'necklace', 'earring', 'bangle', 'ring', 'pendant', 'mangalsutra', 'wallet', 'belt', 'sunglass']):
+        result["category_slug"] = "jewellery-accessories"
+    elif any(w in lower_text for w in ['men', 'shirt', 'tshirt', 't-shirt', 'jeans', 'trouser', 'blazer', 'track pant']):
+        result["category_slug"] = "men"
+    else:
+        result["category_slug"] = "popular"
 
     # Specifications extraction
     spec_patterns = [
         "Fabric", "Pattern", "Fit", "Sleeve Length", "Collar", "Length",
-        "Neck", "Closure", "Occasion", "Material", "Color", "Type"
+        "Neck", "Closure", "Occasion", "Material", "Color", "Type", "Sole Material"
     ]
     for spec in spec_patterns:
         m = re.search(rf'{spec}\s*:\s*([^\n\r]+)', raw_input, re.IGNORECASE)
@@ -130,16 +154,21 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
             if spec.lower() == "color" and val:
                 result["colors"] = [c.strip() for c in val.split('/')]
 
-    # Sizes extraction
-    sizes_match = re.search(r'Sizes?\s*:\s*([^\n\r]+(?:\n[^\n\r]+)*)', raw_input, re.IGNORECASE)
+    # Sizes extraction - support Indian shoe sizes IND-6..10 as well as apparel S..XXL
     found_sizes = []
+    
+    # 1. Indian shoe sizes e.g. IND-6, IND-7, IND-8, IND-9, IND-10 or UK-6, UK 7
+    ind_sizes = re.findall(r'(?:IND|UK)\s*[-:]?\s*([0-9]{1,2})', raw_input, re.IGNORECASE)
+    if ind_sizes:
+        found_sizes.extend([f"IND-{s}" for s in dict.fromkeys(ind_sizes)])
+    
+    # 2. Apparel sizes
+    sizes_match = re.search(r'Sizes?\s*:\s*([^\n\r]+(?:\n[^\n\r]+)*)', raw_input, re.IGNORECASE)
     if sizes_match:
         sizes_text = sizes_match.group(1)
         for s in ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', 'Free Size']:
             if re.search(rf'\b{s}\b', sizes_text, re.IGNORECASE):
                 found_sizes.append(s)
-        for uk in re.findall(r'UK\s*\d+', sizes_text, re.IGNORECASE):
-            found_sizes.append(uk.upper())
 
     if not found_sizes:
         for s in ['XS', 'S', 'M', 'L', 'XL', 'XXL']:
@@ -151,11 +180,11 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
         result["sizes"] = list(dict.fromkeys(found_sizes))
     else:
         cat = result["category_slug"]
-        if cat in ["mens-fashion", "womens-fashion"]:
+        if cat in ["bags-footwear", "footwear"] or any(k in lower_text for k in ['shoe', 'sneaker', 'sandal', 'slipper', 'footwear']):
+            result["sizes"] = ["IND-6", "IND-7", "IND-8", "IND-9", "IND-10"]
+        elif cat in ["men", "mens-fashion", "women-western", "womens-fashion", "kurti-saree-lehenga"]:
             result["sizes"] = ["S", "M", "L", "XL", "XXL"]
-        elif cat == "footwear":
-            result["sizes"] = ["UK 6", "UK 7", "UK 8", "UK 9", "UK 10"]
-        elif cat == "kids-fashion":
+        elif cat in ["kids-toys", "kids-fashion"]:
             result["sizes"] = ["2-3 Yrs", "3-4 Yrs", "4-5 Yrs", "5-6 Yrs"]
         else:
             result["sizes"] = ["Free Size"]
@@ -170,7 +199,7 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
         if not assigned_img:
             assigned_img = CATEGORY_FALLBACK_IMAGES.get(
                 result["category_slug"],
-                "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=800&q=80"
+                "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80"
             )
         result["images"] = [assigned_img]
 
@@ -180,16 +209,16 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
         if cost <= 250:
             suggested_sell = cost + 200
         elif cost <= 500:
-            suggested_sell = cost + 280
+            suggested_sell = cost + 250
         else:
             suggested_sell = cost * 1.55
         
-        suggested_sell = round(suggested_sell / 100) * 100 - 1
+        suggested_sell = round(suggested_sell / 10) * 10 - 1
         if suggested_sell <= cost:
             suggested_sell = cost + 199
         
         result["selling_price"] = float(suggested_sell)
-        result["original_price"] = float(round((suggested_sell * 1.8) / 100) * 100 - 1)
+        result["original_price"] = float(round((suggested_sell * 1.7) / 10) * 10 - 1)
         result["discount_percentage"] = round(((result["original_price"] - result["selling_price"]) / result["original_price"]) * 100)
     else:
         result["selling_price"] = 599.0

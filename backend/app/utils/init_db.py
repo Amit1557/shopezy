@@ -31,14 +31,25 @@ def init_db():
             )
             db.add(admin)
         
-        # Create default categories
+        # Create default Meesho-aligned categories
         default_categories = [
+            {"name": "Kurti, Saree & Lehenga", "slug": "kurti-saree-lehenga", "icon": "dress"},
+            {"name": "Women Western", "slug": "women-western", "icon": "dress"},
+            {"name": "Lingerie", "slug": "lingerie", "icon": "heart"},
+            {"name": "Men", "slug": "men", "icon": "shirt"},
+            {"name": "Kids & Toys", "slug": "kids-toys", "icon": "baby"},
+            {"name": "Home & Kitchen", "slug": "home-kitchen", "icon": "home"},
+            {"name": "Beauty & Health", "slug": "beauty-health", "icon": "sparkles"},
+            {"name": "Jewellery & Accessories", "slug": "jewellery-accessories", "icon": "watch"},
+            {"name": "Bags & Footwear", "slug": "bags-footwear", "icon": "footwear"},
+            {"name": "Electronics", "slug": "electronics", "icon": "smartphone"},
+            {"name": "Watches", "slug": "watches", "icon": "watch"},
+            {"name": "Sports & Fitness", "slug": "sports-fitness", "icon": "dumbbell"},
             {"name": "Men's Fashion", "slug": "mens-fashion", "icon": "shirt"},
             {"name": "Women's Fashion", "slug": "womens-fashion", "icon": "dress"},
-            {"name": "Kids' Fashion", "slug": "kids-fashion", "icon": "baby"},
             {"name": "Footwear", "slug": "footwear", "icon": "footwear"},
             {"name": "Accessories", "slug": "accessories", "icon": "watch"},
-            {"name": "Home & Kitchen", "slug": "home-kitchen", "icon": "home"},
+            {"name": "Kids' Fashion", "slug": "kids-fashion", "icon": "baby"},
             {"name": "Beauty & Lifestyle", "slug": "beauty-lifestyle", "icon": "sparkles"},
         ]
         for i, cat_data in enumerate(default_categories):

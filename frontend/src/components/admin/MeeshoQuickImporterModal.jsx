@@ -3,78 +3,90 @@ import {
   Sparkles, Link as LinkIcon, DollarSign, Image as ImageIcon,
   CheckCircle, ArrowRight, ExternalLink, X, Plus, Trash2,
   TrendingUp, ShieldCheck, RefreshCw, Upload, AlertCircle,
-  Clipboard, HelpCircle, Check
+  Clipboard, HelpCircle, Check, Bookmark, MousePointer
 } from 'lucide-react'
 import { productsAdminAPI, categoriesAPI } from '../../services/api'
 import { formatPrice } from '../../utils/helpers'
 import LoadingSpinner from '../ui/LoadingSpinner'
 import toast from 'react-hot-toast'
 
-// Curated high-converting showcase photos by category
+// Curated showcase photos by Meesho Category
 const CATEGORY_SHOWCASE_PHOTOS = {
-  'mens-fashion': [
-    'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
-  ],
-  'womens-fashion': [
-    'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=800&q=80',
-  ],
-  'footwear': [
+  'bags-footwear': [
     'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1607522370275-f14206abe5d3?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=800&q=80',
   ],
-  'accessories': [
-    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1508296695146-257a814070b4?auto=format&fit=crop&w=800&q=80',
+  'kurti-saree-lehenga': [
+    'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=800&q=80',
+  ],
+  'women-western': [
+    'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=800&q=80',
+  ],
+  'men': [
+    'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
+  ],
+  'kids-toys': [
+    'https://images.unsplash.com/photo-1622290291468-a28f7a7dc6a8?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1519457431-44ccd64a579b?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?auto=format&fit=crop&w=800&q=80',
   ],
   'home-kitchen': [
     'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80',
   ],
-  'kids-fashion': [
-    'https://images.unsplash.com/photo-1622290291468-a28f7a7dc6a8?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1519457431-44ccd64a579b?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?auto=format&fit=crop&w=800&q=80',
-  ],
-  'beauty-lifestyle': [
+  'beauty-health': [
     'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=800&q=80',
+  ],
+  'jewellery-accessories': [
+    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=800&q=80',
+  ],
+  'electronics': [
+    'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=800&q=80',
+  ],
+  'watches': [
+    'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=800&q=80',
+  ],
+  'sports-fitness': [
+    'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=800&q=80',
   ]
 }
 
-export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess }) {
+export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, initialData }) {
   const [categories, setCategories] = useState([])
   
   // Step / Mode
   const [parsing, setParsing] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [publishedProduct, setPublishedProduct] = useState(null)
+  const [showBookmarkletHelp, setShowBookmarkletHelp] = useState(false)
 
   // Input fields
   const [rawText, setRawText] = useState('')
   const [quickCost, setQuickCost] = useState('')
   const [name, setName] = useState('')
   const [categoryId, setCategoryId] = useState('')
-  const [categorySlug, setCategorySlug] = useState('mens-fashion')
+  const [categorySlug, setCategorySlug] = useState('bags-footwear')
   const [purchaseCost, setPurchaseCost] = useState('')
   const [sellingPrice, setSellingPrice] = useState('')
   const [originalPrice, setOriginalPrice] = useState('')
   const [meeshoLink, setMeeshoLink] = useState('')
   const [images, setImages] = useState([])
   const [imageUrlInput, setImageUrlInput] = useState('')
-  const [sizes, setSizes] = useState(['S', 'M', 'L', 'XL', 'XXL'])
+  const [sizes, setSizes] = useState(['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10'])
   const [newSize, setNewSize] = useState('')
   const [description, setDescription] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -92,6 +104,32 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
       }).catch(() => {})
     }
   }, [isOpen])
+
+  // Handle initial data from 1-Click Bookmarklet
+  useEffect(() => {
+    if (isOpen && initialData) {
+      if (initialData.name) setName(initialData.name)
+      if (initialData.purchase_cost) {
+        const costStr = String(initialData.purchase_cost)
+        setPurchaseCost(costStr)
+        setQuickCost(costStr)
+        const cost = parseFloat(initialData.purchase_cost)
+        const suggestedSell = cost <= 250 ? cost + 200 : (cost <= 500 ? cost + 250 : Math.round(cost * 1.55))
+        const roundedSell = Math.max(cost + 150, Math.round(suggestedSell / 10) * 10 - 1)
+        setSellingPrice(String(roundedSell))
+        setOriginalPrice(String(roundedSell + 400))
+      }
+      if (initialData.meesho_link) setMeeshoLink(initialData.meesho_link)
+      if (initialData.images && initialData.images.length > 0) {
+        setImages(initialData.images)
+      }
+      if (initialData.sizes && initialData.sizes.length > 0) {
+        setSizes(initialData.sizes)
+      }
+      if (initialData.description) setDescription(initialData.description)
+      toast.success('⚡ Product loaded from Meesho via 1-Click Bookmarklet!')
+    }
+  }, [isOpen, initialData])
 
   // Clipboard paste listener for images (Ctrl+V)
   useEffect(() => {
@@ -142,7 +180,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
     setMeeshoLink('')
     setImages([])
     setImageUrlInput('')
-    setSizes(['S', 'M', 'L', 'XL', 'XXL'])
+    setSizes(['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10'])
     setDescription('')
   }
 
@@ -172,7 +210,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
       if (data.meesho_link) setMeeshoLink(data.meesho_link)
       if (data.description) setDescription(data.description)
       
-      // Auto-set intelligent sizes
+      // Auto-set intelligent sizes (IND-6..10 for shoes, S..XXL for apparel)
       if (data.sizes && data.sizes.length > 0) {
         setSizes(data.sizes)
       }
@@ -190,7 +228,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
         if (match) setCategoryId(String(match.id))
       }
 
-      toast.success('Meesho details extracted! Price, sizes & photos ready.')
+      toast.success('Meesho details extracted! Category, price, sizes & photos ready.')
     } catch {
       toast.error('Could not auto-parse Meesho text. You can fill details manually.')
     } finally {
@@ -207,11 +245,11 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
     setCategorySlug(slug)
 
     // Auto-update sizes when category changes
-    if (slug === 'footwear') {
-      setSizes(['UK 6', 'UK 7', 'UK 8', 'UK 9', 'UK 10'])
-    } else if (slug === 'mens-fashion' || slug === 'womens-fashion') {
+    if (slug === 'bags-footwear' || slug === 'footwear') {
+      setSizes(['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10'])
+    } else if (slug === 'men' || slug === 'mens-fashion' || slug === 'kurti-saree-lehenga' || slug === 'women-western') {
       setSizes(['S', 'M', 'L', 'XL', 'XXL'])
-    } else if (slug === 'kids-fashion') {
+    } else if (slug === 'kids-toys' || slug === 'kids-fashion') {
       setSizes(['2-3 Yrs', '3-4 Yrs', '4-5 Yrs', '5-6 Yrs'])
     } else {
       setSizes(['Free Size'])
@@ -228,7 +266,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
     setPurchaseCost(val)
     const cost = parseFloat(val) || 0
     if (cost > 0) {
-      const suggestedSell = cost <= 250 ? cost + 200 : (cost <= 500 ? cost + 280 : Math.round(cost * 1.55))
+      const suggestedSell = cost <= 250 ? cost + 200 : (cost <= 500 ? cost + 250 : Math.round(cost * 1.55))
       const roundedSell = Math.max(cost + 150, Math.round(suggestedSell / 10) * 10 - 1)
       setSellingPrice(String(roundedSell))
       setOriginalPrice(String(roundedSell + 400))
@@ -237,10 +275,10 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
 
   // Quick Preset Sizes
   const applySizePreset = (presetType) => {
-    if (presetType === 'clothing') {
+    if (presetType === 'shoes') {
+      setSizes(['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10'])
+    } else if (presetType === 'clothing') {
       setSizes(['S', 'M', 'L', 'XL', 'XXL'])
-    } else if (presetType === 'shoes') {
-      setSizes(['UK 6', 'UK 7', 'UK 8', 'UK 9', 'UK 10'])
     } else if (presetType === 'free') {
       setSizes(['Free Size'])
     } else if (presetType === 'kids') {
@@ -363,14 +401,17 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
     }
   }
 
-  const showcaseOptions = CATEGORY_SHOWCASE_PHOTOS[categorySlug] || CATEGORY_SHOWCASE_PHOTOS['mens-fashion']
+  // Bookmarklet Code
+  const bookmarkletCode = `javascript:(function(){try{var t=document.querySelector('h1')?.innerText||document.title.replace(/\\s*\\|.*$/,'').trim();var p=0;var pm=document.body.innerText.match(/₹\\s*([0-9]+)/);if(pm)p=parseFloat(pm[1]);var imgs=[];document.querySelectorAll('img[src*="images.meesho.com"]').forEach(function(el){var s=el.src;if(s&&!s.includes('avatar')&&!s.includes('icon')&&imgs.indexOf(s)===-1){var c=s.replace(/_[0-9]+\\.(jpg|webp|jpeg)/,'.jpg');if(imgs.indexOf(c)===-1)imgs.push(c);}});var sizes=[];var sm=document.body.innerText.match(/\\b(IND-\\d+|UK-\\d+|XS|S|M|L|XL|XXL|3XL|Free Size)\\b/gi);if(sm){sm.forEach(function(s){var u=s.toUpperCase();if(sizes.indexOf(u)===-1&&sizes.length<8)sizes.push(u);});}var d={name:t,purchase_cost:p,meesho_link:window.location.href,images:imgs.slice(0,6),sizes:sizes.length?sizes:['Free Size']};window.open('${window.location.origin}/admin/products?importData='+encodeURIComponent(JSON.stringify(d)),'_blank');}catch(e){alert('Error: '+e.message);}})();`
+
+  const showcaseOptions = CATEGORY_SHOWCASE_PHOTOS[categorySlug] || CATEGORY_SHOWCASE_PHOTOS['bags-footwear'] || []
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-fade-in">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-purple-100 my-auto">
         
         {/* Modal Header */}
-        <div className="bg-gradient-to-r from-purple-800 to-brand-600 px-6 py-4 text-white flex items-center justify-between">
+        <div className="bg-gradient-to-r from-purple-800 to-pink-600 px-6 py-4 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-md">
               <Sparkles className="w-5 h-5 text-amber-300" />
@@ -380,7 +421,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                 1-Click Fast Meesho Importer
               </h2>
               <p className="text-[11px] text-purple-100">
-                Paste link or copied text, set price & publish in 1 click
+                Auto-detects Meesho category, sizes (IND-6..10, S..XXL), photos & prices
               </p>
             </div>
           </div>
@@ -393,7 +434,41 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-5">
+        <div className="p-6 overflow-y-auto space-y-4">
+
+          {/* 1-Click Bookmarklet Super Tool Box */}
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0">
+                <Bookmark className="w-4 h-4" />
+              </div>
+              <div className="text-left">
+                <span className="text-xs font-black text-purple-950 flex items-center gap-1.5">
+                  ⚡ 1-Click Meesho Chrome Bookmarklet
+                  <span className="text-[10px] bg-pink-100 text-pink-700 px-1.5 py-0.2 rounded font-bold">Recommended</span>
+                </span>
+                <p className="text-[11px] text-gray-600">
+                  Drag this button to your Bookmarks Bar. When browsing Meesho, 1 click imports photo, price & sizes!
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href={bookmarkletCode}
+                onClick={(e) => {
+                  if (e.button === 0) {
+                    toast('📌 Is button ko apne Chrome Bookmarks bar (Ctrl+Shift+B) me drag & drop karein!', { icon: '💡' })
+                  }
+                }}
+                className="bg-purple-700 hover:bg-purple-800 text-white font-black text-xs px-3 py-1.5 rounded-lg shadow cursor-grab active:cursor-grabbing flex items-center gap-1.5 transition-transform hover:scale-105"
+                title="Drag this button to your Chrome/Edge bookmarks bar"
+              >
+                <MousePointer className="w-3.5 h-3.5" />
+                <span>⚡ Add to ShopEzy</span>
+              </a>
+            </div>
+          </div>
 
           {publishedProduct ? (
             /* SUCCESS VIEW */
@@ -462,7 +537,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-black text-gray-900 flex items-center gap-1.5">
                     <span className="w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] flex items-center justify-center font-bold">1</span>
-                    Paste Meesho Product Link or Copied Description
+                    Paste Meesho Link, Copied Text, or use "COPY" on Meesho
                   </label>
                   <span className="text-[11px] text-purple-700 font-semibold bg-purple-100 px-2 py-0.5 rounded-full">
                     Auto-Extract Details
@@ -474,7 +549,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                     rows={2}
                     value={rawText}
                     onChange={(e) => setRawText(e.target.value)}
-                    placeholder="Paste Meesho product URL (e.g. https://www.meesho.com/.../p/...) or copied description..."
+                    placeholder="Paste Meesho product URL or click Meesho's purple 'COPY' button under product highlights and paste here..."
                     className="input-field text-xs resize-none bg-white font-mono leading-relaxed"
                   />
 
@@ -489,19 +564,19 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                           setQuickCost(e.target.value)
                           handleCostChange(e.target.value)
                         }}
-                        placeholder="e.g. 320"
+                        placeholder="e.g. 274"
                         className="w-20 text-xs font-bold text-purple-700 border-none p-0 focus:ring-0 outline-none"
                       />
                     </div>
                     <span className="text-[10px] text-gray-500">
-                      (Type cost here or paste text — profit will auto-calculate!)
+                      (Enter cost if link only — selling price & profit auto-calculates!)
                     </span>
                   </div>
                 </div>
 
                 <div className="flex justify-between items-center gap-2 pt-1">
                   <p className="text-[11px] text-gray-500">
-                    Extracts title, sizes (S, M, L, XL or shoes), category & photos automatically.
+                    Extracts title, sizes (IND-6..10 or S..XXL), category & photos automatically.
                   </p>
                   <button
                     type="button"
@@ -523,7 +598,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Men Slim Fit Casual Cotton Shirt"
+                    placeholder="e.g. Sports Shoe"
                     className="input-field text-xs font-semibold"
                   />
                 </div>
@@ -532,7 +607,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                   <select
                     value={categoryId}
                     onChange={(e) => handleCategoryChange(e.target.value)}
-                    className="input-field text-xs"
+                    className="input-field text-xs font-bold text-purple-900 bg-white"
                   >
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
@@ -562,8 +637,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                         alt="Product"
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          // Replace broken image with high quality category photo
-                          e.target.src = showcaseOptions[0]
+                          if (showcaseOptions[0]) e.target.src = showcaseOptions[0]
                         }}
                       />
                       {idx === 0 && (
@@ -597,7 +671,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                         value={imageUrlInput}
                         onChange={(e) => setImageUrlInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddImageUrl() } }}
-                        placeholder="Paste image link or right click Meesho photo..."
+                        placeholder="Paste image link or right-click Meesho photo..."
                         className="input-field text-xs flex-1"
                       />
                       <button
@@ -612,37 +686,39 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                 </div>
 
                 {/* 1-Click Pick from Category Showcase Photos */}
-                <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-200 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-gray-700 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-purple-600" />
-                      Or pick from high-converting category photos in 1 click:
-                    </span>
-                    <span className="text-[10px] text-gray-400">Click to set as photo</span>
+                {showcaseOptions.length > 0 && (
+                  <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-200 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-gray-700 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-purple-600" />
+                        Or pick from high-converting category photos in 1 click:
+                      </span>
+                      <span className="text-[10px] text-gray-400">Click to set as photo</span>
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {showcaseOptions.map((photo, i) => {
+                        const isSelected = images.includes(photo)
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => selectShowcasePhoto(photo)}
+                            className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 shrink-0 transition-transform hover:scale-105 ${
+                              isSelected ? 'border-purple-600 ring-2 ring-purple-200' : 'border-gray-200 opacity-80 hover:opacity-100'
+                            }`}
+                          >
+                            <img src={photo} alt="Showcase" className="w-full h-full object-cover" />
+                            {isSelected && (
+                              <span className="absolute inset-0 bg-purple-600/30 flex items-center justify-center text-white">
+                                <Check className="w-4 h-4 stroke-[3]" />
+                              </span>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {showcaseOptions.map((photo, i) => {
-                      const isSelected = images.includes(photo)
-                      return (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => selectShowcasePhoto(photo)}
-                          className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 shrink-0 transition-transform hover:scale-105 ${
-                            isSelected ? 'border-purple-600 ring-2 ring-purple-200' : 'border-gray-200 opacity-80 hover:opacity-100'
-                          }`}
-                        >
-                          <img src={photo} alt="Showcase" className="w-full h-full object-cover" />
-                          {isSelected && (
-                            <span className="absolute inset-0 bg-purple-600/30 flex items-center justify-center text-white">
-                              <Check className="w-4 h-4 stroke-[3]" />
-                            </span>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* STEP 3: PRICING & MARGIN CONTROL */}
@@ -668,7 +744,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                         type="number"
                         value={purchaseCost}
                         onChange={(e) => handleCostChange(e.target.value)}
-                        placeholder="e.g. 320"
+                        placeholder="e.g. 274"
                         className="input-field pl-7 text-xs font-semibold bg-white"
                       />
                     </div>
@@ -686,7 +762,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                         type="number"
                         value={sellingPrice}
                         onChange={(e) => setSellingPrice(e.target.value)}
-                        placeholder="e.g. 599"
+                        placeholder="e.g. 519"
                         className="input-field pl-7 text-sm font-black text-brand-700 border-brand-400 ring-2 ring-brand-100 bg-white"
                       />
                     </div>
@@ -701,7 +777,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                         type="number"
                         value={originalPrice}
                         onChange={(e) => setOriginalPrice(e.target.value)}
-                        placeholder="e.g. 999"
+                        placeholder="e.g. 879"
                         className="input-field pl-7 text-xs font-semibold bg-white"
                       />
                     </div>
@@ -728,24 +804,24 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                 </div>
               </div>
 
-              {/* AVAILABLE SIZES */}
+              {/* AVAILABLE SIZES (Shoes IND-6..10, Clothes S..XXL) */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-gray-700">Available Sizes</label>
                   <div className="flex gap-1">
                     <button
                       type="button"
-                      onClick={() => applySizePreset('clothing')}
-                      className="text-[10px] bg-purple-50 text-purple-700 hover:bg-purple-100 px-2 py-0.5 rounded font-bold transition-colors"
-                    >
-                      👕 S - XXL
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => applySizePreset('shoes')}
                       className="text-[10px] bg-purple-50 text-purple-700 hover:bg-purple-100 px-2 py-0.5 rounded font-bold transition-colors"
                     >
-                      👟 UK 6 - 10
+                      👟 Shoes (IND 6-10)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applySizePreset('clothing')}
+                      className="text-[10px] bg-purple-50 text-purple-700 hover:bg-purple-100 px-2 py-0.5 rounded font-bold transition-colors"
+                    >
+                      👕 Clothes (S-XXL)
                     </button>
                     <button
                       type="button"
@@ -758,7 +834,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 items-center">
-                  {['S', 'M', 'L', 'XL', 'XXL', '3XL', 'Free Size', 'UK 6', 'UK 7', 'UK 8', 'UK 9', 'UK 10'].map((s) => {
+                  {['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10', 'S', 'M', 'L', 'XL', 'XXL', '3XL', 'Free Size'].map((s) => {
                     const active = sizes.includes(s)
                     return (
                       <button
@@ -793,7 +869,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                   type="button"
                   onClick={handle1ClickPublish}
                   disabled={publishing || !name.trim() || !sellNum}
-                  className="w-full bg-gradient-to-r from-purple-700 to-brand-600 hover:from-purple-800 hover:to-brand-700 text-white text-sm py-3.5 px-6 rounded-xl font-black shadow-lg shadow-purple-200 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  className="w-full bg-gradient-to-r from-purple-700 to-pink-600 hover:from-purple-800 hover:to-pink-700 text-white text-sm py-3.5 px-6 rounded-xl font-black shadow-lg shadow-purple-200 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {publishing ? (
                     <>
@@ -808,7 +884,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess })
                   )}
                 </button>
                 <p className="text-[10px] text-gray-400 text-center mt-2">
-                  Immediately creates the product, attaches all images, configures sizes, and makes it live on your customer store.
+                  Immediately creates the product in its respective category, attaches all images, configures sizes, and makes it live for customers.
                 </p>
               </div>
             </>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { SlidersHorizontal, X, ChevronDown, ShoppingBag } from 'lucide-react'
+import { useSearchParams, useParams, Link } from 'react-router-dom'
+import { SlidersHorizontal, X, ChevronDown, ShoppingBag, Filter } from 'lucide-react'
 import { productsPublicAPI, categoriesAPI } from '../../services/api'
 import ProductCard from '../../components/customer/ProductCard'
 import Pagination from '../../components/ui/Pagination'
@@ -15,6 +15,7 @@ const SORT_OPTIONS = [
 ]
 
 export default function ProductsPage() {
+  const { slug } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
@@ -27,6 +28,8 @@ export default function ProductsPage() {
   const sort = searchParams.get('sort') || 'newest'
   const search = searchParams.get('search') || ''
   const categoryId = searchParams.get('category_id') || ''
+  const categorySlugParam = searchParams.get('category') || ''
+  const activeCategorySlug = slug || categorySlugParam
   const minPrice = searchParams.get('min_price') || ''
   const maxPrice = searchParams.get('max_price') || ''
   const featured = searchParams.get('featured') || ''
@@ -35,16 +38,17 @@ export default function ProductsPage() {
   const [priceTo, setPriceTo] = useState(maxPrice)
 
   useEffect(() => {
-    categoriesAPI.getAll().then(res => setCategories(res.data || [])).catch(() => {})
+    categoriesAPI.getAll(false).then(res => setCategories(res.data || [])).catch(() => {})
   }, [])
 
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true)
       try {
-        const params = { page, sort, limit: 12 }
+        const params = { page, sort, limit: 16 }
         if (search) params.search = search
         if (categoryId) params.category_id = categoryId
+        if (activeCategorySlug && activeCategorySlug !== 'popular') params.category_slug = activeCategorySlug
         if (minPrice) params.min_price = minPrice
         if (maxPrice) params.max_price = maxPrice
         if (featured) params.featured = featured
@@ -59,7 +63,7 @@ export default function ProductsPage() {
       }
     }
     fetchProducts()
-  }, [searchParams])
+  }, [searchParams, slug])
 
   const updateParam = (key, value) => {
     const p = new URLSearchParams(searchParams)
@@ -69,120 +73,126 @@ export default function ProductsPage() {
     setSearchParams(p)
   }
 
-  const applyPriceFilter = () => {
+  const handlePriceApply = (e) => {
+    e.preventDefault()
     const p = new URLSearchParams(searchParams)
-    if (priceFrom) p.set('min_price', priceFrom); else p.delete('min_price')
-    if (priceTo) p.set('max_price', priceTo); else p.delete('max_price')
+    if (priceFrom) p.set('min_price', priceFrom)
+    else p.delete('min_price')
+    if (priceTo) p.set('max_price', priceTo)
+    else p.delete('max_price')
     p.delete('page')
     setSearchParams(p)
-    setShowFilters(false)
   }
 
   const clearFilters = () => {
-    const p = new URLSearchParams()
-    if (search) p.set('search', search)
-    setSearchParams(p)
+    setSearchParams({})
     setPriceFrom('')
     setPriceTo('')
   }
 
-  const hasFilters = categoryId || minPrice || maxPrice || featured
+  const hasFilters = categoryId || activeCategorySlug || minPrice || maxPrice || featured || search
+
+  // Find active category name
+  const currentCategory = categories.find(c => String(c.id) === String(categoryId) || c.slug === activeCategorySlug)
+  const categoryTitle = currentCategory ? currentCategory.name : (search ? `Search results for "${search}"` : 'All Products')
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Header bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-3 border-b border-gray-100">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {search ? `Results for "${search}"` : 'All Products'}
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+            {categoryTitle}
           </h1>
-          <p className="text-xs text-gray-500 mt-1">{total} products available with Cash on Delivery</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Showing {total} product{total !== 1 ? 's' : ''} with Free Cash on Delivery (COD)
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          {hasFilters && (
-            <button
-              onClick={clearFilters}
-              className="flex items-center gap-1 text-xs text-red-600 hover:text-red-700 font-semibold"
-            >
-              <X className="w-3.5 h-3.5" /> Clear Filters
-            </button>
-          )}
+
+        <div className="flex items-center gap-2">
+          {/* Filter toggle */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-sm"
+            className={`btn-secondary text-xs flex items-center gap-1.5 py-2 px-3 font-bold ${hasFilters ? 'border-purple-600 text-purple-700 bg-purple-50' : ''}`}
           >
-            <SlidersHorizontal className="w-3.5 h-3.5" /> Filters
+            <Filter className="w-3.5 h-3.5" />
+            <span>Filters</span>
+            {hasFilters && <span className="w-2 h-2 rounded-full bg-purple-600" />}
           </button>
+
+          {/* Sort dropdown */}
           <div className="relative">
             <select
               value={sort}
               onChange={e => updateParam('sort', e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-300 shadow-sm"
+              className="text-xs py-2 pl-3 pr-8 rounded-lg border border-gray-300 bg-white font-medium focus:outline-none focus:border-purple-600 cursor-pointer"
             >
-              {SORT_OPTIONS.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
+              {SORT_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
           </div>
         </div>
       </div>
 
-      {/* Filter drawer / popover */}
+      {/* Filter panel */}
       {showFilters && (
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-6 shadow-md animate-slide-up">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-gray-800 text-sm">Filter Products</h3>
-            <button onClick={() => setShowFilters(false)} className="text-gray-400 hover:text-gray-600">
-              <X className="w-4 h-4" />
-            </button>
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 animate-fade-in text-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-gray-800">Filter By</span>
+            {hasFilters && (
+              <button onClick={clearFilters} className="text-xs text-brand-600 hover:underline font-bold">
+                Clear All Filters
+              </button>
+            )}
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <div>
-              <label className="label">Category</label>
+              <label className="font-bold text-gray-700 block mb-2">Category</label>
               <div className="space-y-1 max-h-40 overflow-y-auto">
-                <button
-                  onClick={() => updateParam('category_id', '')}
-                  className={`block text-xs w-full text-left px-3 py-1.5 rounded-lg transition-colors ${!categoryId ? 'bg-brand-50 text-brand-700 font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}
+                <Link
+                  to="/products"
+                  className={`block text-xs w-full text-left px-3 py-1.5 rounded-lg transition-colors ${!categoryId && !activeCategorySlug ? 'bg-purple-100 text-purple-900 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}
                 >
                   All Categories
-                </button>
+                </Link>
                 {categories.map(cat => (
-                  <button
+                  <Link
                     key={cat.id}
-                    onClick={() => updateParam('category_id', cat.id)}
-                    className={`block text-xs w-full text-left px-3 py-1.5 rounded-lg transition-colors ${categoryId == cat.id ? 'bg-brand-50 text-brand-700 font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}
+                    to={`/category/${cat.slug}`}
+                    className={`block text-xs w-full text-left px-3 py-1.5 rounded-lg transition-colors ${categoryId == cat.id || activeCategorySlug === cat.slug ? 'bg-purple-100 text-purple-900 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}
                   >
                     {cat.name}
-                  </button>
+                  </Link>
                 ))}
               </div>
             </div>
+
             <div>
-              <label className="label">Price Range (₹)</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  value={priceFrom}
-                  onChange={e => setPriceFrom(e.target.value)}
-                  placeholder="Min"
-                  className="input-field w-24 text-xs"
-                />
-                <span className="text-gray-400 text-xs">–</span>
-                <input
-                  type="number"
-                  value={priceTo}
-                  onChange={e => setPriceTo(e.target.value)}
-                  placeholder="Max"
-                  className="input-field w-24 text-xs"
-                />
-              </div>
-              <button
-                onClick={applyPriceFilter}
-                className="mt-3 btn-primary text-xs py-1.5 px-4"
-              >
-                Apply Price
-              </button>
+              <label className="font-bold text-gray-700 block mb-2">Price Range (₹)</label>
+              <form onSubmit={handlePriceApply} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={priceFrom}
+                    onChange={e => setPriceFrom(e.target.value)}
+                    className="w-full text-xs px-3 py-1.5 rounded-lg border border-gray-300"
+                  />
+                  <span className="text-gray-400">to</span>
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={priceTo}
+                    onChange={e => setPriceTo(e.target.value)}
+                    className="w-full text-xs px-3 py-1.5 rounded-lg border border-gray-300"
+                  />
+                </div>
+                <button type="submit" className="w-full btn-secondary text-xs py-1.5 font-bold">
+                  Apply Price Filter
+                </button>
+              </form>
             </div>
           </div>
         </div>
@@ -191,46 +201,81 @@ export default function ProductsPage() {
       {/* Category navigation pills */}
       {categories.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-3 mb-6 scrollbar-hide">
-          <button
-            onClick={() => updateParam('category_id', '')}
-            className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${!categoryId ? 'bg-brand-600 text-white shadow-sm' : 'bg-white text-gray-700 border border-gray-200 hover:border-brand-300'}`}
+          <Link
+            to="/products"
+            className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${!categoryId && !activeCategorySlug ? 'bg-purple-700 text-white shadow-sm' : 'bg-white text-gray-700 border border-gray-200 hover:border-purple-400'}`}
           >
             All Products
-          </button>
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => updateParam('category_id', cat.id)}
-              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${categoryId == cat.id ? 'bg-brand-600 text-white shadow-sm' : 'bg-white text-gray-700 border border-gray-200 hover:border-brand-300'}`}
-            >
-              {cat.name}
-            </button>
-          ))}
+          </Link>
+          {categories.map(cat => {
+            const isSelected = categoryId == cat.id || activeCategorySlug === cat.slug
+            return (
+              <Link
+                key={cat.id}
+                to={`/category/${cat.slug}`}
+                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${isSelected ? 'bg-purple-700 text-white shadow-sm' : 'bg-white text-gray-700 border border-gray-200 hover:border-purple-400'}`}
+              >
+                {cat.name}
+              </Link>
+            )
+          })}
         </div>
       )}
 
-      {/* Grid */}
+      {/* Active filter badges */}
+      {hasFilters && (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="text-xs text-gray-400 font-semibold">Active:</span>
+          {activeCategorySlug && (
+            <Link to="/products" className="inline-flex items-center gap-1 text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2.5 py-0.5 rounded-full font-bold">
+              <span>{categoryTitle}</span>
+              <X className="w-3 h-3" />
+            </Link>
+          )}
+          {search && (
+            <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full font-bold">
+              <span>"{search}"</span>
+              <button onClick={() => updateParam('search', '')}><X className="w-3 h-3" /></button>
+            </span>
+          )}
+          {minPrice && (
+            <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full font-bold">
+              <span>Min ₹{minPrice}</span>
+              <button onClick={() => updateParam('min_price', '')}><X className="w-3 h-3" /></button>
+            </span>
+          )}
+          {maxPrice && (
+            <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full font-bold">
+              <span>Max ₹{maxPrice}</span>
+              <button onClick={() => updateParam('max_price', '')}><X className="w-3 h-3" /></button>
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Product Grid - Meesho Style */}
       {loading ? (
-        <div className="flex justify-center py-24">
+        <div className="py-20 flex justify-center">
           <LoadingSpinner size="lg" />
         </div>
       ) : products.length === 0 ? (
         <EmptyState
           icon={ShoppingBag}
           title="No products found"
-          description="We couldn't find any products matching your selected filters."
+          message={hasFilters ? "Try clearing some filters to see more products." : "No products available in this category yet."}
+          actionText={hasFilters ? "Clear All Filters" : "Browse All Products"}
+          onAction={hasFilters ? clearFilters : () => {}}
         />
       ) : (
-        <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-3 md:gap-5">
-            {products.map(p => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
-          <Pagination page={page} pages={pages} onPageChange={p => updateParam('page', p)} />
-        </>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+          {products.map(product => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
       )}
+
+      {/* Pagination */}
+      <Pagination page={page} pages={pages} onPageChange={p => updateParam('page', p)} />
     </div>
   )
 }
-

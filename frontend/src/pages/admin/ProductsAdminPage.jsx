@@ -21,6 +21,24 @@ export default function ProductsAdminPage() {
   const [loading, setLoading] = useState(true)
   const [isImporterOpen, setIsImporterOpen] = useState(false)
   const [isBulkOpen, setIsBulkOpen] = useState(false)
+  const [initialImportData, setInitialImportData] = useState(null)
+
+  // Listen for 1-Click Bookmarklet importData in URL
+  useEffect(() => {
+    const importParam = searchParams.get('importData')
+    if (importParam) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(importParam))
+        setInitialImportData(parsed)
+        setIsImporterOpen(true)
+        const p = new URLSearchParams(searchParams)
+        p.delete('importData')
+        setSearchParams(p, { replace: true })
+      } catch (err) {
+        console.error('Failed to parse import data', err)
+      }
+    }
+  }, [searchParams])
 
   const page = parseInt(searchParams.get('page') || '1')
   const search = searchParams.get('search') || ''
@@ -353,9 +371,14 @@ export default function ProductsAdminPage() {
       {/* 1-Click Meesho Fast Importer Modal */}
       <MeeshoQuickImporterModal
         isOpen={isImporterOpen}
-        onClose={() => setIsImporterOpen(false)}
+        initialData={initialImportData}
+        onClose={() => {
+          setIsImporterOpen(false)
+          setInitialImportData(null)
+        }}
         onSuccess={() => {
           setIsImporterOpen(false)
+          setInitialImportData(null)
           fetchProducts()
         }}
       />
