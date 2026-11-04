@@ -49,16 +49,12 @@ export default function CustomerFooter() {
             <h4 className="text-white font-semibold mb-4">Contact Us</h4>
             <div className="space-y-3 text-sm">
               <div className="flex items-start gap-2">
-                <Phone className="w-4 h-4 mt-0.5 text-brand-400 flex-shrink-0" />
-                <span>+91 98765 43210</span>
-              </div>
-              <div className="flex items-start gap-2">
                 <Mail className="w-4 h-4 mt-0.5 text-brand-400 flex-shrink-0" />
                 <span>support@shopezy.in</span>
               </div>
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 mt-0.5 text-brand-400 flex-shrink-0" />
-                <span>India</span>
+                <span>Pan-India Delivery</span>
               </div>
             </div>
             <div className="mt-4 p-3 bg-gray-800 rounded-xl">

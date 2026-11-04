@@ -385,22 +385,11 @@ Order Amount: ₹${order.total_amount}`
                     </span>
                   )}
                 </div>
-                <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
-                  <div>
-                    <span className="font-semibold text-gray-800">Phone: </span>
-                    <a href={`tel:${order.customer?.mobile}`} className="text-brand-600 font-bold hover:underline">
-                      {order.customer?.mobile}
-                    </a>
-                  </div>
-                  <a
-                    href={`https://wa.me/91${order.customer?.mobile}?text=${encodeURIComponent(`Namaste ${order.customer?.name || ''}! We received your ShopEzy Order ${order.order_id}.`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-xs transition-colors"
-                    title="Open WhatsApp chat with customer"
-                  >
-                    <span>💬 WhatsApp</span>
-                  </a>
+                <div className="mt-2 text-gray-600">
+                  <span className="font-semibold text-gray-800">Phone: </span>
+                  <span className="text-gray-900 font-bold select-all">
+                    {order.customer?.mobile}
+                  </span>
                 </div>
                 {order.customer?.alternate_mobile && (
                   <div className="text-gray-500 mt-1">

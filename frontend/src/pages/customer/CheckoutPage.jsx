@@ -119,34 +119,6 @@ export default function CheckoutPage() {
     }
   }
 
-  // Construct WhatsApp Confirmation URL
-  const getWhatsAppUrl = () => {
-    if (!orderPlaced) return '#'
-    const storeWhatsApp = '917668351703'
-
-    const itemsList = placedItems.length > 0
-      ? placedItems.map(item => `• ${item.product?.name || 'Item'} (Qty: ${item.quantity}${item.selected_size ? `, Size: ${item.selected_size}` : ''})`).join('\n')
-      : '• Ordered Items'
-
-    const message = `Namaste ShopEzy! 🙏
-Please confirm my Cash on Delivery Order *${orderPlaced.order_id}*.
-
-📦 *Order Details:*
-${itemsList}
-
-💰 *Total Payable on Delivery:* ₹${orderPlaced.total_amount}
-
-📍 *Delivery Address:*
-${form.customer_name}
-Phone: ${form.customer_mobile}${form.customer_alternate_mobile ? ` / ${form.customer_alternate_mobile}` : ''}
-${form.flat_number}, ${form.street}
-${form.landmark ? `Landmark: ${form.landmark}\n` : ''}${form.city}, ${form.state} - ${form.pincode}
-
-Please pack and dispatch my order. Thank you!`
-
-    return `https://wa.me/${storeWhatsApp}?text=${encodeURIComponent(message)}`
-  }
-
   const copyOrderDetails = () => {
     if (!orderPlaced) return
     const text = `Order ID: ${orderPlaced.order_id}
@@ -173,42 +145,20 @@ Total Amount: ₹${orderPlaced.total_amount} (Cash on Delivery)`
 
           <h1 className="text-2xl font-black text-gray-900 mb-1.5">Order Placed Successfully! 🎉</h1>
           <p className="text-xs text-gray-500 mb-6">
-            Thank you, <strong className="text-gray-800">{form.customer_name || 'Customer'}</strong>! Your Cash on Delivery order is registered.
+            Thank you, <strong className="text-gray-800">{form.customer_name || 'Customer'}</strong>! Your Cash on Delivery order has been confirmed and registered.
           </p>
 
-          {/* High Priority WhatsApp Confirmation Card */}
-          <div className="bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-2xl p-6 mb-6 text-center shadow-lg shadow-emerald-500/25 relative overflow-hidden">
-            <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-4 opacity-10">
-              <MessageCircle className="w-32 h-32" />
+          {/* Delivery Assurance Card */}
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-6 text-left">
+            <div className="flex items-center gap-2.5 mb-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <h3 className="text-sm font-extrabold text-emerald-950">
+                Cash on Delivery Verified & Processing
+              </h3>
             </div>
-
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-[11px] font-bold uppercase tracking-wider mb-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-200 animate-ping" />
-              ⚡ Fast Dispatch Step
-            </div>
-
-            <h3 className="text-lg font-black mb-1.5 leading-snug">
-              Confirm Your Order on WhatsApp
-            </h3>
-            <p className="text-xs text-emerald-50 mb-5 leading-relaxed">
-              Apna parcel turant pack aur dispatch karwane ke liye niche WhatsApp button dabayein:
+            <p className="text-xs text-emerald-800 leading-relaxed">
+              Your parcel will be packed and dispatched shortly. You can pay in cash or UPI directly to the delivery partner when your order arrives at your doorstep.
             </p>
-
-            <a
-              href={getWhatsAppUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2.5 w-full bg-white hover:bg-gray-50 text-emerald-800 font-black text-sm px-6 py-3.5 rounded-xl shadow-md transition-all transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-            >
-              <svg className="w-5 h-5 fill-[#25D366]" viewBox="0 0 24 24">
-                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.669-.699c.969.53 1.771.82 2.791.82 3.181 0 5.768-2.587 5.768-5.768 0-3.18-2.587-5.766-5.768-5.766zm9.969 5.766c0 5.518-4.482 10-10 10-1.745 0-3.377-.45-4.808-1.236l-5.192 1.36 1.385-5.064c-.878-1.488-1.385-3.224-1.385-5.06 0-5.518 4.482-10 10-10 5.518 0 10 4.482 10 10z"/>
-              </svg>
-              <span>Confirm on WhatsApp (1-Click)</span>
-            </a>
-
-            <div className="text-[11px] text-emerald-100/90 mt-3 font-medium">
-              ✓ Direct chat with ShopEzy team & Instant Delivery updates
-            </div>
           </div>
 
           {/* Order Details Summary Card */}
@@ -234,6 +184,10 @@ Total Amount: ₹${orderPlaced.total_amount} (Cash on Delivery)`
               <div className="flex justify-between">
                 <span>Total Payable:</span>
                 <span className="font-black text-brand-700 text-sm">{formatPrice(orderPlaced.total_amount)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Estimated Delivery:</span>
+                <span className="font-semibold text-emerald-700">3–5 Business Days (Free)</span>
               </div>
               <div className="flex justify-between">
                 <span>Delivery To:</span>
