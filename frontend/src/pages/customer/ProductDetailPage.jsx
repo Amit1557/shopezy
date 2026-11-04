@@ -71,9 +71,9 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 pb-24 md:pb-6">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24 md:pb-6">
       {/* Breadcrumb */}
-      <nav className="text-xs text-gray-500 mb-6 flex items-center gap-1.5 flex-wrap">
+      <nav className="text-xs text-gray-500 mb-4 sm:mb-6 flex items-center gap-1.5 flex-wrap">
         <Link to="/" className="hover:text-brand-600">Home</Link>
         <span>/</span>
         <Link to="/products" className="hover:text-brand-600">Products</Link>

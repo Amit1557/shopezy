@@ -67,29 +67,39 @@ export default function CustomerHeader() {
   return (
     <header className="sticky top-0 z-40 bg-white shadow-sm border-b border-gray-100">
       {/* Top Banner (Free COD) */}
-      <div className="bg-gradient-to-r from-purple-800 to-brand-600 text-white text-xs text-center py-1.5 px-4 font-semibold tracking-wide flex items-center justify-center gap-2">
+      <div className="bg-gradient-to-r from-purple-800 to-brand-600 text-white text-[11px] sm:text-xs text-center py-1.5 px-3 font-semibold tracking-wide flex items-center justify-center gap-1.5 truncate">
         <span>🎉 Free Cash on Delivery on all orders! 7-day easy exchange support.</span>
       </div>
       
       {/* Main header row */}
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-        {/* Logo */}
-        <Link to="/" className="flex-shrink-0 flex items-center gap-2.5">
-          <div className="w-10 h-10 bg-gradient-to-tr from-purple-800 to-pink-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-md shadow-purple-200">
-            S
-          </div>
-          <div>
-            <span className="text-xl font-black bg-gradient-to-r from-purple-800 to-pink-600 bg-clip-text text-transparent tracking-tight">
-              ShopEzy
-            </span>
-            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider -mt-1 hidden sm:block">
-              Cash on Delivery
-            </div>
-          </div>
-        </Link>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
+        {/* Left: Mobile Menu Trigger + Logo */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open Menu"
+            className="md:hidden p-1.5 -ml-1 text-gray-700 hover:bg-gray-100 rounded-lg"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
 
-        {/* Search Bar - Meesho Style */}
-        <form onSubmit={handleSearch} className="flex-1 max-w-2xl">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-tr from-purple-800 to-pink-600 rounded-xl flex items-center justify-center text-white font-black text-lg sm:text-xl shadow-md shadow-purple-200 flex-shrink-0">
+              S
+            </div>
+            <div>
+              <span className="text-lg sm:text-xl font-black bg-gradient-to-r from-purple-800 to-pink-600 bg-clip-text text-transparent tracking-tight">
+                ShopEzy
+              </span>
+              <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider -mt-1 hidden sm:block">
+                Cash on Delivery
+              </div>
+            </div>
+          </Link>
+        </div>
+
+        {/* Desktop Search Bar (Meesho Style - Hidden on Mobile) */}
+        <form onSubmit={handleSearch} className="hidden md:block flex-1 max-w-xl lg:max-w-2xl mx-2">
           <div className="relative">
             <input
               type="text"
@@ -100,7 +110,8 @@ export default function CustomerHeader() {
             />
             <button
               type="submit"
-              className="absolute right-0 top-0 h-full px-4 bg-purple-700 hover:bg-purple-800 text-white rounded-r-lg transition-colors flex items-center justify-center"
+              aria-label="Search"
+              className="absolute right-0 top-0 h-full px-4 bg-purple-700 hover:bg-purple-800 text-white rounded-r-lg transition-colors flex items-center justify-center cursor-pointer"
             >
               <Search className="w-4 h-4" />
             </button>
@@ -108,10 +119,10 @@ export default function CustomerHeader() {
         </form>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           <Link
             to="/my-orders"
-            className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-gray-700 hover:text-purple-700 px-2.5 py-2 rounded-lg hover:bg-purple-50 transition-colors"
+            className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-gray-700 hover:text-purple-700 px-2 py-1.5 rounded-lg hover:bg-purple-50 transition-colors"
           >
             <Package className="w-4 h-4 text-purple-700" />
             <span className="hidden lg:block">My Orders</span>
@@ -119,14 +130,15 @@ export default function CustomerHeader() {
 
           <Link
             to="/track-order"
-            className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-gray-700 hover:text-purple-700 px-2.5 py-2 rounded-lg hover:bg-purple-50 transition-colors"
+            className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-gray-700 hover:text-purple-700 px-2 py-1.5 rounded-lg hover:bg-purple-50 transition-colors"
           >
             <span className="hidden lg:block">Track Order</span>
           </Link>
           
           <Link
             to="/cart"
-            className="relative flex items-center gap-1.5 text-xs font-bold text-gray-700 hover:text-purple-700 px-2.5 py-2 rounded-lg hover:bg-purple-50 transition-colors"
+            aria-label="Shopping Cart"
+            className="relative flex items-center gap-1 text-xs font-bold text-gray-700 hover:text-purple-700 p-2 sm:px-2.5 sm:py-2 rounded-lg hover:bg-purple-50 transition-colors"
           >
             <div className="relative">
               <ShoppingCart className="w-5 h-5 text-gray-800" />
@@ -145,13 +157,13 @@ export default function CustomerHeader() {
               <button
                 type="button"
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-1.5 text-xs font-bold text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 text-xs font-bold text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 sm:px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
               >
-                <div className="w-6 h-6 rounded-full bg-purple-700 text-white flex items-center justify-center font-black text-[11px]">
+                <div className="w-6 h-6 rounded-full bg-purple-700 text-white flex items-center justify-center font-black text-[11px] flex-shrink-0">
                   {customer?.name ? customer.name.charAt(0).toUpperCase() : 'U'}
                 </div>
-                <span className="max-w-[80px] truncate hidden sm:inline">{customer?.name || 'Account'}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-purple-600" />
+                <span className="max-w-[70px] truncate hidden sm:inline">{customer?.name || 'Account'}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-purple-600 hidden sm:inline" />
               </button>
 
               {userMenuOpen && (
@@ -186,20 +198,50 @@ export default function CustomerHeader() {
             <button
               type="button"
               onClick={openAuthModal}
-              className="flex items-center gap-1.5 text-xs font-black text-white bg-gradient-to-r from-purple-700 to-pink-600 hover:from-purple-800 hover:to-pink-700 px-3 py-2 rounded-lg shadow-sm shadow-purple-200 transition-all cursor-pointer"
+              className="flex items-center gap-1 text-xs font-black text-white bg-gradient-to-r from-purple-700 to-pink-600 hover:from-purple-800 hover:to-pink-700 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg shadow-sm shadow-purple-200 transition-all cursor-pointer flex-shrink-0"
             >
               <User className="w-3.5 h-3.5" />
-              <span>Login / Sign Up</span>
+              <span className="hidden sm:inline">Login / Sign Up</span>
+              <span className="sm:hidden">Login</span>
             </button>
           )}
+        </div>
+      </div>
 
-          {/* Mobile hamburger */}
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+      {/* Row 2: Mobile Search Bar (Full width on Mobile) */}
+      <div className="md:hidden px-3 pb-2.5">
+        <form onSubmit={handleSearch} className="w-full">
+          <div className="relative flex items-center">
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search saree, kurti, shoes, toys..."
+              className="w-full pl-3.5 pr-10 py-2 rounded-xl border border-gray-300 focus:border-purple-600 focus:ring-1 focus:ring-purple-600 focus:outline-none text-xs bg-gray-50 focus:bg-white transition-colors"
+            />
+            <button
+              type="submit"
+              aria-label="Search"
+              className="absolute right-1 top-1 bottom-1 px-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-lg transition-colors flex items-center justify-center cursor-pointer"
+            >
+              <Search className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Row 3: Mobile Category Horizontal Scroll Ribbon */}
+      <div className="md:hidden border-t border-gray-100 bg-white">
+        <div className="flex items-center gap-2 px-3 py-2 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] text-[11px] font-bold text-gray-700 whitespace-nowrap">
+          {MEESHO_CATEGORIES.map((cat) => (
+            <Link
+              key={cat.slug}
+              to={cat.slug === 'popular' ? '/products' : `/category/${cat.slug}`}
+              className="px-2.5 py-1 rounded-full bg-gray-50 border border-gray-200 text-gray-700 hover:border-purple-500 hover:text-purple-700 hover:bg-purple-50 transition-colors flex-shrink-0"
+            >
+              {cat.name}
+            </Link>
+          ))}
         </div>
       </div>
 

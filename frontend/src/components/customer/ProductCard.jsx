@@ -64,24 +64,24 @@ export default function ProductCard({ product }) {
       </div>
 
       {/* Product Information - Meesho Style */}
-      <div className="p-3 flex-1 flex flex-col justify-between">
+      <div className="p-2 sm:p-3 flex-1 flex flex-col justify-between">
         <div>
           <h3 className="text-xs text-gray-700 font-semibold line-clamp-1 leading-snug hover:text-pink-600 transition-colors">
             {product.name}
           </h3>
 
           {/* Pricing Row: Price, Strikethrough, Discount % */}
-          <div className="flex items-baseline gap-1.5 flex-wrap mt-1">
-            <span className="text-base font-black text-gray-900">
+          <div className="flex items-baseline gap-1 sm:gap-1.5 flex-wrap mt-1">
+            <span className="text-sm sm:text-base font-black text-gray-900">
               {formatPrice(product.selling_price)}
             </span>
             {product.original_price && product.original_price > product.selling_price && (
               <>
-                <span className="text-xs text-gray-400 line-through">
+                <span className="text-[10px] sm:text-xs text-gray-400 line-through">
                   {formatPrice(product.original_price)}
                 </span>
                 {discount > 0 && (
-                  <span className="text-[11px] font-bold text-emerald-600">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-emerald-600">
                     {discount}% off
                   </span>
                 )}
@@ -90,12 +90,12 @@ export default function ProductCard({ product }) {
           </div>
 
           {/* Rating Pill - Meesho Green Style */}
-          <div className="flex items-center gap-1.5 mt-2">
-            <span className="inline-flex items-center gap-1 bg-emerald-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded">
+          <div className="flex items-center gap-1 sm:gap-1.5 mt-1.5 sm:mt-2">
+            <span className="inline-flex items-center gap-0.5 sm:gap-1 bg-emerald-600 text-white text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded">
               <span>{rating.toFixed(1)}</span>
-              <Star className="w-2.5 h-2.5 fill-white" />
+              <Star className="w-2 sm:w-2.5 h-2 sm:h-2.5 fill-white" />
             </span>
-            <span className="text-[10px] text-gray-400 font-medium">
+            <span className="text-[9px] sm:text-[10px] text-gray-400 font-medium">
               {reviewCount} Reviews
             </span>
           </div>
@@ -104,7 +104,7 @@ export default function ProductCard({ product }) {
         {/* Quick Add Button */}
         <button
           onClick={handleQuickAdd}
-          className="mt-3 w-full py-1.5 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors active:scale-95 cursor-pointer flex items-center justify-center gap-1"
+          className="mt-2 sm:mt-3 w-full py-1.5 text-[11px] sm:text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors active:scale-95 cursor-pointer flex items-center justify-center gap-1"
         >
           <ShoppingCart className="w-3 h-3" />
           <span>Add to Cart</span>

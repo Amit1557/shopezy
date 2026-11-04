@@ -55,9 +55,9 @@ export default function CategoryCard({ category, index = 0 }) {
   return (
     <Link
       to={`/category/${category.slug}`}
-      className="flex flex-col items-center gap-2 group cursor-pointer p-1.5 transition-transform duration-200 hover:-translate-y-1"
+      className="flex flex-col items-center gap-1.5 sm:gap-2 group cursor-pointer p-1 transition-transform duration-200 hover:-translate-y-1 flex-shrink-0"
     >
-      <div className="relative w-18 h-18 sm:w-20 sm:h-20 md:w-22 md:h-22 rounded-full overflow-hidden p-[2px] bg-gradient-to-tr from-pink-500 via-purple-600 to-indigo-500 shadow-sm group-hover:shadow-lg group-hover:scale-105 transition-all duration-300">
+      <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden p-[2px] bg-gradient-to-tr from-pink-500 via-purple-600 to-indigo-500 shadow-sm group-hover:shadow-lg group-hover:scale-105 transition-all duration-300">
         <div className="w-full h-full rounded-full overflow-hidden bg-white p-0.5">
           <img
             src={photo}
@@ -67,7 +67,7 @@ export default function CategoryCard({ category, index = 0 }) {
           />
         </div>
       </div>
-      <span className="text-[11px] sm:text-xs font-bold text-gray-800 text-center leading-tight line-clamp-1 max-w-[85px] sm:max-w-[100px] group-hover:text-purple-700 transition-colors">
+      <span className="text-[10px] sm:text-xs font-bold text-gray-800 text-center leading-tight line-clamp-1 max-w-[70px] sm:max-w-[85px] md:max-w-[100px] group-hover:text-purple-700 transition-colors">
         {category.name}
       </span>
     </Link>

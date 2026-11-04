@@ -123,9 +123,9 @@ export default function ProductsPage() {
   const categoryTitle = currentCategory ? currentCategory.name : (search ? `Search results for "${search}"` : 'All Products')
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
       {/* Top Bar / Breadcrumb */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-gray-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-5 pb-3 border-b border-gray-100">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight capitalize">
             {categoryTitle}
@@ -283,7 +283,7 @@ export default function ProductsPage() {
 
           {/* Product Grid - Smooth Meesho Experience (No Screen Flashing) */}
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                 <div key={n} className="bg-white rounded-2xl border border-gray-100 p-2.5 shadow-sm animate-pulse space-y-2.5">
                   <div className="aspect-[3/4] bg-gray-100 rounded-xl w-full" />
@@ -302,7 +302,7 @@ export default function ProductsPage() {
               onAction={clearFilters}
             />
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 animate-fade-in">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5 animate-fade-in">
               {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

@@ -227,19 +227,19 @@ Total Amount: ₹${orderPlaced.total_amount} (Cash on Delivery)`
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-3 sm:px-4 py-5 sm:py-8">
       {/* Title */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-black text-gray-900">Cash on Delivery Checkout</h1>
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-black text-gray-900">Cash on Delivery Checkout</h1>
         <p className="text-xs text-gray-500 mt-0.5">Pay in cash when your parcel is delivered to your doorstep. Free Delivery across India.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
         {/* Form */}
-        <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-6">
+        <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-4 sm:space-y-6">
 
           {/* 1. Contact Information */}
-          <div className="card p-5">
+          <div className="card p-4 sm:p-5">
             <h2 className="font-extrabold text-gray-900 mb-4 flex items-center gap-2 text-sm">
               <span className="w-6 h-6 bg-brand-600 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
               Contact Information

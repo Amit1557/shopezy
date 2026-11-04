@@ -96,44 +96,44 @@ export default function HomePage() {
   return (
     <div>
       {/* Contained Hero Carousel Banner */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 pb-2">
-        <div className="relative rounded-3xl overflow-hidden shadow-md border border-gray-100">
-          <div className={`bg-gradient-to-r ${BANNERS[activeBanner].bg} text-white transition-all duration-700 ease-in-out px-6 py-8 sm:px-10 sm:py-12 md:py-14`}>
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+      <section className="max-w-7xl mx-auto px-3 sm:px-6 pt-3 sm:pt-4 pb-2">
+        <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-md border border-gray-100">
+          <div className={`bg-gradient-to-r ${BANNERS[activeBanner].bg} text-white transition-all duration-700 ease-in-out px-4 py-6 sm:px-10 sm:py-12 md:py-14`}>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-center">
               
               {/* Left Content */}
-              <div className="md:col-span-7 space-y-4">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-black tracking-wider uppercase border border-white/15">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              <div className="md:col-span-7 space-y-3 sm:space-y-4">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-[10px] sm:text-xs font-black tracking-wider uppercase border border-white/15">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-400 animate-ping" />
                   <span className={BANNERS[activeBanner].accentColor}>{BANNERS[activeBanner].badge}</span>
                 </div>
 
-                <h1 className="text-2xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight drop-shadow-xs">
+                <h1 className="text-xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight drop-shadow-xs">
                   {BANNERS[activeBanner].title}
                 </h1>
 
-                <p className="text-white/85 text-xs sm:text-sm md:text-base leading-relaxed max-w-xl font-medium">
+                <p className="text-white/85 text-xs sm:text-sm md:text-base leading-relaxed max-w-xl font-medium line-clamp-2 sm:line-clamp-none">
                   {BANNERS[activeBanner].subtitle}
                 </p>
 
                 {/* Quick Perks */}
-                <div className="flex flex-wrap gap-2 pt-1 text-xs font-semibold text-white/90">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-1 text-xs font-semibold text-white/90">
                   {BANNERS[activeBanner].highlights.map((h, idx) => (
-                    <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/25 backdrop-blur-xs border border-white/10 text-[11px] sm:text-xs">
-                      <Check className="w-3.5 h-3.5 text-amber-400" /> {h}
+                    <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg bg-black/25 backdrop-blur-xs border border-white/10 text-[10px] sm:text-xs">
+                      <Check className="w-3 h-3 text-amber-400" /> {h}
                     </span>
                   ))}
                 </div>
 
                 {/* Action Buttons */}
-                <div className="pt-2 flex items-center gap-3 flex-wrap">
+                <div className="pt-2 flex items-center gap-2.5 sm:gap-3 flex-wrap">
                   <Link
                     to={BANNERS[activeBanner].link}
-                    className={`inline-flex items-center gap-2 ${BANNERS[activeBanner].btnColor} font-black px-6 py-3.5 rounded-xl transition-all shadow-md active:scale-95 text-xs sm:text-sm`}
+                    className={`inline-flex items-center gap-1.5 sm:gap-2 ${BANNERS[activeBanner].btnColor} font-black px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-xl transition-all shadow-md active:scale-95 text-xs sm:text-sm`}
                   >
-                    {BANNERS[activeBanner].cta} <ArrowRight className="w-4 h-4" />
+                    {BANNERS[activeBanner].cta} <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </Link>
-                  <div className="bg-white/10 border border-white/20 px-3.5 py-2.5 rounded-xl text-xs font-black tracking-wider text-amber-300 uppercase">
+                  <div className="bg-white/10 border border-white/20 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black tracking-wider text-amber-300 uppercase">
                     {BANNERS[activeBanner].discount}
                   </div>
                 </div>
@@ -177,17 +177,17 @@ export default function HomePage() {
       </section>
 
       {/* Trust Badges Bar */}
-      <div className="bg-white border-b border-gray-100 shadow-sm mt-3">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="bg-white border-b border-gray-100 shadow-sm mt-2 sm:mt-3">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
             {FEATURES.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-brand-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-5 h-5 text-brand-600" />
+              <div key={title} className="flex items-center gap-2 sm:gap-3 p-1">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-brand-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-brand-600" />
                 </div>
-                <div>
-                  <div className="text-sm font-semibold text-gray-800">{title}</div>
-                  <div className="text-xs text-gray-500">{desc}</div>
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm font-semibold text-gray-800 truncate">{title}</div>
+                  <div className="text-[10px] sm:text-xs text-gray-500 truncate">{desc}</div>
                 </div>
               </div>
             ))}
@@ -195,22 +195,24 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 space-y-12">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8 space-y-8 sm:space-y-12">
         {/* Categories Section */}
         {categories.length > 0 && (
-          <section className="bg-white p-5 sm:p-6 rounded-3xl border border-gray-100 shadow-xs">
-            <div className="flex items-center justify-between mb-4">
+          <section className="bg-white p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-xs">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
               <div>
-                <h2 className="text-lg sm:text-xl font-black text-gray-900 flex items-center gap-2">
+                <h2 className="text-base sm:text-xl font-black text-gray-900 flex items-center gap-1.5 sm:gap-2">
                   <span>🛍️ Explore Top Categories</span>
                 </h2>
-                <p className="text-xs text-gray-500 mt-0.5">Find whatever you love with 100% Free Cash on Delivery</p>
+                <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">Find whatever you love with 100% Free Cash on Delivery</p>
               </div>
-              <Link to="/products" className="text-xs sm:text-sm text-purple-700 hover:text-purple-800 flex items-center gap-1 font-bold">
-                View All Categories <ChevronRight className="w-4 h-4" />
+              <Link to="/products" className="text-xs sm:text-sm text-purple-700 hover:text-purple-800 flex items-center gap-0.5 sm:gap-1 font-bold flex-shrink-0">
+                <span className="hidden sm:inline">View All Categories</span>
+                <span className="sm:hidden">All</span>
+                <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </Link>
             </div>
-            <div className="flex sm:grid sm:grid-cols-6 md:grid-cols-9 gap-3 sm:gap-4 overflow-x-auto pb-2 sm:pb-0 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="flex sm:grid sm:grid-cols-6 md:grid-cols-9 gap-2.5 sm:gap-4 overflow-x-auto pb-2 sm:pb-0 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {categories.map((cat, i) => (
                 <CategoryCard key={cat.id} category={cat} index={i} />
               ))}
@@ -221,16 +223,16 @@ export default function HomePage() {
         {/* Featured Products */}
         {featured.length > 0 && (
           <section>
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-4 sm:mb-5">
               <div className="flex items-center gap-2">
                 <Star className="w-5 h-5 text-yellow-500 fill-yellow-400" />
-                <h2 className="text-xl font-bold text-gray-900">Featured Collection</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Featured Collection</h2>
               </div>
-              <Link to="/products?featured=true" className="text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1 font-semibold">
-                View all <ChevronRight className="w-4 h-4" />
+              <Link to="/products?featured=true" className="text-xs sm:text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1 font-semibold">
+                View all <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </Link>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5">
               {featured.map(p => (
                 <ProductCard key={p.id} product={p} />
               ))}
@@ -241,16 +243,16 @@ export default function HomePage() {
         {/* Trending Deals */}
         {trending.length > 0 && (
           <section>
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-4 sm:mb-5">
               <div className="flex items-center gap-2">
                 <Flame className="w-5 h-5 text-orange-500 fill-orange-400" />
-                <h2 className="text-xl font-bold text-gray-900">Trending Now</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Trending Now</h2>
               </div>
-              <Link to="/products?sort=popular" className="text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1 font-semibold">
-                View all <ChevronRight className="w-4 h-4" />
+              <Link to="/products?sort=popular" className="text-xs sm:text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1 font-semibold">
+                View all <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </Link>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5">
               {trending.map(p => (
                 <ProductCard key={p.id} product={p} />
               ))}
@@ -261,16 +263,16 @@ export default function HomePage() {
         {/* New Arrivals */}
         {newArrivals.length > 0 && (
           <section>
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-4 sm:mb-5">
               <div className="flex items-center gap-2">
                 <Zap className="w-5 h-5 text-brand-600 fill-brand-500" />
-                <h2 className="text-xl font-bold text-gray-900">New Arrivals</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">New Arrivals</h2>
               </div>
-              <Link to="/products?sort=newest" className="text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1 font-semibold">
-                View all <ChevronRight className="w-4 h-4" />
+              <Link to="/products?sort=newest" className="text-xs sm:text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1 font-semibold">
+                View all <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </Link>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5">
               {newArrivals.map(p => (
                 <ProductCard key={p.id} product={p} />
               ))}
