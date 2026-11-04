@@ -5,6 +5,7 @@ import { useCart } from '../../context/CartContext'
 import { useCustomer } from '../../context/CustomerContext'
 import { ordersPublicAPI } from '../../services/api'
 import { formatPrice, validateMobile, validatePincode, INDIAN_STATES } from '../../utils/helpers'
+import CheckoutOtpModal from '../../components/customer/CheckoutOtpModal'
 import toast from 'react-hot-toast'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 
@@ -30,6 +31,7 @@ export default function CheckoutPage() {
   const [orderPlaced, setOrderPlaced] = useState(null)
   const [placedItems, setPlacedItems] = useState([])
   const [copied, setCopied] = useState(false)
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false)
 
   useEffect(() => {
     if (isCustomerLoggedIn && customer) {
@@ -78,13 +80,19 @@ export default function CheckoutPage() {
   }
 
   // Triggered when clicking "Place Cash on Delivery Order"
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
     if (!validate()) {
       toast.error('Please complete all required fields')
       return
     }
+    // Open Google SMS OTP verification modal
+    setIsOtpModalOpen(true)
+  }
 
+  // Triggered after customer enters and verifies the SMS OTP
+  const handleConfirmedOrder = async () => {
+    setIsOtpModalOpen(false)
     setLoading(true)
     try {
       const currentCartItems = [...cart.items]
@@ -98,7 +106,7 @@ export default function CheckoutPage() {
         city: form.city.trim(),
         state: form.state,
         pincode: form.pincode.trim(),
-        otp_verified: false,
+        otp_verified: true,
         items: cart.items.map(i => ({
           product_id: i.product_id,
           selected_size: i.selected_size,
@@ -110,7 +118,7 @@ export default function CheckoutPage() {
       setPlacedItems(currentCartItems)
       clearCart()
       setOrderPlaced(res.data)
-      toast.success('Order placed successfully! Confirm on WhatsApp for fast dispatch.')
+      toast.success('Order placed successfully via Cash on Delivery!')
     } catch (err) {
       const msg = err.response?.data?.detail || 'Failed to place order. Please review your address.'
       toast.error(typeof msg === 'string' ? msg : 'Failed to place order')
@@ -465,6 +473,14 @@ Total Amount: ₹${orderPlaced.total_amount} (Cash on Delivery)`
           </div>
         </div>
       </div>
+
+      {/* Google SMS Phone Verification Modal */}
+      <CheckoutOtpModal
+        isOpen={isOtpModalOpen}
+        onClose={() => setIsOtpModalOpen(false)}
+        mobile={form.customer_mobile}
+        onVerified={handleConfirmedOrder}
+      />
     </div>
   )
 }
