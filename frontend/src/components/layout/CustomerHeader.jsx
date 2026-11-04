@@ -209,7 +209,7 @@ export default function CustomerHeader() {
         onMouseLeave={handleMouseLeaveCategory}
       >
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between text-xs font-semibold text-gray-700 overflow-x-auto scrollbar-hide">
+          <div className="flex items-center justify-between text-xs font-semibold text-gray-700 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {MEESHO_CATEGORIES.map((cat) => {
               const isActive = activeMegaCategory?.slug === cat.slug
               return (

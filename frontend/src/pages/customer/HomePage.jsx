@@ -9,24 +9,28 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner'
 const BANNERS = [
   {
     title: "Lowest Prices, Best Quality",
-    subtitle: "Direct from verified Indian wholesale suppliers with 100% Free Cash on Delivery",
+    subtitle: "Direct from verified Indian manufacturers with 100% Free Cash on Delivery",
     cta: "Shop Now",
     link: "/products",
-    badge: "⚡ Meesho Reseller Deals",
+    badge: "✨ Festive Mega Sale",
     discount: "UP TO 70% OFF",
-    bg: "from-purple-900 via-purple-700 to-pink-600",
-    image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=700&q=80",
+    bg: "from-[#2A082C] via-[#481249] to-[#691B64]",
+    accentColor: "text-amber-300",
+    btnColor: "bg-amber-400 hover:bg-amber-300 text-gray-950",
+    image: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=700&q=80",
     highlights: ["Free Doorstep Delivery", "7-Day Easy Exchange", "Cash on Delivery"]
   },
   {
-    title: "Trending Indian Reseller Deals",
-    subtitle: "Affordable sarees, kurtis, jeans & home essentials at true factory prices",
+    title: "Trending Fashion & Daily Essentials",
+    subtitle: "Affordable sarees, kurtis, jeans & footwear at true factory prices",
     cta: "Explore Trending",
     link: "/products?sort=popular",
-    badge: "🔥 Trending Collection",
+    badge: "🔥 Top Bestsellers",
     discount: "STARTING @ ₹149",
-    bg: "from-pink-900 via-rose-700 to-purple-800",
-    image: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=700&q=80",
+    bg: "from-[#0D1B30] via-[#142A4A] to-[#1D3E6B]",
+    accentColor: "text-cyan-300",
+    btnColor: "bg-cyan-400 hover:bg-cyan-300 text-gray-950",
+    image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=700&q=80",
     highlights: ["Handpicked Quality", "Safe & Secure COD", "Pan-India Delivery"]
   },
   {
@@ -34,9 +38,11 @@ const BANNERS = [
     subtitle: "New stylish apparel, footwear, and smart accessories added daily",
     cta: "View New Styles",
     link: "/products?sort=newest",
-    badge: "✨ Just Arrived",
+    badge: "✨ Just Launched",
     discount: "SPECIAL LAUNCH PRICES",
-    bg: "from-indigo-950 via-purple-800 to-pink-700",
+    bg: "from-[#200F1A] via-[#3B192E] to-[#572442]",
+    accentColor: "text-rose-300",
+    btnColor: "bg-rose-400 hover:bg-rose-300 text-gray-950",
     image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=700&q=80",
     highlights: ["Trending Styles", "Zero Hidden Charges", "Pay on Delivery"]
   }
@@ -89,87 +95,89 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* Hero Carousel Banner */}
-      <section className="relative overflow-hidden">
-        <div className={`bg-gradient-to-r ${BANNERS[activeBanner].bg} text-white transition-all duration-700 ease-in-out`}>
-          <div className="max-w-7xl mx-auto px-4 py-8 md:py-14 grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-            
-            {/* Left Content */}
-            <div className="md:col-span-7 space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/15 backdrop-blur-md rounded-full text-xs font-black tracking-wider uppercase border border-white/20">
-                <span className="w-2 h-2 rounded-full bg-yellow-300 animate-ping" />
-                {BANNERS[activeBanner].badge}
-              </div>
-
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight drop-shadow-sm">
-                {BANNERS[activeBanner].title}
-              </h1>
-
-              <p className="text-white/90 text-sm md:text-base leading-relaxed max-w-xl">
-                {BANNERS[activeBanner].subtitle}
-              </p>
-
-              {/* Quick Perks */}
-              <div className="flex flex-wrap gap-2 pt-1 text-xs font-semibold text-white/90">
-                {BANNERS[activeBanner].highlights.map((h, idx) => (
-                  <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/20 backdrop-blur-xs border border-white/10">
-                    <Check className="w-3.5 h-3.5 text-yellow-300" /> {h}
-                  </span>
-                ))}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="pt-2 flex items-center gap-3 flex-wrap">
-                <Link
-                  to={BANNERS[activeBanner].link}
-                  className="inline-flex items-center gap-2 bg-white text-gray-950 font-black px-6 py-3.5 rounded-xl hover:bg-yellow-300 transition-all shadow-xl active:scale-95 text-sm"
-                >
-                  {BANNERS[activeBanner].cta} <ArrowRight className="w-4 h-4" />
-                </Link>
-                <div className="bg-white/10 border border-white/20 px-3.5 py-2.5 rounded-xl text-xs font-black tracking-wider text-yellow-300 uppercase">
-                  {BANNERS[activeBanner].discount}
+      {/* Contained Hero Carousel Banner */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 pb-2">
+        <div className="relative rounded-3xl overflow-hidden shadow-md border border-gray-100">
+          <div className={`bg-gradient-to-r ${BANNERS[activeBanner].bg} text-white transition-all duration-700 ease-in-out px-6 py-8 sm:px-10 sm:py-12 md:py-14`}>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+              
+              {/* Left Content */}
+              <div className="md:col-span-7 space-y-4">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-black tracking-wider uppercase border border-white/15">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                  <span className={BANNERS[activeBanner].accentColor}>{BANNERS[activeBanner].badge}</span>
                 </div>
-              </div>
-            </div>
 
-            {/* Right Hero Image Card */}
-            <div className="hidden md:flex md:col-span-5 justify-center relative">
-              <div className="relative w-72 h-80 lg:w-80 lg:h-96 rounded-3xl overflow-hidden shadow-2xl border-4 border-white/20 group">
-                <img
-                  src={BANNERS[activeBanner].image}
-                  alt={BANNERS[activeBanner].title}
-                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-3 rounded-2xl text-gray-900 shadow-lg flex items-center justify-between">
-                  <div>
-                    <div className="text-[10px] font-bold uppercase text-purple-700 tracking-wider">Top Rated Seller</div>
-                    <div className="text-xs font-extrabold line-clamp-1">100% Cash on Delivery</div>
+                <h1 className="text-2xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight drop-shadow-xs">
+                  {BANNERS[activeBanner].title}
+                </h1>
+
+                <p className="text-white/85 text-xs sm:text-sm md:text-base leading-relaxed max-w-xl font-medium">
+                  {BANNERS[activeBanner].subtitle}
+                </p>
+
+                {/* Quick Perks */}
+                <div className="flex flex-wrap gap-2 pt-1 text-xs font-semibold text-white/90">
+                  {BANNERS[activeBanner].highlights.map((h, idx) => (
+                    <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/25 backdrop-blur-xs border border-white/10 text-[11px] sm:text-xs">
+                      <Check className="w-3.5 h-3.5 text-amber-400" /> {h}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="pt-2 flex items-center gap-3 flex-wrap">
+                  <Link
+                    to={BANNERS[activeBanner].link}
+                    className={`inline-flex items-center gap-2 ${BANNERS[activeBanner].btnColor} font-black px-6 py-3.5 rounded-xl transition-all shadow-md active:scale-95 text-xs sm:text-sm`}
+                  >
+                    {BANNERS[activeBanner].cta} <ArrowRight className="w-4 h-4" />
+                  </Link>
+                  <div className="bg-white/10 border border-white/20 px-3.5 py-2.5 rounded-xl text-xs font-black tracking-wider text-amber-300 uppercase">
+                    {BANNERS[activeBanner].discount}
                   </div>
-                  <span className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-black">
-                    FREE COD
-                  </span>
                 </div>
               </div>
+
+              {/* Right Hero Image Card */}
+              <div className="hidden md:flex md:col-span-5 justify-center relative">
+                <div className="relative w-72 h-80 lg:w-80 lg:h-92 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 group">
+                  <img
+                    src={BANNERS[activeBanner].image}
+                    alt={BANNERS[activeBanner].title}
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                  <div className="absolute bottom-3 left-3 right-3 bg-white/95 backdrop-blur-md p-3 rounded-xl text-gray-900 shadow-lg flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] font-bold uppercase text-purple-800 tracking-wider">Verified Indian Store</div>
+                      <div className="text-xs font-extrabold line-clamp-1">100% Cash on Delivery</div>
+                    </div>
+                    <span className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-black">
+                      FREE COD
+                    </span>
+                  </div>
+                </div>
+              </div>
+
             </div>
-
           </div>
-        </div>
 
-        {/* Banner dots */}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
-          {BANNERS.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveBanner(i)}
-              className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${i === activeBanner ? 'bg-white w-7' : 'bg-white/40 w-2'}`}
-            />
-          ))}
+          {/* Banner dots */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+            {BANNERS.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveBanner(i)}
+                className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${i === activeBanner ? 'bg-white w-7' : 'bg-white/40 w-2'}`}
+              />
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Trust Badges Bar */}
-      <div className="bg-white border-b border-gray-100 shadow-sm">
+      <div className="bg-white border-b border-gray-100 shadow-sm mt-3">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {FEATURES.map(({ icon: Icon, title, desc }) => (
@@ -190,7 +198,7 @@ export default function HomePage() {
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-12">
         {/* Categories Section */}
         {categories.length > 0 && (
-          <section className="bg-white p-5 rounded-3xl border border-gray-100 shadow-xs">
+          <section className="bg-white p-5 sm:p-6 rounded-3xl border border-gray-100 shadow-xs">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-lg sm:text-xl font-black text-gray-900 flex items-center gap-2">
@@ -202,7 +210,7 @@ export default function HomePage() {
                 View All Categories <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
-            <div className="flex sm:grid sm:grid-cols-6 md:grid-cols-9 gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-none">
+            <div className="flex sm:grid sm:grid-cols-6 md:grid-cols-9 gap-3 sm:gap-4 overflow-x-auto pb-2 sm:pb-0 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {categories.map((cat, i) => (
                 <CategoryCard key={cat.id} category={cat} index={i} />
               ))}
