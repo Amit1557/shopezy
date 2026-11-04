@@ -131,8 +131,13 @@ export default function OrdersPage() {
       </div>
 
       {/* Orders Table */}
-      <div className="card overflow-hidden">
-        {loading ? (
+      <div className="card overflow-hidden relative">
+        {loading && orders.length > 0 && (
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-10 transition-all">
+            <LoadingSpinner size="md" />
+          </div>
+        )}
+        {loading && orders.length === 0 ? (
           <div className="py-20 flex justify-center">
             <LoadingSpinner size="lg" />
           </div>

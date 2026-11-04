@@ -42,8 +42,8 @@ export default function OrderDetailPage() {
   })
   const [meeshoLoading, setMeeshoLoading] = useState(false)
 
-  const fetchOrder = async () => {
-    setLoading(true)
+  const fetchOrder = async (isInitial = false) => {
+    if (isInitial) setLoading(true)
     try {
       const res = await ordersAdminAPI.getById(orderId)
       setOrder(res.data)
@@ -63,12 +63,12 @@ export default function OrderDetailPage() {
     } catch (err) {
       toast.error('Failed to load order details')
     } finally {
-      setLoading(false)
+      if (isInitial) setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchOrder()
+    fetchOrder(true)
   }, [orderId])
 
   const copyAddressToClipboard = () => {
@@ -88,14 +88,21 @@ Order Amount: ₹${order.total_amount}`
     setTimeout(() => setCopied(false), 2500)
   }
 
-  // 1-Click Quick Status Changer
+  // 1-Click Quick Status Changer with Instant Optimistic UI
   const handleQuickStatus = async (targetStatus, defaultNote = '') => {
+    const prevStatus = order?.status
+    // Instant UI update in 0ms
+    setOrder(prev => prev ? ({ ...prev, status: targetStatus }) : prev)
+    setNewStatus(targetStatus)
     setStatusLoading(true)
     try {
       await ordersAdminAPI.updateStatus(order.order_id, targetStatus, defaultNote || `Status updated to ${targetStatus}`)
       toast.success(`Status updated to ${ORDER_STATUSES[targetStatus]?.label || targetStatus}`)
-      fetchOrder()
+      await fetchOrder(false) // Silent background sync without blanking page
     } catch {
+      // Revert if error
+      setOrder(prev => prev ? ({ ...prev, status: prevStatus }) : prev)
+      setNewStatus(prevStatus)
       toast.error('Failed to update status')
     } finally {
       setStatusLoading(false)
@@ -112,7 +119,7 @@ Order Amount: ₹${order.total_amount}`
         meesho_return_id: meeshoForm.meesho_order_id || undefined,
       })
       toast.success(`Return status updated: ${action}`)
-      fetchOrder()
+      await fetchOrder(false)
     } catch {
       toast.error('Failed to update return action')
     } finally {
@@ -123,13 +130,17 @@ Order Amount: ₹${order.total_amount}`
   const handleStatusChange = async (e) => {
     e.preventDefault()
     if (!newStatus) return
+    const prevStatus = order?.status
+    // Instant optimistic update
+    setOrder(prev => prev ? ({ ...prev, status: newStatus }) : prev)
     setStatusLoading(true)
     try {
       await ordersAdminAPI.updateStatus(order.order_id, newStatus, statusNote || `Status changed to ${newStatus}`)
       toast.success('Order status updated!')
       setStatusNote('')
-      fetchOrder()
+      await fetchOrder(false)
     } catch {
+      setOrder(prev => prev ? ({ ...prev, status: prevStatus }) : prev)
       toast.error('Failed to update status')
     } finally {
       setStatusLoading(false)
@@ -152,6 +163,10 @@ Order Amount: ₹${order.total_amount}`
   const handleMeeshoSave = async (e, markAsOrdered = false) => {
     if (e) e.preventDefault()
     setMeeshoLoading(true)
+    if (markAsOrdered) {
+      setOrder(prev => prev ? ({ ...prev, status: 'MEESHO_ORDERED' }) : prev)
+      setNewStatus('MEESHO_ORDERED')
+    }
     try {
       const payload = {
         meesho_order_id: meeshoForm.meesho_order_id.trim() || null,
@@ -164,7 +179,7 @@ Order Amount: ₹${order.total_amount}`
       }
       await ordersAdminAPI.updateMeesho(order.order_id, payload)
       toast.success(markAsOrdered ? 'Successfully marked as ordered on Meesho!' : 'Meesho details saved!')
-      fetchOrder()
+      await fetchOrder(false)
     } catch {
       toast.error('Failed to update Meesho fulfilment records')
     } finally {
@@ -172,7 +187,7 @@ Order Amount: ₹${order.total_amount}`
     }
   }
 
-  if (loading) return (
+  if (loading && !order) return (
     <div className="flex justify-center py-24">
       <LoadingSpinner size="lg" />
     </div>
