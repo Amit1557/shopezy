@@ -56,7 +56,9 @@ export default function CheckoutOtpModal({ isOpen, onClose, mobile, onVerified }
       const errCode = firebaseErr.code || ''
       const errMsg = firebaseErr.message || ''
 
-      if (errCode === 'auth/unauthorized-domain' || errMsg.includes('unauthorized-domain')) {
+      if (errCode === 'auth/operation-not-allowed' || errMsg.includes('region enabled')) {
+        toast.error('Firebase mein India (+91) SMS region enable karein (Firebase Console -> Authentication -> Settings -> SMS region policy).')
+      } else if (errCode === 'auth/unauthorized-domain' || errMsg.includes('unauthorized-domain')) {
         toast.error('Domain not authorized in Firebase! Please add shopezy-swart.vercel.app in Firebase Console.')
       } else if (errCode === 'auth/invalid-phone-number') {
         toast.error('Invalid mobile number. Please check your 10-digit number.')
