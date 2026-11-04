@@ -25,20 +25,7 @@ export function getFirebaseAuth() {
   return auth
 }
 
-function getOrCreateRecaptchaContainer() {
-  let container = document.getElementById('firebase-recaptcha-anchor')
-  if (!container) {
-    container = document.createElement('div')
-    container.id = 'firebase-recaptcha-anchor'
-    document.body.appendChild(container)
-  }
-  return container
-}
-
-export function setupRecaptcha() {
-  const authInstance = getFirebaseAuth()
-  const container = getOrCreateRecaptchaContainer()
-
+export function clearRecaptcha() {
   if (window.recaptchaVerifier) {
     try {
       window.recaptchaVerifier.clear()
@@ -47,6 +34,22 @@ export function setupRecaptcha() {
     }
     window.recaptchaVerifier = null
   }
+  const oldContainer = document.getElementById('firebase-recaptcha-anchor')
+  if (oldContainer) {
+    oldContainer.remove()
+  }
+}
+
+export function setupRecaptcha() {
+  const authInstance = getFirebaseAuth()
+  
+  // 1. Wipe out any existing verifier and old DOM element completely
+  clearRecaptcha()
+
+  // 2. Create a fresh, pristine container element so reCAPTCHA never sees a previous render
+  const container = document.createElement('div')
+  container.id = 'firebase-recaptcha-anchor'
+  document.body.appendChild(container)
 
   window.recaptchaVerifier = new RecaptchaVerifier(authInstance, container, {
     size: 'invisible',
@@ -54,12 +57,10 @@ export function setupRecaptcha() {
       // reCAPTCHA solved
     },
     'expired-callback': () => {
-      if (window.recaptchaVerifier) {
-        try { window.recaptchaVerifier.clear() } catch {}
-        window.recaptchaVerifier = null
-      }
+      clearRecaptcha()
     }
   })
+
   return window.recaptchaVerifier
 }
 
@@ -78,10 +79,7 @@ export async function sendFirebaseOtp(mobileNumber) {
     return { success: true, confirmationResult }
   } catch (error) {
     console.error('Firebase SMS send error details:', error)
-    if (window.recaptchaVerifier) {
-      try { window.recaptchaVerifier.clear() } catch {}
-      window.recaptchaVerifier = null
-    }
+    clearRecaptcha()
     throw error
   }
 }

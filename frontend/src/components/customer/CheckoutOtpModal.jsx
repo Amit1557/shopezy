@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { ShieldCheck, Phone, RefreshCw, X, CheckCircle, AlertCircle } from 'lucide-react'
-import { sendFirebaseOtp, verifyFirebaseOtp } from '../../services/firebase'
+import { sendFirebaseOtp, verifyFirebaseOtp, clearRecaptcha } from '../../services/firebase'
 import LoadingSpinner from '../ui/LoadingSpinner'
 import toast from 'react-hot-toast'
 
@@ -9,13 +9,19 @@ export default function CheckoutOtpModal({ isOpen, onClose, mobile, onVerified }
   const [sending, setSending] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [countdown, setCountdown] = useState(45)
+  const otpSentRef = useRef(false)
   const inputRefs = [useRef(null), useRef(null), useRef(null), useRef(null), useRef(null), useRef(null)]
 
-  // When modal opens, send OTP automatically
+  // When modal opens, send OTP automatically once
   useEffect(() => {
-    if (isOpen && mobile) {
+    if (isOpen && mobile && !otpSentRef.current) {
+      otpSentRef.current = true
       setDigits(['', '', '', '', '', ''])
       handleSendOtp()
+    }
+    if (!isOpen) {
+      otpSentRef.current = false
+      clearRecaptcha()
     }
   }, [isOpen, mobile])
 
@@ -30,7 +36,14 @@ export default function CheckoutOtpModal({ isOpen, onClose, mobile, onVerified }
 
   if (!isOpen) return null
 
+  const handleCloseModal = () => {
+    otpSentRef.current = false
+    clearRecaptcha()
+    onClose()
+  }
+
   const handleSendOtp = async () => {
+    if (sending) return
     setSending(true)
     try {
       // Send real 6-digit SMS via Google Firebase Phone Auth directly to SIM
@@ -41,16 +54,22 @@ export default function CheckoutOtpModal({ isOpen, onClose, mobile, onVerified }
     } catch (firebaseErr) {
       console.error('Firebase Phone Auth error:', firebaseErr)
       const errCode = firebaseErr.code || ''
-      if (errCode === 'auth/invalid-phone-number') {
+      const errMsg = firebaseErr.message || ''
+
+      if (errCode === 'auth/unauthorized-domain' || errMsg.includes('unauthorized-domain')) {
+        toast.error('Domain not authorized in Firebase! Please add shopezy-swart.vercel.app in Firebase Console.')
+      } else if (errCode === 'auth/invalid-phone-number') {
         toast.error('Invalid mobile number. Please check your 10-digit number.')
-      } else if (errCode === 'auth/quota-exceeded') {
-        toast.error("Today's SMS quota reached in Firebase free tier. Please try after some time.")
+      } else if (errCode === 'auth/quota-exceeded' || errMsg.includes('quota-exceeded')) {
+        toast.error("Today's SMS quota (10 SMS) reached in Firebase free tier. Please try after some time.")
       } else if (errCode === 'auth/too-many-requests') {
         toast.error('Too many attempts. Please wait 1 minute before trying again.')
       } else if (errCode === 'auth/captcha-check-failed') {
         toast.error('reCAPTCHA security check failed. Please refresh and try again.')
+      } else if (errMsg.includes('already been rendered')) {
+        toast.error('Please wait a moment and click "Resend Code via SMS".')
       } else {
-        toast.error(firebaseErr.message || 'Unable to send SMS. Please verify your mobile number.')
+        toast.error(errMsg || 'Unable to send SMS. Please verify your mobile number.')
       }
     } finally {
       setSending(false)
@@ -128,7 +147,7 @@ export default function CheckoutOtpModal({ isOpen, onClose, mobile, onVerified }
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
       <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-100 p-4 sm:p-6 relative">
         <button
-          onClick={onClose}
+          onClick={handleCloseModal}
           className="absolute top-3 right-3 sm:top-4 sm:right-4 p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
         >
           <X className="w-5 h-5" />
