@@ -10,7 +10,6 @@ import { formatPrice } from '../../utils/helpers'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import Pagination from '../../components/ui/Pagination'
 import MeeshoQuickImporterModal from '../../components/admin/MeeshoQuickImporterModal'
-import BulkProductImporterModal from '../../components/admin/BulkProductImporterModal'
 import ProductQuickEditModal from '../../components/admin/ProductQuickEditModal'
 import toast from 'react-hot-toast'
 
@@ -22,7 +21,6 @@ export default function ProductsAdminPage() {
   const [pages, setPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [isImporterOpen, setIsImporterOpen] = useState(false)
-  const [isBulkOpen, setIsBulkOpen] = useState(false)
   const [initialImportData, setInitialImportData] = useState(null)
   const [editingProduct, setEditingProduct] = useState(null)
 
@@ -210,68 +208,12 @@ export default function ProductsAdminPage() {
             <span>⚡ 1-Click Fast Import</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setIsBulkOpen(true)}
-            className="bg-gradient-to-r from-purple-900 to-indigo-800 hover:from-purple-950 hover:to-indigo-900 text-white text-xs py-2.5 px-3.5 rounded-xl font-black inline-flex items-center gap-1.5 shadow-md shadow-purple-200 transition-all cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 text-emerald-300" />
-            <span>⚡ Bulk Product Importer</span>
-          </button>
-
           <Link
             to="/admin/products/new"
             className="btn-secondary text-xs py-2.5 px-3 inline-flex items-center gap-1.5 font-bold"
           >
             <Plus className="w-4 h-4" /> Custom Form
           </Link>
-        </div>
-      </div>
-
-      {/* Tareeka A: 1-Click Meesho Direct Bookmarklet Importer */}
-      <div className="bg-gradient-to-r from-purple-950 via-purple-900 to-pink-800 rounded-2xl p-4 sm:p-5 text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl border border-purple-700">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/25 shadow-inner">
-            <Sparkles className="w-6 h-6 text-yellow-300 animate-pulse" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-black tracking-tight">
-                ⚡ 1-Click Meesho Direct Auto-Importer
-              </h2>
-              <span className="text-[10px] bg-yellow-400 text-purple-950 font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                Tareeka A (Recommended)
-              </span>
-            </div>
-            <p className="text-xs text-purple-100 mt-1 max-w-2xl leading-relaxed">
-              Neeche diye gaye yellow button ko apne Chrome Bookmarks bar (press <kbd className="px-1.5 py-0.5 bg-white/20 rounded font-mono text-[11px] font-bold">Ctrl+Shift+B</kbd>) me drag karein. Meesho par koi bhi item dekhte waqt bas 1 click karein—Photos, Meesho Price, Sizes aur Category turant auto-import ho jayenge!
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5 shrink-0">
-          <a
-            href={`javascript:(function(){try{var t=document.querySelector('h1')?.innerText||document.title.replace(/\\s*\\|.*$/,'').trim();var p=0;var pm=document.body.innerText.match(/₹\\s*([0-9]+)/);if(pm)p=parseFloat(pm[1]);var imgs=[];document.querySelectorAll('img[src*="images.meesho.com"]').forEach(function(el){var s=el.src;if(s&&!s.includes('avatar')&&!s.includes('icon')&&imgs.indexOf(s)===-1){var c=s.replace(/_[0-9]+\\.(jpg|webp|jpeg)/,'.jpg');if(imgs.indexOf(c)===-1)imgs.push(c);}});var sizes=[];var allSpans=Array.from(document.querySelectorAll('span,button,p,div'));var sizeLabel=allSpans.find(function(el){return el.children.length===0&&/^select\\s*size$/i.test(el.innerText.trim());});if(sizeLabel&&sizeLabel.parentElement){var container=sizeLabel.parentElement;var buttons=container.querySelectorAll('span,button,div');buttons.forEach(function(b){var txt=b.innerText.trim();if(/^(2[6-9]|3[0-9]|4[0-6]|XS|S|M|L|XL|XXL|3XL|Free Size|IND-\\d+|UK-\\d+)$/i.test(txt)){if(sizes.indexOf(txt)===-1)sizes.push(txt);}});}if(sizes.length===0){var lower=(t+' '+window.location.href).toLowerCase();var isBottom=/jean|cargo|jogger|pant|trouser|bottom|chinos/i.test(lower);if(isBottom){var wm=document.body.innerText.match(/\\b(2[68]|3[02468]|4[0246])\\b/g);if(wm){wm.forEach(function(w){if(sizes.indexOf(w)===-1&&sizes.length<8)sizes.push(w);});}}var sm=document.body.innerText.match(/\\b(IND-\\d+|UK-\\d+|XS|S|M|L|XL|XXL|3XL|Free Size)\\b/gi);if(sm){sm.forEach(function(s){var u=s.toUpperCase();if(sizes.indexOf(u)===-1&&sizes.length<8)sizes.push(u);});}}var defaultSizes=['Free Size'];var lowerTitle=t.toLowerCase();if(/jean|cargo|jogger|pant|trouser/i.test(lowerTitle))defaultSizes=['30','32','34','36'];else if(/shoe|sneaker|footwear/i.test(lowerTitle))defaultSizes=['IND-6','IND-7','IND-8','IND-9','IND-10'];else if(/shirt|kurti|dress|t-shirt|top/i.test(lowerTitle))defaultSizes=['S','M','L','XL','XXL'];var d={name:t,purchase_cost:p,meesho_link:window.location.href,images:imgs.slice(0,6),sizes:sizes.length?sizes:defaultSizes};window.open('${typeof window !== 'undefined' ? window.location.origin : ''}/admin/products?importData='+encodeURIComponent(JSON.stringify(d)),'_blank');}catch(e){alert('Error: '+e.message);}})();`}
-            onClick={(e) => {
-              if (e.button === 0) {
-                toast('📌 Is yellow button ko apne Chrome Bookmarks Bar me drag & drop karein!', { icon: '💡' })
-              }
-            }}
-            className="bg-yellow-400 hover:bg-yellow-300 text-purple-950 font-black text-xs sm:text-sm py-3 px-5 rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95 flex items-center gap-2 cursor-grab active:cursor-grabbing border-2 border-yellow-200"
-            title="Drag this button to your Chrome Bookmarks Bar"
-          >
-            <Sparkles className="w-4 h-4 text-purple-950 fill-purple-950" />
-            <span>⚡ Add to ShopEzy</span>
-          </a>
-
-          <button
-            type="button"
-            onClick={() => setIsImporterOpen(true)}
-            className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs py-3 px-3.5 rounded-xl border border-white/20 transition-all cursor-pointer"
-            title="Open Importer Popup"
-          >
-            Open Popup
-          </button>
         </div>
       </div>
 
@@ -488,16 +430,6 @@ export default function ProductsAdminPage() {
         onSuccess={() => {
           setIsImporterOpen(false)
           setInitialImportData(null)
-          fetchProducts()
-        }}
-      />
-
-      {/* 1-Click Bulk Product Importer Modal */}
-      <BulkProductImporterModal
-        isOpen={isBulkOpen}
-        onClose={() => setIsBulkOpen(false)}
-        onSuccess={() => {
-          setIsBulkOpen(false)
           fetchProducts()
         }}
       />
