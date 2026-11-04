@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, Truck, Shield, RefreshCw, CreditCard, ArrowRight, Flame, Star, Zap } from 'lucide-react'
+import { ChevronRight, Truck, Shield, RefreshCw, CreditCard, ArrowRight, Flame, Star, Zap, Check } from 'lucide-react'
 import { categoriesAPI, productsPublicAPI } from '../../services/api'
 import ProductCard from '../../components/customer/ProductCard'
 import CategoryCard from '../../components/customer/CategoryCard'
@@ -8,28 +8,37 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner'
 
 const BANNERS = [
   {
-    title: "Fashion That Fits Your Style",
-    subtitle: "Discover thousands of curated products with Free Cash on Delivery",
+    title: "Lowest Prices, Best Quality",
+    subtitle: "Direct from verified Indian wholesale suppliers with 100% Free Cash on Delivery",
     cta: "Shop Now",
     link: "/products",
-    bg: "from-brand-600 via-brand-500 to-pink-500",
-    emoji: "👗"
+    badge: "⚡ Meesho Reseller Deals",
+    discount: "UP TO 70% OFF",
+    bg: "from-purple-900 via-purple-700 to-pink-600",
+    image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=700&q=80",
+    highlights: ["Free Doorstep Delivery", "7-Day Easy Exchange", "Cash on Delivery"]
   },
   {
     title: "Trending Indian Reseller Deals",
-    subtitle: "Affordable fashion, accessories & home essentials at wholesale prices",
+    subtitle: "Affordable sarees, kurtis, jeans & home essentials at true factory prices",
     cta: "Explore Trending",
     link: "/products?sort=popular",
-    bg: "from-pink-600 via-pink-500 to-brand-500",
-    emoji: "🔥"
+    badge: "🔥 Trending Collection",
+    discount: "STARTING @ ₹149",
+    bg: "from-pink-900 via-rose-700 to-purple-800",
+    image: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=700&q=80",
+    highlights: ["Handpicked Quality", "Safe & Secure COD", "Pan-India Delivery"]
   },
   {
-    title: "New Arrivals Every Week",
-    subtitle: "Fresh styles directly sourced and delivered right to your doorstep",
-    cta: "View New",
+    title: "Fresh New Arrivals This Week",
+    subtitle: "New stylish apparel, footwear, and smart accessories added daily",
+    cta: "View New Styles",
     link: "/products?sort=newest",
-    bg: "from-indigo-600 via-brand-600 to-pink-500",
-    emoji: "✨"
+    badge: "✨ Just Arrived",
+    discount: "SPECIAL LAUNCH PRICES",
+    bg: "from-indigo-950 via-purple-800 to-pink-700",
+    image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=700&q=80",
+    highlights: ["Trending Styles", "Zero Hidden Charges", "Pay on Delivery"]
   }
 ]
 
@@ -83,35 +92,77 @@ export default function HomePage() {
       {/* Hero Carousel Banner */}
       <section className="relative overflow-hidden">
         <div className={`bg-gradient-to-r ${BANNERS[activeBanner].bg} text-white transition-all duration-700 ease-in-out`}>
-          <div className="max-w-7xl mx-auto px-4 py-12 md:py-20 flex items-center justify-between">
-            <div className="max-w-lg">
-              <div className="text-5xl mb-4">{BANNERS[activeBanner].emoji}</div>
-              <h1 className="text-2xl md:text-4xl font-extrabold mb-3 leading-tight tracking-tight">
+          <div className="max-w-7xl mx-auto px-4 py-8 md:py-14 grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+            
+            {/* Left Content */}
+            <div className="md:col-span-7 space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/15 backdrop-blur-md rounded-full text-xs font-black tracking-wider uppercase border border-white/20">
+                <span className="w-2 h-2 rounded-full bg-yellow-300 animate-ping" />
+                {BANNERS[activeBanner].badge}
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight drop-shadow-sm">
                 {BANNERS[activeBanner].title}
               </h1>
-              <p className="text-white/90 mb-6 text-sm md:text-base leading-relaxed">
+
+              <p className="text-white/90 text-sm md:text-base leading-relaxed max-w-xl">
                 {BANNERS[activeBanner].subtitle}
               </p>
-              <Link
-                to={BANNERS[activeBanner].link}
-                className="inline-flex items-center gap-2 bg-white text-brand-700 font-bold px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors shadow-lg active:scale-95"
-              >
-                {BANNERS[activeBanner].cta} <ArrowRight className="w-4 h-4" />
-              </Link>
+
+              {/* Quick Perks */}
+              <div className="flex flex-wrap gap-2 pt-1 text-xs font-semibold text-white/90">
+                {BANNERS[activeBanner].highlights.map((h, idx) => (
+                  <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/20 backdrop-blur-xs border border-white/10">
+                    <Check className="w-3.5 h-3.5 text-yellow-300" /> {h}
+                  </span>
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex items-center gap-3 flex-wrap">
+                <Link
+                  to={BANNERS[activeBanner].link}
+                  className="inline-flex items-center gap-2 bg-white text-gray-950 font-black px-6 py-3.5 rounded-xl hover:bg-yellow-300 transition-all shadow-xl active:scale-95 text-sm"
+                >
+                  {BANNERS[activeBanner].cta} <ArrowRight className="w-4 h-4" />
+                </Link>
+                <div className="bg-white/10 border border-white/20 px-3.5 py-2.5 rounded-xl text-xs font-black tracking-wider text-yellow-300 uppercase">
+                  {BANNERS[activeBanner].discount}
+                </div>
+              </div>
             </div>
-            <div className="hidden md:block text-9xl opacity-25 select-none animate-pulse">
-              {BANNERS[activeBanner].emoji}
+
+            {/* Right Hero Image Card */}
+            <div className="hidden md:flex md:col-span-5 justify-center relative">
+              <div className="relative w-72 h-80 lg:w-80 lg:h-96 rounded-3xl overflow-hidden shadow-2xl border-4 border-white/20 group">
+                <img
+                  src={BANNERS[activeBanner].image}
+                  alt={BANNERS[activeBanner].title}
+                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-3 rounded-2xl text-gray-900 shadow-lg flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] font-bold uppercase text-purple-700 tracking-wider">Top Rated Seller</div>
+                    <div className="text-xs font-extrabold line-clamp-1">100% Cash on Delivery</div>
+                  </div>
+                  <span className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-xs font-black">
+                    FREE COD
+                  </span>
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
 
         {/* Banner dots */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
           {BANNERS.map((_, i) => (
             <button
               key={i}
               onClick={() => setActiveBanner(i)}
-              className={`h-2.5 rounded-full transition-all duration-300 ${i === activeBanner ? 'bg-white w-8' : 'bg-white/50 w-2.5'}`}
+              className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${i === activeBanner ? 'bg-white w-7' : 'bg-white/40 w-2'}`}
             />
           ))}
         </div>
@@ -139,17 +190,19 @@ export default function HomePage() {
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-12">
         {/* Categories Section */}
         {categories.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-5">
+          <section className="bg-white p-5 rounded-3xl border border-gray-100 shadow-xs">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Explore Top Categories</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Find whatever you love with cash on delivery</p>
+                <h2 className="text-lg sm:text-xl font-black text-gray-900 flex items-center gap-2">
+                  <span>🛍️ Explore Top Categories</span>
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">Find whatever you love with 100% Free Cash on Delivery</p>
               </div>
-              <Link to="/products" className="text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1 font-semibold">
-                See all <ChevronRight className="w-4 h-4" />
+              <Link to="/products" className="text-xs sm:text-sm text-purple-700 hover:text-purple-800 flex items-center gap-1 font-bold">
+                View All Categories <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
-            <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+            <div className="flex sm:grid sm:grid-cols-6 md:grid-cols-9 gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0 scrollbar-none">
               {categories.map((cat, i) => (
                 <CategoryCard key={cat.id} category={cat} index={i} />
               ))}
