@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Search, Package, CheckCircle2, Truck, MapPin, XCircle, Clock, Check } from 'lucide-react'
+import { Search, Package, CheckCircle2, Truck, MapPin, XCircle, Clock, Check, ExternalLink, Calendar, Info } from 'lucide-react'
 import { ordersPublicAPI } from '../../services/api'
-import { formatPrice, formatDate, getStatusInfo } from '../../utils/helpers'
+import { formatPrice, formatDate, formatDateShort, getStatusInfo } from '../../utils/helpers'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import toast from 'react-hot-toast'
 
 const ORDER_TIMELINE = [
-  { key: 'NEW', title: 'Order Placed', desc: 'Customer placed Cash on Delivery order' },
-  { key: 'CONFIRMED', title: 'Order Confirmed', desc: 'Seller verified customer address & phone' },
-  { key: 'MEESHO_ORDERED', title: 'Processing & Sourced', desc: 'Item ordered from central supplier warehouse' },
-  { key: 'SHIPPED', title: 'Shipped', desc: 'Package dispatched with courier service' },
-  { key: 'OUT_FOR_DELIVERY', title: 'Out for Delivery', desc: 'Courier partner is arriving at doorstep' },
-  { key: 'DELIVERED', title: 'Delivered', desc: 'Parcel successfully delivered & payment collected' },
+  { key: 'NEW', title: 'Order Placed', desc: 'We have received your Cash on Delivery order' },
+  { key: 'CONFIRMED', title: 'Order Confirmed', desc: 'Order details verified and queued for dispatch' },
+  { key: 'MEESHO_ORDERED', title: 'Packed & Processed', desc: 'Item safely packed and ready at fulfillment warehouse' },
+  { key: 'SHIPPED', title: 'Dispatched / In Transit', desc: 'Parcel handed over to courier partner' },
+  { key: 'OUT_FOR_DELIVERY', title: 'Out for Delivery', desc: 'Delivery executive is arriving at your doorstep' },
+  { key: 'DELIVERED', title: 'Delivered', desc: 'Package successfully delivered & COD cash collected' },
 ]
 
 export default function TrackOrderPage() {
@@ -198,6 +198,70 @@ export default function TrackOrderPage() {
                     </div>
                   )
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* Courier Dispatch & Delivery Information */}
+          {(order.tracking_info || order.expected_delivery_date) && (
+            <div className="card p-5 bg-gradient-to-r from-orange-50/70 to-amber-50/70 border border-orange-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                    <Truck className="w-4 h-4 text-orange-600" />
+                    <span>Courier Tracking & Dispatch Info</span>
+                  </div>
+                  {order.tracking_info && (
+                    <p className="text-xs text-gray-700 font-mono font-bold">
+                      {order.tracking_info}
+                    </p>
+                  )}
+                  {order.expected_delivery_date && (
+                    <div className="flex items-center gap-1 text-[11px] text-gray-600 font-medium pt-1">
+                      <Calendar className="w-3.5 h-3.5 text-orange-600" />
+                      <span>Estimated Doorstep Delivery: <strong className="text-gray-900">{formatDate(order.expected_delivery_date)}</strong></span>
+                    </div>
+                  )}
+                </div>
+
+                {order.tracking_info && order.tracking_info.startsWith('http') && (
+                  <a
+                    href={order.tracking_info}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
+                  >
+                    <span>Track with Courier</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Status Updates / Timeline Notes */}
+          {order.status_history && order.status_history.length > 0 && (
+            <div className="card p-5">
+              <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <Info className="w-3.5 h-3.5 text-brand-600" /> Recent Updates & Tracking Activity
+              </h3>
+              <div className="space-y-2.5">
+                {order.status_history.slice().reverse().map((h) => (
+                  <div key={h.id} className="flex items-start gap-3 text-xs bg-gray-50/80 p-3 rounded-xl border border-gray-100">
+                    <div className="w-2 h-2 rounded-full bg-brand-500 mt-1.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-gray-900">{getStatusInfo(h.status).label}</span>
+                        <span className="text-[10px] text-gray-400 shrink-0">{formatDate(h.created_at)}</span>
+                      </div>
+                      {h.note && (
+                        <p className="text-[11px] text-gray-600 mt-1 font-medium bg-white px-2.5 py-1 rounded-lg border border-gray-200 inline-block">
+                          {h.note.replace(/meesho/gi, 'Warehouse')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}

@@ -242,7 +242,7 @@ export default function MyOrdersPage() {
                         Reason: {order.return_reason || 'Return requested by customer'}
                       </p>
                       <p className="text-[10px] text-amber-600">
-                        Our store team has submitted this to Meesho for reverse pickup. The courier agent will contact you for doorstep pickup.
+                        Our store team has scheduled reverse courier pickup. The courier agent will contact you for doorstep pickup.
                       </p>
                     </div>
                   )}
@@ -253,7 +253,7 @@ export default function MyOrdersPage() {
                       <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
                       <div>
                         <span className="font-bold">Item Successfully Returned</span>
-                        <p className="text-[10px] text-emerald-600">Product was picked up and return was completed on Meesho.</p>
+                        <p className="text-[10px] text-emerald-600">Product was picked up and return was completed successfully.</p>
                       </div>
                     </div>
                   )}

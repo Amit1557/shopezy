@@ -30,8 +30,8 @@ export function formatDateShort(dateString) {
 export const ORDER_STATUSES = {
   NEW: { label: 'Order Placed', color: 'bg-blue-100 text-blue-700' },
   CONFIRMED: { label: 'Confirmed', color: 'bg-indigo-100 text-indigo-700' },
-  MEESHO_ORDERED: { label: 'Ordered from Meesho', color: 'bg-purple-100 text-purple-700' },
-  SHIPPED: { label: 'Shipped', color: 'bg-orange-100 text-orange-700' },
+  MEESHO_ORDERED: { label: 'Packed & Processed', color: 'bg-purple-100 text-purple-700' },
+  SHIPPED: { label: 'Dispatched / In Transit', color: 'bg-orange-100 text-orange-700' },
   OUT_FOR_DELIVERY: { label: 'Out for Delivery', color: 'bg-yellow-100 text-yellow-700' },
   DELIVERED: { label: 'Delivered', color: 'bg-green-100 text-green-700' },
   COMPLETED: { label: 'Completed', color: 'bg-green-100 text-green-700' },

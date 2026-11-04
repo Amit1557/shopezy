@@ -134,6 +134,8 @@ class OrderPublic(BaseModel):
     return_reason: Optional[str] = None
     return_requested_at: Optional[datetime] = None
     created_at: datetime
+    tracking_info: Optional[str] = None
+    expected_delivery_date: Optional[datetime] = None
 
     class Config:
         from_attributes = True

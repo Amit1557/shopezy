@@ -113,6 +113,21 @@ def place_order(data: OrderCreate, db: Session = Depends(get_db)):
     return {"order_id": order_id, "total_amount": total, "message": "Order placed successfully"}
 
 
+def _clean_customer_history(history_list):
+    res = []
+    for h in (history_list or []):
+        note = (h.note or "").replace("Meesho", "Warehouse").replace("meesho", "warehouse")
+        status = h.status
+        res.append({
+            "id": h.id,
+            "status": status,
+            "note": note,
+            "changed_by": "Fulfillment Team" if "admin" in (h.changed_by or "") else (h.changed_by or "system"),
+            "created_at": h.created_at,
+        })
+    return res
+
+
 @router.get("/track")
 def track_order(order_id: str, mobile: str, db: Session = Depends(get_db)):
     order = (
@@ -121,6 +136,7 @@ def track_order(order_id: str, mobile: str, db: Session = Depends(get_db)):
             joinedload(Order.customer),
             joinedload(Order.items),
             joinedload(Order.status_history),
+            joinedload(Order.meesho_fulfilment),
         )
         .filter(Order.order_id == order_id)
         .first()
@@ -129,7 +145,23 @@ def track_order(order_id: str, mobile: str, db: Session = Depends(get_db)):
         raise HTTPException(404, "Order not found")
     if order.customer.mobile != mobile:
         raise HTTPException(403, "Mobile number does not match order")
-    return OrderPublic.from_orm(order)
+
+    pub = OrderPublic(
+        order_id=order.order_id,
+        status=order.status,
+        total_amount=order.total_amount,
+        payment_method=order.payment_method,
+        city=order.city,
+        state=order.state,
+        items=order.items,
+        status_history=_clean_customer_history(order.status_history),
+        return_reason=order.return_reason,
+        return_requested_at=order.return_requested_at,
+        created_at=order.created_at,
+        tracking_info=order.meesho_fulfilment.tracking_info if order.meesho_fulfilment else None,
+        expected_delivery_date=order.meesho_fulfilment.expected_delivery_date if order.meesho_fulfilment else None,
+    )
+    return pub
 
 
 @router.get("/my-orders")
@@ -139,12 +171,34 @@ def get_customer_orders(mobile: str, db: Session = Depends(get_db)):
         return []
     orders = (
         db.query(Order)
-        .options(joinedload(Order.items), joinedload(Order.status_history))
+        .options(
+            joinedload(Order.items),
+            joinedload(Order.status_history),
+            joinedload(Order.meesho_fulfilment),
+        )
         .filter(Order.customer_id == customer.id)
         .order_by(Order.created_at.desc())
         .all()
     )
-    return [OrderPublic.from_orm(o) for o in orders]
+    res = []
+    for o in orders:
+        pub = OrderPublic(
+            order_id=o.order_id,
+            status=o.status,
+            total_amount=o.total_amount,
+            payment_method=o.payment_method,
+            city=o.city,
+            state=o.state,
+            items=o.items,
+            status_history=_clean_customer_history(o.status_history),
+            return_reason=o.return_reason,
+            return_requested_at=o.return_requested_at,
+            created_at=o.created_at,
+            tracking_info=o.meesho_fulfilment.tracking_info if o.meesho_fulfilment else None,
+            expected_delivery_date=o.meesho_fulfilment.expected_delivery_date if o.meesho_fulfilment else None,
+        )
+        res.append(pub)
+    return res
 
 
 @router.post("/request-return")
@@ -310,7 +364,7 @@ def update_meesho_fulfilment(
         history = OrderStatusHistory(
             order_id=order.id,
             status="MEESHO_ORDERED",
-            note="Order placed on Meesho",
+            note="Item packed and processed at central fulfillment facility",
             changed_by=f"admin:{admin.email}",
         )
         db.add(history)
