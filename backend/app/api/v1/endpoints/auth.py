@@ -120,11 +120,6 @@ async def send_otp(data: SendOtpRequest):
         "is_live_sms": bool(sms_result.get("sent"))
     }
 
-    # Only attach demo_otp if no live SMS gateway is configured (dev/mock mode)
-    if not sms_result.get("sent"):
-        response_payload["demo_otp"] = otp_code
-        response_payload["is_mock"] = True
-
     return response_payload
 
 
@@ -133,10 +128,8 @@ def verify_otp(data: VerifyOtpRequest):
     mobile = data.mobile.strip().replace("+91", "").replace(" ", "").replace("-", "")
     entry = OTP_STORE.get(mobile)
 
-    # Universal master code 1234 or the generated code
-    if data.otp == "1234" or (entry and entry["otp"] == data.otp and time.time() <= entry["expires_at"]):
-        if entry:
-            del OTP_STORE[mobile]
+    if entry and entry["otp"] == data.otp and time.time() <= entry["expires_at"]:
+        del OTP_STORE[mobile]
         return {
             "verified": True,
             "message": "Mobile number verified successfully!"

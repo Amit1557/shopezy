@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { ShieldCheck, Phone, RefreshCw, X, CheckCircle, AlertCircle, Sparkles } from 'lucide-react'
+import { ShieldCheck, Phone, RefreshCw, X, CheckCircle, AlertCircle } from 'lucide-react'
 import { sendFirebaseOtp, verifyFirebaseOtp } from '../../services/firebase'
-import { authAPI } from '../../services/api'
 import LoadingSpinner from '../ui/LoadingSpinner'
 import toast from 'react-hot-toast'
 
@@ -10,8 +9,6 @@ export default function CheckoutOtpModal({ isOpen, onClose, mobile, onVerified }
   const [sending, setSending] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [countdown, setCountdown] = useState(45)
-  const [useFallback, setUseFallback] = useState(false)
-  const [demoOtp, setDemoOtp] = useState('')
   const inputRefs = [useRef(null), useRef(null), useRef(null), useRef(null), useRef(null), useRef(null)]
 
   // When modal opens, send OTP automatically
@@ -35,27 +32,25 @@ export default function CheckoutOtpModal({ isOpen, onClose, mobile, onVerified }
 
   const handleSendOtp = async () => {
     setSending(true)
-    setUseFallback(false)
     try {
-      // 1. Try Google Firebase Phone Auth (100% Free Telecom SMS)
+      // Send real 6-digit SMS via Google Firebase Phone Auth directly to SIM
       await sendFirebaseOtp(mobile)
-      toast.success(`Google SMS verification code sent to +91 ${mobile}`)
+      toast.success(`6-digit SMS verification code sent to +91 ${mobile}`)
       setCountdown(45)
-      setTimeout(() => inputRefs[0]?.current?.focus(), 150)
+      setTimeout(() => inputRefs[0]?.current?.focus(), 200)
     } catch (firebaseErr) {
-      console.warn('Firebase Phone Auth notice:', firebaseErr)
-      // 2. Fallback to server verification if domain not yet whitelisted or quota reached
-      try {
-        const res = await authAPI.sendOtp(mobile)
-        setUseFallback(true)
-        if (res.data?.demo_otp) {
-          setDemoOtp(res.data.demo_otp)
-        }
-        toast.success(`Verification code sent to +91 ${mobile}`)
-        setCountdown(30)
-        setTimeout(() => inputRefs[0]?.current?.focus(), 150)
-      } catch (err) {
-        toast.error('Unable to send SMS. Please check your mobile number.')
+      console.error('Firebase Phone Auth error:', firebaseErr)
+      const errCode = firebaseErr.code || ''
+      if (errCode === 'auth/invalid-phone-number') {
+        toast.error('Invalid mobile number. Please check your 10-digit number.')
+      } else if (errCode === 'auth/quota-exceeded') {
+        toast.error("Today's SMS quota reached in Firebase free tier. Please try after some time.")
+      } else if (errCode === 'auth/too-many-requests') {
+        toast.error('Too many attempts. Please wait 1 minute before trying again.')
+      } else if (errCode === 'auth/captcha-check-failed') {
+        toast.error('reCAPTCHA security check failed. Please refresh and try again.')
+      } else {
+        toast.error(firebaseErr.message || 'Unable to send SMS. Please verify your mobile number.')
       }
     } finally {
       setSending(false)
@@ -103,49 +98,34 @@ export default function CheckoutOtpModal({ isOpen, onClose, mobile, onVerified }
   const handleVerify = async (e) => {
     if (e) e.preventDefault()
     const enteredCode = digits.join('').trim()
-    if (enteredCode.length < 4) {
-      toast.error('Please enter the complete verification code')
+    if (enteredCode.length !== 6) {
+      toast.error('Please enter the full 6-digit OTP received via SMS')
       return
     }
 
     setVerifying(true)
     try {
-      // Emergency test bypass
-      if (enteredCode === '123456' || enteredCode === '1234') {
-        toast.success('Mobile verified successfully!')
-        onVerified()
-        return
-      }
-
-      if (!useFallback && window.confirmationResult) {
-        // Verify with Google Firebase
-        await verifyFirebaseOtp(enteredCode)
-        toast.success('Mobile verified successfully via Google SMS!')
-        onVerified()
-      } else {
-        // Verify with backend
-        await authAPI.verifyOtp(mobile, enteredCode)
-        toast.success('Mobile verified successfully!')
-        onVerified()
-      }
+      // Verify with Google Firebase
+      await verifyFirebaseOtp(enteredCode)
+      toast.success('Mobile verified successfully via Google SMS!')
+      onVerified()
     } catch (err) {
-      console.error(err)
-      toast.error('Invalid verification code. Please check your SMS and try again.')
+      console.error('Firebase verification error:', err)
+      const errCode = err.code || ''
+      if (errCode === 'auth/invalid-verification-code') {
+        toast.error('Incorrect OTP. Please check the SMS on your phone and try again.')
+      } else if (errCode === 'auth/code-expired') {
+        toast.error('OTP code has expired. Please click "Resend Code via SMS".')
+      } else {
+        toast.error(err.message || 'Invalid verification code. Please check your SMS and try again.')
+      }
     } finally {
       setVerifying(false)
     }
   }
 
-  const fillTestCode = (code) => {
-    const parts = (code + '').split('').slice(0, 6)
-    while (parts.length < 6) parts.push('')
-    setDigits(parts)
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div id="recaptcha-container"></div>
-      
       <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-100 p-4 sm:p-6 relative">
         <button
           onClick={onClose}
@@ -161,7 +141,7 @@ export default function CheckoutOtpModal({ isOpen, onClose, mobile, onVerified }
           </div>
           <h2 className="text-base sm:text-lg font-black text-gray-900">COD Mobile Verification</h2>
           <p className="text-[11px] sm:text-xs text-gray-500 mt-1">
-            We sent a verification code to your mobile phone
+            We sent a 6-digit verification code to your mobile phone
           </p>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 rounded-full text-xs font-bold font-mono text-gray-800 mt-1.5">
             <Phone className="w-3 h-3 text-emerald-600" />
@@ -173,22 +153,9 @@ export default function CheckoutOtpModal({ isOpen, onClose, mobile, onVerified }
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl sm:rounded-2xl p-2 sm:p-2.5 mb-4 sm:mb-5 text-center flex items-center justify-center gap-1.5 sm:gap-2">
           <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 flex-shrink-0" />
           <p className="text-[11px] sm:text-xs font-semibold text-emerald-900">
-            Official SMS sent to your SIM! Please enter the code below.
+            Official SMS sent to your SIM! Please enter the 6-digit code below.
           </p>
         </div>
-
-        {/* Fallback Dev helper (Only if Firebase was blocked) */}
-        {useFallback && demoOtp && (
-          <div className="bg-purple-50 border border-purple-200 rounded-xl p-2 mb-4 text-center">
-            <button
-              type="button"
-              onClick={() => fillTestCode(demoOtp)}
-              className="text-[11px] font-bold text-purple-700 hover:underline font-mono"
-            >
-              Test code: {demoOtp} (Click to fill)
-            </button>
-          </div>
-        )}
 
         {/* 6-digit input fields */}
         <form onSubmit={handleVerify}>
@@ -211,7 +178,7 @@ export default function CheckoutOtpModal({ isOpen, onClose, mobile, onVerified }
           {/* Confirm Button */}
           <button
             type="submit"
-            disabled={verifying || digits.join('').trim().length < 4}
+            disabled={verifying || digits.join('').trim().length !== 6}
             className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white font-bold text-sm rounded-xl shadow-md disabled:opacity-50 transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             {verifying ? (

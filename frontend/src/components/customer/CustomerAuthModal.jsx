@@ -59,7 +59,11 @@ export default function CustomerAuthModal() {
       }
       handleClose()
     } catch (err) {
-      setError(err.message || err.response?.data?.detail || 'Authentication failed')
+      if (err.response?.status === 401) {
+        setError('Incorrect mobile number or password. If you are a new customer, please click "New Customer? Sign Up".')
+      } else {
+        setError(err.response?.data?.detail || err.message || 'Authentication failed. Please try again.')
+      }
     } finally {
       setLoading(false)
     }
@@ -97,7 +101,7 @@ export default function CustomerAuthModal() {
         <div className="flex border-b border-gray-100 bg-gray-50/50 p-1">
           <button
             type="button"
-            onClick={() => { setMode('login'); setError('') }}
+            onClick={() => { setMode('login'); resetForm() }}
             className={`flex-1 py-2.5 text-xs font-black rounded-lg transition-all ${
               mode === 'login'
                 ? 'bg-white text-brand-600 shadow-sm'
@@ -108,7 +112,7 @@ export default function CustomerAuthModal() {
           </button>
           <button
             type="button"
-            onClick={() => { setMode('register'); setError('') }}
+            onClick={() => { setMode('register'); resetForm() }}
             className={`flex-1 py-2.5 text-xs font-black rounded-lg transition-all ${
               mode === 'register'
                 ? 'bg-white text-brand-600 shadow-sm'
@@ -119,10 +123,16 @@ export default function CustomerAuthModal() {
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        {/* Form Body - Disables browser password autofill completely */}
+        <form
+          onSubmit={handleSubmit}
+          className="p-6 space-y-4"
+          autoComplete="off"
+          spellCheck="false"
+          autoCapitalize="off"
+        >
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-xl border border-red-200 text-xs flex items-center gap-2">
+            <div className="bg-red-50 text-red-600 p-3 rounded-xl border border-red-200 text-xs flex items-center gap-2 leading-relaxed">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -135,6 +145,9 @@ export default function CustomerAuthModal() {
                 <input
                   type="text"
                   required
+                  name="shopezy_cust_reg_name"
+                  id="shopezy_cust_reg_name"
+                  autoComplete="off"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Rahul Sharma"
@@ -152,6 +165,9 @@ export default function CustomerAuthModal() {
                 <input
                   type="text"
                   required
+                  name="shopezy_cust_login_ident"
+                  id="shopezy_cust_login_ident"
+                  autoComplete="off"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   placeholder="Enter 10-digit mobile or email..."
@@ -170,6 +186,9 @@ export default function CustomerAuthModal() {
                     type="tel"
                     required
                     maxLength={10}
+                    name="shopezy_cust_reg_mobile"
+                    id="shopezy_cust_reg_mobile"
+                    autoComplete="off"
                     value={mobile}
                     onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
                     placeholder="9876543210"
@@ -183,6 +202,9 @@ export default function CustomerAuthModal() {
                 <div className="relative">
                   <input
                     type="email"
+                    name="shopezy_cust_reg_email"
+                    id="shopezy_cust_reg_email"
+                    autoComplete="off"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@example.com"
@@ -200,6 +222,9 @@ export default function CustomerAuthModal() {
               <input
                 type="password"
                 required
+                name={mode === 'login' ? 'shopezy_cust_login_pwd' : 'shopezy_cust_reg_pwd'}
+                id={mode === 'login' ? 'shopezy_cust_login_pwd' : 'shopezy_cust_reg_pwd'}
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 6 characters..."

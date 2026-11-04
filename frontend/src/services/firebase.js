@@ -25,43 +25,59 @@ export function getFirebaseAuth() {
   return auth
 }
 
-export function setupRecaptcha(containerId = 'recaptcha-container') {
-  const authInstance = getFirebaseAuth()
-  let container = document.getElementById(containerId)
+function getOrCreateRecaptchaContainer() {
+  let container = document.getElementById('firebase-recaptcha-anchor')
   if (!container) {
     container = document.createElement('div')
-    container.id = containerId
+    container.id = 'firebase-recaptcha-anchor'
     document.body.appendChild(container)
   }
+  return container
+}
 
-  if (!window.recaptchaVerifier) {
-    window.recaptchaVerifier = new RecaptchaVerifier(authInstance, containerId, {
-      size: 'invisible',
-      callback: () => {
-        // reCAPTCHA solved
-      },
-      'expired-callback': () => {
-        if (window.recaptchaVerifier) {
-          try { window.recaptchaVerifier.clear() } catch {}
-          window.recaptchaVerifier = null
-        }
-      }
-    })
+export function setupRecaptcha() {
+  const authInstance = getFirebaseAuth()
+  const container = getOrCreateRecaptchaContainer()
+
+  if (window.recaptchaVerifier) {
+    try {
+      window.recaptchaVerifier.clear()
+    } catch (e) {
+      console.warn('Error clearing recaptchaVerifier:', e)
+    }
+    window.recaptchaVerifier = null
   }
+
+  window.recaptchaVerifier = new RecaptchaVerifier(authInstance, container, {
+    size: 'invisible',
+    callback: () => {
+      // reCAPTCHA solved
+    },
+    'expired-callback': () => {
+      if (window.recaptchaVerifier) {
+        try { window.recaptchaVerifier.clear() } catch {}
+        window.recaptchaVerifier = null
+      }
+    }
+  })
   return window.recaptchaVerifier
 }
 
 export async function sendFirebaseOtp(mobileNumber) {
   const authInstance = getFirebaseAuth()
   const cleanMobile = mobileNumber.replace(/\D/g, '').slice(-10)
+  if (cleanMobile.length !== 10) {
+    throw new Error('Please enter a valid 10-digit mobile number')
+  }
   const fullMobile = `+91${cleanMobile}`
-  const appVerifier = setupRecaptcha('recaptcha-container')
+  const appVerifier = setupRecaptcha()
 
   try {
     const confirmationResult = await signInWithPhoneNumber(authInstance, fullMobile, appVerifier)
     window.confirmationResult = confirmationResult
     return { success: true, confirmationResult }
   } catch (error) {
+    console.error('Firebase SMS send error details:', error)
     if (window.recaptchaVerifier) {
       try { window.recaptchaVerifier.clear() } catch {}
       window.recaptchaVerifier = null
