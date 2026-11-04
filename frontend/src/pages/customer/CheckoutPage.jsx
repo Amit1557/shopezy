@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Package, ChevronRight, CheckCircle, AlertCircle, ShieldCheck, MapPin, Phone, User, Sparkles, MessageCircle, Copy, Check } from 'lucide-react'
+import { Package, ChevronRight, CheckCircle, AlertCircle, ShieldCheck, MapPin, Phone, User, Sparkles, MessageCircle, Copy, Check, X } from 'lucide-react'
 import { useCart } from '../../context/CartContext'
 import { useCustomer } from '../../context/CustomerContext'
 import { ordersPublicAPI } from '../../services/api'
 import { formatPrice, validateMobile, validatePincode, INDIAN_STATES } from '../../utils/helpers'
-import CheckoutOtpModal from '../../components/customer/CheckoutOtpModal'
 import toast from 'react-hot-toast'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 
 const initialForm = {
   customer_name: '',
   customer_mobile: '',
+  confirm_mobile: '',
   customer_alternate_mobile: '',
   flat_number: '',
   street: '',
@@ -31,7 +31,7 @@ export default function CheckoutPage() {
   const [orderPlaced, setOrderPlaced] = useState(null)
   const [placedItems, setPlacedItems] = useState([])
   const [copied, setCopied] = useState(false)
-  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false)
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
 
   useEffect(() => {
     if (isCustomerLoggedIn && customer) {
@@ -39,6 +39,7 @@ export default function CheckoutPage() {
         ...prev,
         customer_name: prev.customer_name || customer.name || '',
         customer_mobile: prev.customer_mobile || customer.mobile || '',
+        confirm_mobile: prev.confirm_mobile || customer.mobile || '',
         customer_alternate_mobile: prev.customer_alternate_mobile || customer.alternate_mobile || '',
       }))
     }
@@ -61,6 +62,9 @@ export default function CheckoutPage() {
     const e = {}
     if (!form.customer_name.trim()) e.customer_name = 'Full name is required'
     if (!validateMobile(form.customer_mobile)) e.customer_mobile = 'Enter a valid 10-digit Indian mobile number'
+    if (!form.confirm_mobile || form.confirm_mobile.trim() !== form.customer_mobile.trim()) {
+      e.confirm_mobile = 'Mobile numbers do not match! Please check again.'
+    }
     if (form.customer_alternate_mobile && !validateMobile(form.customer_alternate_mobile)) {
       e.customer_alternate_mobile = 'Enter a valid 10-digit mobile number'
     }
@@ -83,16 +87,16 @@ export default function CheckoutPage() {
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!validate()) {
-      toast.error('Please complete all required fields')
+      toast.error('Please complete all required fields and verify your mobile number')
       return
     }
-    // Open Google SMS OTP verification modal
-    setIsOtpModalOpen(true)
+    // Open Confirmation modal with mobile number review
+    setIsConfirmModalOpen(true)
   }
 
-  // Triggered after customer enters and verifies the SMS OTP
+  // Triggered after customer reviews details and confirms
   const handleConfirmedOrder = async () => {
-    setIsOtpModalOpen(false)
+    setIsConfirmModalOpen(false)
     setLoading(true)
     try {
       const currentCartItems = [...cart.items]
@@ -118,7 +122,7 @@ export default function CheckoutPage() {
       setPlacedItems(currentCartItems)
       clearCart()
       setOrderPlaced(res.data)
-      toast.success('Order placed successfully via Cash on Delivery!')
+      toast.success('🎉 Order placed successfully via Cash on Delivery!')
     } catch (err) {
       const msg = err.response?.data?.detail || 'Failed to place order. Please review your address.'
       toast.error(typeof msg === 'string' ? msg : 'Failed to place order')
@@ -271,13 +275,30 @@ Total Amount: ₹${orderPlaced.total_amount} (Cash on Delivery)`
                     maxLength={10}
                     value={form.customer_mobile}
                     onChange={handleChange}
-                    placeholder="10-digit mobile number"
+                    placeholder="Enter 10-digit mobile number"
                     className={`input-field pl-9 ${errors.customer_mobile ? 'border-red-400 focus:ring-red-200' : ''}`}
                   />
                   <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 </div>
-                <p className="text-[11px] text-gray-500 mt-1">We will send a quick 4-digit OTP to verify your mobile before order placement.</p>
                 {errors.customer_mobile && <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.customer_mobile}</p>}
+              </div>
+
+              <div>
+                <label className="label">Confirm Mobile Number (दोबारा नंबर चेक करें) <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    name="confirm_mobile"
+                    maxLength={10}
+                    value={form.confirm_mobile}
+                    onChange={handleChange}
+                    placeholder="Re-enter 10-digit mobile number"
+                    className={`input-field pl-9 ${errors.confirm_mobile ? 'border-red-400 focus:ring-red-200' : ''}`}
+                  />
+                  <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1">डिलीवरी एजेंट पार्सल पहुंचाने से पहले इसी नंबर पर कॉल करेगा।</p>
+                {errors.confirm_mobile && <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.confirm_mobile}</p>}
               </div>
 
               <div>
@@ -474,13 +495,91 @@ Total Amount: ₹${orderPlaced.total_amount} (Cash on Delivery)`
         </div>
       </div>
 
-      {/* Google SMS Phone Verification Modal */}
-      <CheckoutOtpModal
-        isOpen={isOtpModalOpen}
-        onClose={() => setIsOtpModalOpen(false)}
-        mobile={form.customer_mobile}
-        onVerified={handleConfirmedOrder}
-      />
+      {/* 1-Click Mobile Number Verification & Order Confirmation Modal (Zero Jhanjhat, ₹0 Cost) */}
+      {isConfirmModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-100 p-5 sm:p-6 relative">
+            <button
+              onClick={() => setIsConfirmModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center mb-4">
+              <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-emerald-200">
+                <ShieldCheck className="w-8 h-8 text-emerald-600" />
+              </div>
+              <h2 className="text-lg font-black text-gray-900">Confirm COD Order</h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Please verify your delivery mobile number before placing order
+              </p>
+            </div>
+
+            {/* Mobile Number Verification Highlight Box */}
+            <div className="bg-purple-50 border-2 border-purple-200 rounded-2xl p-3.5 mb-4 text-center">
+              <p className="text-[11px] font-bold text-purple-900 uppercase tracking-wider mb-1">
+                Your Delivery Contact Number:
+              </p>
+              <div className="text-xl font-black text-purple-900 font-mono flex items-center justify-center gap-1.5">
+                <Phone className="w-5 h-5 text-purple-700" />
+                +91 {form.customer_mobile}
+              </div>
+              <p className="text-[10px] text-purple-700 mt-1">
+                ✓ Delivery partner will call this number before delivery
+              </p>
+            </div>
+
+            {/* Order Details Brief */}
+            <div className="bg-gray-50 rounded-xl p-3 text-xs space-y-1.5 text-gray-600 mb-5 border border-gray-100">
+              <div className="flex justify-between">
+                <span>Recipient:</span>
+                <span className="font-bold text-gray-800">{form.customer_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Address:</span>
+                <span className="font-semibold text-gray-800 truncate max-w-[190px]">
+                  {form.flat_number}, {form.street}, {form.city}
+                </span>
+              </div>
+              <div className="flex justify-between border-t border-gray-200 pt-1.5 font-bold">
+                <span>Payment (Cash on Delivery):</span>
+                <span className="text-brand-700 font-black text-sm">{formatPrice(totalAmount)}</span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleConfirmedOrder}
+                disabled={loading}
+                className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white font-black text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                {loading ? (
+                  <>
+                    <LoadingSpinner size="sm" />
+                    <span>Placing Your Order...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-5 h-5" />
+                    <span>Confirm & Place COD Order</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsConfirmModalOpen(false)}
+                className="w-full py-2.5 text-xs text-gray-600 hover:text-gray-900 font-bold hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Edit Mobile Number / Address
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
