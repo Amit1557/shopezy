@@ -123,7 +123,7 @@ export default function ProductsPage() {
   const categoryTitle = currentCategory ? currentCategory.name : (search ? `Search results for "${search}"` : 'All Products')
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+    <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
       {/* Top Bar / Breadcrumb */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-5 pb-3 border-b border-gray-100">
         <div>

@@ -72,7 +72,7 @@ export default function CustomerHeader() {
       </div>
       
       {/* Main header row */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
+      <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
         {/* Left: Mobile Menu Trigger + Logo */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
@@ -250,7 +250,7 @@ export default function CustomerHeader() {
         className="border-t border-gray-200 hidden md:block bg-white relative"
         onMouseLeave={handleMouseLeaveCategory}
       >
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between text-xs font-semibold text-gray-700 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {MEESHO_CATEGORIES.map((cat) => {
               const isActive = activeMegaCategory?.slug === cat.slug
@@ -283,7 +283,7 @@ export default function CustomerHeader() {
             }}
             onMouseLeave={handleMouseLeaveCategory}
           >
-            <div className="max-w-7xl mx-auto px-6">
+            <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8">
               <div className="grid grid-flow-col auto-cols-fr gap-8">
                 {activeMegaCategory.subsections.map((sub, idx) => (
                   <div key={idx} className="space-y-2 border-r last:border-none border-gray-100 pr-4">

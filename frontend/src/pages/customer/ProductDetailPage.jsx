@@ -32,7 +32,7 @@ export default function ProductDetailPage() {
   }, [slug])
 
   if (loading) return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 animate-pulse">
+    <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 animate-pulse">
       <div className="h-4 bg-gray-200 rounded w-48 mb-6" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
         <div>
@@ -88,7 +88,7 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24 md:pb-6">
+    <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 md:pb-6">
       {/* Breadcrumb */}
       <nav className="text-xs text-gray-500 mb-4 sm:mb-6 flex items-center gap-1.5 flex-wrap">
         <Link to="/" className="hover:text-brand-600">Home</Link>

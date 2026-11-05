@@ -1,17 +1,22 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { ChevronRight, Truck, Shield, RefreshCw, CreditCard, ArrowRight, Flame, Star, Zap, Check } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import {
+  ChevronRight, Truck, Shield, RefreshCw, CreditCard, ArrowRight,
+  Flame, Star, Zap, Check, SlidersHorizontal, X, ShoppingBag
+} from 'lucide-react'
 import { categoriesAPI, productsPublicAPI } from '../../services/api'
 import ProductCard from '../../components/customer/ProductCard'
 import CategoryCard from '../../components/customer/CategoryCard'
-import LoadingSpinner from '../../components/ui/LoadingSpinner'
+import MeeshoFilterSidebar from '../../components/customer/MeeshoFilterSidebar'
+import Pagination from '../../components/ui/Pagination'
+import EmptyState from '../../components/ui/EmptyState'
 
 const BANNERS = [
   {
     title: "Lowest Prices, Best Quality",
     subtitle: "Direct from verified Indian manufacturers with 100% Free Cash on Delivery",
     cta: "Shop Now",
-    link: "/products",
+    link: "/#products-feed",
     badge: "✨ Festive Mega Sale",
     discount: "UP TO 70% OFF",
     bg: "from-[#2A082C] via-[#481249] to-[#691B64]",
@@ -24,7 +29,7 @@ const BANNERS = [
     title: "Trending Fashion & Daily Essentials",
     subtitle: "Affordable sarees, kurtis, jeans & footwear at true factory prices",
     cta: "Explore Trending",
-    link: "/products?sort=popular",
+    link: "/#products-feed",
     badge: "🔥 Top Bestsellers",
     discount: "STARTING @ ₹149",
     bg: "from-[#0D1B30] via-[#142A4A] to-[#1D3E6B]",
@@ -37,7 +42,7 @@ const BANNERS = [
     title: "Fresh New Arrivals This Week",
     subtitle: "New stylish apparel, footwear, and smart accessories added daily",
     cta: "View New Styles",
-    link: "/products?sort=newest",
+    link: "/#products-feed",
     badge: "✨ Just Launched",
     discount: "SPECIAL LAUNCH PRICES",
     bg: "from-[#200F1A] via-[#3B192E] to-[#572442]",
@@ -55,42 +60,133 @@ const FEATURES = [
   { icon: RefreshCw, title: 'Easy Returns', desc: 'Hassle-free replacement support' },
 ]
 
+const SORT_OPTIONS = [
+  { value: 'popular', label: 'Sort by : Relevance' },
+  { value: 'newest', label: 'Newest First' },
+  { value: 'price_asc', label: 'Price: Low to High' },
+  { value: 'price_desc', label: 'Price: High to Low' },
+]
+
 export default function HomePage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [categories, setCategories] = useState([])
-  const [trending, setTrending] = useState([])
-  const [featured, setFeatured] = useState([])
-  const [newArrivals, setNewArrivals] = useState([])
+  const [products, setProducts] = useState([])
+  const [total, setTotal] = useState(0)
+  const [pages, setPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [activeBanner, setActiveBanner] = useState(0)
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
 
+  // Query parameters from URL
+  const page = parseInt(searchParams.get('page') || '1')
+  const sort = searchParams.get('sort') || 'popular'
+  const search = searchParams.get('search') || ''
+  const subcategory = searchParams.get('subcategory') || ''
+  const shape = searchParams.get('shape') || ''
+  const strap = searchParams.get('strap') || ''
+  const fabric = searchParams.get('fabric') || ''
+  const categoryId = searchParams.get('category_id') || ''
+  const activeCategorySlug = searchParams.get('category') || ''
+
+  const minPrice = searchParams.get('min_price') || ''
+  const maxPrice = searchParams.get('max_price') || ''
+  const minRating = searchParams.get('min_rating') || ''
+  const minDiscount = searchParams.get('min_discount') || ''
+  const size = searchParams.get('size') || ''
+  const color = searchParams.get('color') || ''
+  const gender = searchParams.get('gender') || ''
+  const featured = searchParams.get('featured') || ''
+
+  // Load categories
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [catRes, trendRes, featRes, newRes] = await Promise.all([
-          categoriesAPI.getAll(),
-          productsPublicAPI.getAll({ sort: 'popular', limit: 8 }),
-          productsPublicAPI.getAll({ featured: true, limit: 8 }),
-          productsPublicAPI.getAll({ sort: 'newest', limit: 8 }),
-        ])
-        setCategories(catRes.data || [])
-        setTrending(trendRes.data.products || [])
-        setFeatured(featRes.data.products || [])
-        setNewArrivals(newRes.data.products || [])
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchData()
+    categoriesAPI.getAll(false)
+      .then(res => setCategories(res.data || []))
+      .catch(() => {})
+  }, [])
+
+  // Auto-slide hero banner
+  useEffect(() => {
     const interval = setInterval(() => setActiveBanner(b => (b + 1) % BANNERS.length), 5000)
     return () => clearInterval(interval)
   }, [])
 
+  // Fetch products with filters
+  useEffect(() => {
+    let isCurrent = true
+    const fetchProducts = async () => {
+      setLoading(true)
+      try {
+        const params = { page, sort, limit: 16 }
+        const searchTerms = [search, subcategory, shape, strap, fabric].filter(Boolean).join(' ')
+        if (searchTerms) params.search = searchTerms
+
+        if (categoryId) params.category_id = categoryId
+        if (activeCategorySlug && activeCategorySlug !== 'popular') params.category_slug = activeCategorySlug
+        if (minPrice) params.min_price = minPrice
+        if (maxPrice) params.max_price = maxPrice
+        if (minRating) params.min_rating = minRating
+        if (minDiscount) params.min_discount = minDiscount
+        if (size) params.size = size
+        if (color) params.color = color
+        if (gender) params.gender = gender
+        if (featured) params.featured = featured
+
+        const res = await productsPublicAPI.getAll(params)
+        if (isCurrent) {
+          setProducts(res.data.products || [])
+          setTotal(res.data.total || 0)
+          setPages(res.data.pages || 1)
+        }
+      } catch {
+        if (isCurrent) setProducts([])
+      } finally {
+        if (isCurrent) setLoading(false)
+      }
+    }
+
+    fetchProducts()
+    return () => {
+      isCurrent = false
+    }
+  }, [searchParams])
+
+  const updateParam = (key, value) => {
+    const p = new URLSearchParams(searchParams)
+    if (value) p.set(key, value)
+    else p.delete(key)
+    p.delete('page')
+    setSearchParams(p, { replace: true })
+  }
+
+  const clearFilters = () => {
+    setSearchParams({}, { replace: true })
+  }
+
+  const activeFiltersCount = [
+    activeCategorySlug,
+    minPrice,
+    maxPrice,
+    minRating,
+    minDiscount,
+    size,
+    color,
+    gender,
+    featured,
+    search,
+    subcategory,
+    shape,
+    strap,
+    fabric,
+  ].filter(Boolean).length
+
+  // Current active category title
+  const currentCategory = categories.find(c => String(c.id) === String(categoryId) || c.slug === activeCategorySlug)
+  const headingTitle = currentCategory ? currentCategory.name : (search ? `Search results for "${search}"` : 'Products For You')
+
   return (
-    <div>
-      {/* Contained Hero Carousel Banner - Instant 0ms render */}
-      <section className="max-w-7xl mx-auto px-3 sm:px-6 pt-3 sm:pt-4 pb-2">
+    <div className="w-full">
+      {/* 1. Contained Hero Carousel Banner - Instant 0ms render (Full Laptop Width) */}
+      <section className="max-w-[1600px] w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-4 pb-2">
         <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-md border border-gray-100">
           <div className={`bg-gradient-to-r ${BANNERS[activeBanner].bg} text-white transition-all duration-700 ease-in-out px-4 py-6 sm:px-10 sm:py-12 md:py-14`}>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-center">
@@ -121,12 +217,12 @@ export default function HomePage() {
 
                 {/* Action Buttons */}
                 <div className="pt-2 flex items-center gap-2.5 sm:gap-3 flex-wrap">
-                  <Link
-                    to={BANNERS[activeBanner].link}
+                  <a
+                    href="#products-feed"
                     className={`inline-flex items-center gap-1.5 sm:gap-2 ${BANNERS[activeBanner].btnColor} font-black px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-xl transition-all shadow-md active:scale-95 text-xs sm:text-sm`}
                   >
                     {BANNERS[activeBanner].cta} <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </Link>
+                  </a>
                   <div className="bg-white/10 border border-white/20 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black tracking-wider text-amber-300 uppercase">
                     {BANNERS[activeBanner].discount}
                   </div>
@@ -170,14 +266,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Trust Badges Bar */}
+      {/* 2. Trust Badges Bar (Full Width) */}
       <div className="bg-white border-b border-gray-100 shadow-sm mt-2 sm:mt-3">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
+        <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
             {FEATURES.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="flex items-center gap-2 sm:gap-3 p-1">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-brand-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-brand-600" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-purple-700" />
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs sm:text-sm font-semibold text-gray-800 truncate">{title}</div>
@@ -189,138 +285,255 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8 space-y-8 sm:space-y-12">
-        {/* Categories Section */}
-        {categories.length > 0 && (
-          <section className="bg-white p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-xs">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
+      {/* 3. Category Circles Ribbon (Full Width) */}
+      {categories.length > 0 && (
+        <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6">
+          <section className="bg-white p-3.5 sm:p-5 rounded-2xl border border-gray-100 shadow-xs">
+            <div className="flex items-center justify-between mb-3">
               <div>
-                <h2 className="text-base sm:text-xl font-black text-gray-900 flex items-center gap-1.5 sm:gap-2">
+                <h2 className="text-sm sm:text-base font-black text-gray-900 flex items-center gap-1.5">
                   <span>🛍️ Explore Top Categories</span>
                 </h2>
-                <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">Find whatever you love with 100% Free Cash on Delivery</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">Click any category to filter items below</p>
               </div>
-              <Link to="/products" className="text-xs sm:text-sm text-purple-700 hover:text-purple-800 flex items-center gap-0.5 sm:gap-1 font-bold flex-shrink-0">
-                <span className="hidden sm:inline">View All Categories</span>
-                <span className="sm:hidden">All</span>
-                <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </Link>
+              <button
+                onClick={() => updateParam('category', '')}
+                className="text-xs text-purple-700 hover:text-purple-800 font-bold flex items-center gap-0.5 cursor-pointer"
+              >
+                <span>View All</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
-            <div className="flex sm:grid sm:grid-cols-6 md:grid-cols-9 gap-2.5 sm:gap-4 overflow-x-auto pb-2 sm:pb-0 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {categories.map((cat, i) => (
-                <CategoryCard key={cat.id} category={cat} index={i} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Loading Skeletons for Instant Visual Feedback */}
-        {loading && (
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 bg-gray-200 rounded-full animate-pulse" />
-              <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-3 shadow-xs space-y-3 animate-pulse">
-                  <div className="aspect-[3/4] bg-gray-100 rounded-xl w-full" />
-                  <div className="h-4 bg-gray-200 rounded w-4/5" />
-                  <div className="h-4 bg-gray-200 rounded w-1/2" />
-                  <div className="h-8 bg-gray-100 rounded-xl w-full" />
+                <div
+                  key={cat.id}
+                  onClick={() => updateParam('category', cat.slug)}
+                  className="cursor-pointer flex-shrink-0"
+                >
+                  <CategoryCard category={cat} index={i} />
                 </div>
               ))}
             </div>
           </section>
-        )}
+        </div>
+      )}
 
-        {/* Empty Catalog Welcome Showcase */}
-        {!loading && trending.length === 0 && featured.length === 0 && newArrivals.length === 0 && (
-          <section className="bg-gradient-to-br from-purple-50 via-pink-50 to-amber-50 rounded-3xl p-8 sm:p-12 text-center border border-purple-100 shadow-xs space-y-4 max-w-3xl mx-auto my-6">
-            <div className="w-16 h-16 rounded-2xl bg-purple-600 text-white flex items-center justify-center mx-auto shadow-md">
-              <Truck className="w-8 h-8" />
-            </div>
-            <div>
-              <h3 className="text-xl sm:text-2xl font-black text-gray-900">
-                Fresh Collections Arriving Daily!
-              </h3>
-              <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto mt-1">
-                Explore our curated categories above for factory-priced ethnic wear, footwear, western fashion & electronics with 100% Free Cash on Delivery!
-              </p>
-            </div>
-            <div className="pt-2">
-              <Link
-                to="/products"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-purple-700 hover:bg-purple-800 text-white text-xs sm:text-sm font-black rounded-xl shadow-md transition-all active:scale-95"
+      {/* 4. MAIN FEED: EXACT MEESHO LAYOUT (Photo 2) - Filter on Left, Products on Right */}
+      <div id="products-feed" className="max-w-[1600px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
+        
+        {/* Top Header of Main Feed */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-5 pb-3 border-b border-gray-200">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight capitalize">
+              {headingTitle}
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Showing {total} product{total !== 1 ? 's' : ''} with 100% Free Cash on Delivery (COD)
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Mobile Filter Button */}
+            <button
+              onClick={() => setShowMobileFilters(true)}
+              className={`lg:hidden btn-secondary text-xs flex items-center gap-1.5 py-2 px-3.5 font-bold ${
+                activeFiltersCount > 0 ? 'border-purple-600 text-purple-700 bg-purple-50' : ''
+              }`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Filters</span>
+              {activeFiltersCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] font-black">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+
+            {/* Meesho Sort Dropdown */}
+            <div className="relative">
+              <select
+                value={sort}
+                onChange={e => updateParam('sort', e.target.value)}
+                className="text-xs py-2 pl-3 pr-8 rounded-xl border border-gray-300 bg-white font-bold text-gray-800 focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 cursor-pointer shadow-xs"
               >
-                <span>Browse All Products</span>
-                <ChevronRight className="w-4 h-4" />
-              </Link>
+                {SORT_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
-          </section>
-        )}
+          </div>
+        </div>
 
-        {/* Featured Products */}
-        {featured.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-4 sm:mb-5">
-              <div className="flex items-center gap-2">
-                <Star className="w-5 h-5 text-yellow-500 fill-yellow-400" />
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Featured Collection</h2>
-              </div>
-              <Link to="/products?featured=true" className="text-xs sm:text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1 font-semibold">
-                View all <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5">
-              {featured.map(p => (
-                <ProductCard key={p.id} product={p} />
-              ))}
-            </div>
-          </section>
-        )}
+        {/* 2-Column Content Layout: Left Filter Sidebar + Right Product Grid (Meesho Style) */}
+        <div className="flex gap-6 items-start">
+          
+          {/* Desktop Sticky Meesho Sidebar */}
+          <div className="w-64 flex-shrink-0 hidden lg:block sticky top-24 self-start">
+            <MeeshoFilterSidebar
+              categories={categories}
+              activeCategorySlug={activeCategorySlug}
+              totalProducts={total}
+              searchParams={searchParams}
+              updateParam={updateParam}
+              clearAllFilters={clearFilters}
+            />
+          </div>
 
-        {/* Trending Deals */}
-        {trending.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-4 sm:mb-5">
-              <div className="flex items-center gap-2">
-                <Flame className="w-5 h-5 text-orange-500 fill-orange-400" />
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Trending Now</h2>
-              </div>
-              <Link to="/products?sort=popular" className="text-xs sm:text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1 font-semibold">
-                View all <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5">
-              {trending.map(p => (
-                <ProductCard key={p.id} product={p} />
-              ))}
-            </div>
-          </section>
-        )}
+          {/* Right Product Grid Area */}
+          <div className="flex-1 min-w-0">
+            {/* Active Filter Chips */}
+            {activeFiltersCount > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 mb-4 p-2.5 bg-gray-50 rounded-xl border border-gray-100 animate-fade-in">
+                <span className="text-[11px] text-gray-500 font-bold uppercase tracking-wider mr-1">Active:</span>
 
-        {/* New Arrivals */}
-        {newArrivals.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-4 sm:mb-5">
-              <div className="flex items-center gap-2">
-                <Zap className="w-5 h-5 text-brand-600 fill-brand-500" />
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900">New Arrivals</h2>
+                {activeCategorySlug && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full font-bold">
+                    <span>{headingTitle}</span>
+                    <button onClick={() => updateParam('category', '')} className="hover:text-purple-950"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+
+                {subcategory && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full font-bold">
+                    <span>{subcategory}</span>
+                    <button onClick={() => updateParam('subcategory', '')} className="hover:text-purple-950"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+
+                {gender && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full font-bold capitalize">
+                    <span>Gender: {gender}</span>
+                    <button onClick={() => updateParam('gender', '')} className="hover:text-purple-950"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+
+                {(minPrice || maxPrice) && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full font-bold">
+                    <span>₹{minPrice || 0} - ₹{maxPrice || '∞'}</span>
+                    <button onClick={() => { updateParam('min_price', ''); updateParam('max_price', '') }} className="hover:text-purple-950"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+
+                {size && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full font-bold">
+                    <span>Size: {size}</span>
+                    <button onClick={() => updateParam('size', '')} className="hover:text-purple-950"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+
+                {color && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full font-bold capitalize">
+                    <span>Color: {color}</span>
+                    <button onClick={() => updateParam('color', '')} className="hover:text-purple-950"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+
+                {minRating && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full font-bold">
+                    <span>{minRating}★ & Above</span>
+                    <button onClick={() => updateParam('min_rating', '')} className="hover:text-purple-950"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+
+                {minDiscount && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full font-bold">
+                    <span>{minDiscount}%+ Discount</span>
+                    <button onClick={() => updateParam('min_discount', '')} className="hover:text-purple-950"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+
+                {search && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-gray-200 text-gray-800 px-2.5 py-1 rounded-full font-bold">
+                    <span>"{search}"</span>
+                    <button onClick={() => updateParam('search', '')} className="hover:text-black"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+
+                <button
+                  onClick={clearFilters}
+                  className="text-xs font-bold text-red-600 hover:underline ml-auto pl-2 cursor-pointer"
+                >
+                  Clear All
+                </button>
               </div>
-              <Link to="/products?sort=newest" className="text-xs sm:text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1 font-semibold">
-                View all <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </Link>
+            )}
+
+            {/* Product Grid Area */}
+            {loading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                  <div key={n} className="bg-white rounded-2xl border border-gray-100 p-2.5 shadow-xs animate-pulse space-y-2.5">
+                    <div className="aspect-[3/4] bg-gray-100 rounded-xl w-full" />
+                    <div className="h-3.5 bg-gray-200 rounded w-4/5" />
+                    <div className="h-4 bg-gray-200 rounded w-1/2" />
+                    <div className="h-3 bg-gray-100 rounded w-1/3" />
+                  </div>
+                ))}
+              </div>
+            ) : products.length === 0 ? (
+              <EmptyState
+                icon={ShoppingBag}
+                title="No products match your filters"
+                message="Try clearing some filters or browsing another category."
+                actionText="Clear All Filters"
+                onAction={clearFilters}
+              />
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 animate-fade-in">
+                {products.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            )}
+
+            {/* Pagination */}
+            <div className="mt-8">
+              <Pagination page={page} pages={pages} onPageChange={p => updateParam('page', p)} />
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5">
-              {newArrivals.map(p => (
-                <ProductCard key={p.id} product={p} />
-              ))}
-            </div>
-          </section>
-        )}
+          </div>
+        </div>
+
       </div>
+
+      {/* Mobile Filters Sliding Drawer */}
+      {showMobileFilters && (
+        <div className="fixed inset-0 z-50 flex lg:hidden">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs" onClick={() => setShowMobileFilters(false)} />
+          <div className="relative ml-auto w-full max-w-xs bg-white h-full overflow-y-auto shadow-2xl p-4 flex flex-col z-10 animate-slide-up">
+            <div className="flex items-center justify-between pb-3 border-b mb-3">
+              <h3 className="font-black text-sm text-gray-900 flex items-center gap-1.5">
+                <SlidersHorizontal className="w-4 h-4 text-purple-700" />
+                <span>Filters</span>
+              </h3>
+              <button onClick={() => setShowMobileFilters(false)} className="p-1 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              <MeeshoFilterSidebar
+                categories={categories}
+                activeCategorySlug={activeCategorySlug}
+                totalProducts={total}
+                searchParams={searchParams}
+                updateParam={updateParam}
+                clearAllFilters={clearFilters}
+                onCloseMobile={() => setShowMobileFilters(false)}
+              />
+            </div>
+
+            <div className="pt-3 border-t mt-auto">
+              <button
+                onClick={() => setShowMobileFilters(false)}
+                className="btn-primary w-full py-2.5 text-xs font-bold"
+              >
+                Apply Filters ({total} Products)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-
