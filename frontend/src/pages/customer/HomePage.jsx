@@ -185,81 +185,54 @@ export default function HomePage() {
 
   return (
     <div className="w-full">
-      {/* 1. Contained Hero Carousel Banner - Instant 0ms render (Full Laptop Width) */}
-      <section className="max-w-[1600px] w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-4 pb-2">
-        <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-md border border-gray-100">
-          <div className={`bg-gradient-to-r ${BANNERS[activeBanner].bg} text-white transition-all duration-700 ease-in-out px-4 py-6 sm:px-10 sm:py-12 md:py-14`}>
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-center">
-              
-              {/* Left Content */}
-              <div className="md:col-span-7 space-y-3 sm:space-y-4">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-[10px] sm:text-xs font-black tracking-wider uppercase border border-white/15">
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-400 animate-ping" />
-                  <span className={BANNERS[activeBanner].accentColor}>{BANNERS[activeBanner].badge}</span>
+      {/* 1. Thin & Slim Meesho-Style Promo Ribbon (Ultra Compact) */}
+      <section className="max-w-[1600px] w-full mx-auto px-3 sm:px-6 lg:px-8 pt-2 sm:pt-3 pb-1">
+        <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-xs border border-gray-100">
+          <div className={`bg-gradient-to-r ${BANNERS[activeBanner].bg} text-white transition-all duration-500 px-4 py-3 sm:px-6 sm:py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3`}>
+            
+            {/* Left Content */}
+            <div className="flex items-center gap-3 min-w-0 w-full sm:w-auto">
+              <div className="hidden sm:flex w-9 h-9 rounded-xl bg-white/10 backdrop-blur-md items-center justify-center shrink-0 border border-white/15">
+                <Flame className="w-4 h-4 text-amber-300" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/15 backdrop-blur-md rounded-md text-[10px] font-black tracking-wider uppercase">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                    <span className={BANNERS[activeBanner].accentColor}>{BANNERS[activeBanner].badge}</span>
+                  </span>
+                  <h1 className="text-xs sm:text-sm md:text-base font-black truncate drop-shadow-xs">
+                    {BANNERS[activeBanner].title}
+                  </h1>
                 </div>
-
-                <h1 className="text-xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight drop-shadow-xs">
-                  {BANNERS[activeBanner].title}
-                </h1>
-
-                <p className="text-white/85 text-xs sm:text-sm md:text-base leading-relaxed max-w-xl font-medium line-clamp-2 sm:line-clamp-none">
-                  {BANNERS[activeBanner].subtitle}
+                <p className="text-white/80 text-[10px] sm:text-[11px] truncate font-medium mt-0.5">
+                  {BANNERS[activeBanner].subtitle} • 100% Free Doorstep COD
                 </p>
-
-                {/* Quick Perks */}
-                <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-1 text-xs font-semibold text-white/90">
-                  {BANNERS[activeBanner].highlights.map((h, idx) => (
-                    <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-lg bg-black/25 backdrop-blur-xs border border-white/10 text-[10px] sm:text-xs">
-                      <Check className="w-3 h-3 text-amber-400" /> {h}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="pt-2 flex items-center gap-2.5 sm:gap-3 flex-wrap">
-                  <a
-                    href="#products-feed"
-                    className={`inline-flex items-center gap-1.5 sm:gap-2 ${BANNERS[activeBanner].btnColor} font-black px-4 py-2.5 sm:px-6 sm:py-3.5 rounded-xl transition-all shadow-md active:scale-95 text-xs sm:text-sm`}
-                  >
-                    {BANNERS[activeBanner].cta} <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </a>
-                  <div className="bg-white/10 border border-white/20 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black tracking-wider text-amber-300 uppercase">
-                    {BANNERS[activeBanner].discount}
-                  </div>
-                </div>
               </div>
-
-              {/* Right Hero Image Card */}
-              <div className="hidden md:flex md:col-span-5 justify-center relative">
-                <div className="relative w-72 h-80 lg:w-80 lg:h-92 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 group">
-                  <img
-                    src={BANNERS[activeBanner].image}
-                    alt={BANNERS[activeBanner].title}
-                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                  <div className="absolute bottom-3 left-3 right-3 bg-white/95 backdrop-blur-md p-3 rounded-xl text-gray-900 shadow-lg flex items-center justify-between">
-                    <div>
-                      <div className="text-[10px] font-bold uppercase text-purple-800 tracking-wider">Verified Indian Store</div>
-                      <div className="text-xs font-extrabold line-clamp-1">100% Cash on Delivery</div>
-                    </div>
-                    <span className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-black">
-                      FREE COD
-                    </span>
-                  </div>
-                </div>
-              </div>
-
             </div>
+
+            {/* Right Action */}
+            <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-auto">
+              <div className="hidden md:block bg-white/10 border border-white/20 px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wider text-amber-300 uppercase">
+                {BANNERS[activeBanner].discount}
+              </div>
+              <a
+                href="#products-feed"
+                className={`inline-flex items-center gap-1 ${BANNERS[activeBanner].btnColor} font-black px-3.5 py-1.5 rounded-lg transition-all shadow-sm active:scale-95 text-xs`}
+              >
+                {BANNERS[activeBanner].cta} <ArrowRight className="w-3 h-3" />
+              </a>
+            </div>
+
           </div>
 
-          {/* Banner dots */}
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+          {/* Minimal banner dots */}
+          <div className="absolute bottom-1 right-4 flex gap-1.5">
             {BANNERS.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setActiveBanner(i)}
-                className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${i === activeBanner ? 'bg-white w-7' : 'bg-white/40 w-2'}`}
+                className={`h-1 rounded-full transition-all duration-300 cursor-pointer ${i === activeBanner ? 'bg-white w-4' : 'bg-white/40 w-1.5'}`}
               />
             ))}
           </div>
