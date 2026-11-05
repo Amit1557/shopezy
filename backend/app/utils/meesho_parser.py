@@ -210,7 +210,14 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
             val = m.group(1).strip()
             result["specifications"][spec] = val
             if spec.lower() == "color" and val:
-                result["colors"] = [c.strip() for c in val.split('/')]
+                result["colors"] = [c.strip().title() for c in re.split(r'[/,]+', val) if c.strip()]
+
+    # Extract color from product title (e.g. (Black), Black, Navy Blue, etc.)
+    title_colors = re.findall(r'\b(Black|Blue|Navy|White|Red|Green|Grey|Gray|Yellow|Pink|Maroon|Brown|Beige|Orange|Purple|Olive)\b', result["name"] + " " + raw_input, re.IGNORECASE)
+    for tc in title_colors:
+        tc_title = tc.capitalize()
+        if tc_title not in result["colors"]:
+            result["colors"].append(tc_title)
 
     # Sizes extraction - support Indian shoe sizes IND-6..10, waist sizes 28..40, and apparel S..XXL
     found_sizes = []

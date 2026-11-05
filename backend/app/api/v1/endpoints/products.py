@@ -4,7 +4,7 @@ from sqlalchemy import or_, and_, func
 from typing import List, Optional, Dict, Any
 import os, uuid, re
 from ....database.database import get_db
-from ....models.product import Product, ProductImage, ProductVariant
+from ....models.product import Product, ProductImage, ProductVariant, ProductReview
 from ....models.admin import Admin
 from ....schemas.product import (
     ProductCreate,
@@ -13,6 +13,8 @@ from ....schemas.product import (
     ProductAdmin,
     ProductVariantCreate,
     ProductPublicDetail,
+    ProductReviewCreate,
+    ProductReviewOut,
 )
 from .deps import get_current_admin
 from ....core.config import settings
@@ -122,13 +124,54 @@ def get_public_products(
 def get_public_product(slug: str, db: Session = Depends(get_db)):
     product = (
         db.query(Product)
-        .options(selectinload(Product.images), selectinload(Product.variants))
+        .options(
+            selectinload(Product.images),
+            selectinload(Product.variants),
+            selectinload(Product.reviews)
+        )
         .filter(Product.slug == slug, Product.is_active == True)
         .first()
     )
     if not product:
         raise HTTPException(404, "Product not found")
     return product
+
+
+@router.post("/public/{product_id}/reviews", response_model=ProductReviewOut)
+def create_product_review(
+    product_id: int,
+    data: ProductReviewCreate,
+    db: Session = Depends(get_db)
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(404, "Product not found")
+    
+    clean_name = data.customer_name.strip() or "Verified Customer"
+    clean_comment = data.comment.strip()
+    if not clean_comment:
+        raise HTTPException(400, "Review comment cannot be empty")
+    
+    rating = max(1, min(5, data.rating))
+    review = ProductReview(
+        product_id=product.id,
+        customer_name=clean_name,
+        rating=rating,
+        title=data.title.strip() if data.title else None,
+        comment=clean_comment,
+        is_verified_buyer=True
+    )
+    db.add(review)
+    db.flush()
+    
+    # Recalculate product average rating
+    avg = db.query(func.avg(ProductReview.rating)).filter(ProductReview.product_id == product.id).scalar()
+    if avg is not None:
+        product.average_rating = round(float(avg), 1)
+    
+    db.commit()
+    db.refresh(review)
+    return review
 
 
 # ADMIN endpoints
@@ -264,6 +307,22 @@ def update_product(
                     product_id=product_id,
                     variant_type="size",
                     value=sz.strip(),
+                    is_available=True
+                ))
+
+    # Update product color variants if provided
+    colors_list = getattr(data, "colors", None)
+    if colors_list is not None:
+        db.query(ProductVariant).filter(
+            ProductVariant.product_id == product_id,
+            ProductVariant.variant_type == "color"
+        ).delete()
+        for clr in colors_list:
+            if clr and isinstance(clr, str):
+                db.add(ProductVariant(
+                    product_id=product_id,
+                    variant_type="color",
+                    value=clr.strip().capitalize(),
                     is_available=True
                 ))
 

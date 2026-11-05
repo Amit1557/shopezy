@@ -5,6 +5,7 @@ from ..models import (
     Product,
     ProductImage,
     ProductVariant,
+    ProductReview,
     Customer,
     CustomerAddress,
     Order,

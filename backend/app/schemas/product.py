@@ -62,6 +62,7 @@ class ProductUpdate(BaseModel):
     stock_quantity: Optional[int] = None
     images: Optional[List[str]] = None
     sizes: Optional[List[str]] = None
+    colors: Optional[List[str]] = None
 
 
 # Public product (NO purchase_cost, NO meesho_link exposed)
@@ -95,8 +96,28 @@ class CategoryOut(BaseModel):
         from_attributes = True
 
 
+class ProductReviewCreate(BaseModel):
+    customer_name: str
+    rating: int = 5
+    title: Optional[str] = None
+    comment: str
+
+class ProductReviewOut(BaseModel):
+    id: int
+    product_id: int
+    customer_name: str
+    rating: int
+    title: Optional[str] = None
+    comment: str
+    is_verified_buyer: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 class ProductPublicDetail(ProductPublic):
     specifications: Optional[dict]
+    reviews: List[ProductReviewOut] = []
 
 
 # Admin product (includes internal cost data)

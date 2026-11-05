@@ -54,6 +54,7 @@ export const categoriesAPI = {
 export const productsPublicAPI = {
   getAll: (params) => api.get('/products/public', { params }),
   getBySlug: (slug) => api.get(`/products/public/${slug}`),
+  addReview: (productId, data) => api.post(`/products/public/${productId}/reviews`, data),
 }
 
 // Products - Admin

@@ -15,3 +15,4 @@ jobs:
           echo "Pinging Render backend to prevent sleep mode..."
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://shopezy-backend-dn00.onrender.com/health || echo "FAILED")
           echo "Render response status: $STATUS"
+

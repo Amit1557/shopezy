@@ -28,6 +28,7 @@ class Product(Base):
     category = relationship("Category", back_populates="products")
     images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
     variants = relationship("ProductVariant", back_populates="product", cascade="all, delete-orphan")
+    reviews = relationship("ProductReview", back_populates="product", cascade="all, delete-orphan", order_by="desc(ProductReview.created_at)")
     order_items = relationship("OrderItem", back_populates="product")
 
 
@@ -51,3 +52,16 @@ class ProductVariant(Base):
     is_available = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     product = relationship("Product", back_populates="variants")
+
+
+class ProductReview(Base):
+    __tablename__ = "product_reviews"
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False, index=True)
+    customer_name = Column(String(100), nullable=False)
+    rating = Column(Integer, nullable=False, default=5)  # 1 to 5
+    title = Column(String(200), nullable=True)
+    comment = Column(Text, nullable=False)
+    is_verified_buyer = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    product = relationship("Product", back_populates="reviews")
