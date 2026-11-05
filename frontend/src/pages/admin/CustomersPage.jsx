@@ -32,8 +32,8 @@ export default function CustomersPage() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [customerDetail, setCustomerDetail] = useState(null)
 
-  const fetchCustomers = async (p = 1) => {
-    setLoading(true)
+  const fetchCustomers = async (p = 1, silent = false) => {
+    if (!silent && customers.length === 0) setLoading(true)
     try {
       const res = await analyticsAPI.getCustomers({ page: p, limit: 15, search: search.trim() || undefined })
       setCustomers(res.data.customers || [])
@@ -51,7 +51,7 @@ export default function CustomersPage() {
   }
 
   useEffect(() => {
-    fetchCustomers(1)
+    fetchCustomers(1, customers.length > 0)
   }, [search])
 
   const openCustomerModal = async (cust) => {
@@ -141,8 +141,13 @@ export default function CustomersPage() {
       </div>
 
       {/* Customers Table */}
-      <div className="card overflow-hidden">
-        {loading ? (
+      <div className="card overflow-hidden relative">
+        {loading && customers.length > 0 && (
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-10 transition-all">
+            <LoadingSpinner size="md" />
+          </div>
+        )}
+        {loading && customers.length === 0 ? (
           <div className="py-20 flex justify-center"><LoadingSpinner size="lg" /></div>
         ) : customers.length === 0 ? (
           <div className="py-16 text-center text-gray-400">

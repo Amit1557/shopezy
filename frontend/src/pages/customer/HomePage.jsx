@@ -87,15 +87,9 @@ export default function HomePage() {
     return () => clearInterval(interval)
   }, [])
 
-  if (loading) return (
-    <div className="min-h-[60vh] flex items-center justify-center">
-      <LoadingSpinner size="lg" />
-    </div>
-  )
-
   return (
     <div>
-      {/* Contained Hero Carousel Banner */}
+      {/* Contained Hero Carousel Banner - Instant 0ms render */}
       <section className="max-w-7xl mx-auto px-3 sm:px-6 pt-3 sm:pt-4 pb-2">
         <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-md border border-gray-100">
           <div className={`bg-gradient-to-r ${BANNERS[activeBanner].bg} text-white transition-all duration-700 ease-in-out px-4 py-6 sm:px-10 sm:py-12 md:py-14`}>
@@ -216,6 +210,52 @@ export default function HomePage() {
               {categories.map((cat, i) => (
                 <CategoryCard key={cat.id} category={cat} index={i} />
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* Loading Skeletons for Instant Visual Feedback */}
+        {loading && (
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 bg-gray-200 rounded-full animate-pulse" />
+              <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-3 shadow-xs space-y-3 animate-pulse">
+                  <div className="aspect-[3/4] bg-gray-100 rounded-xl w-full" />
+                  <div className="h-4 bg-gray-200 rounded w-4/5" />
+                  <div className="h-4 bg-gray-200 rounded w-1/2" />
+                  <div className="h-8 bg-gray-100 rounded-xl w-full" />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Empty Catalog Welcome Showcase */}
+        {!loading && trending.length === 0 && featured.length === 0 && newArrivals.length === 0 && (
+          <section className="bg-gradient-to-br from-purple-50 via-pink-50 to-amber-50 rounded-3xl p-8 sm:p-12 text-center border border-purple-100 shadow-xs space-y-4 max-w-3xl mx-auto my-6">
+            <div className="w-16 h-16 rounded-2xl bg-purple-600 text-white flex items-center justify-center mx-auto shadow-md">
+              <Truck className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-black text-gray-900">
+                Fresh Collections Arriving Daily!
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto mt-1">
+                Explore our curated categories above for factory-priced ethnic wear, footwear, western fashion & electronics with 100% Free Cash on Delivery!
+              </p>
+            </div>
+            <div className="pt-2">
+              <Link
+                to="/products"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-purple-700 hover:bg-purple-800 text-white text-xs sm:text-sm font-black rounded-xl shadow-md transition-all active:scale-95"
+              >
+                <span>Browse All Products</span>
+                <ChevronRight className="w-4 h-4" />
+              </Link>
             </div>
           </section>
         )}

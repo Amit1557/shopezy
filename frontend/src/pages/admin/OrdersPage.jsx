@@ -34,8 +34,8 @@ export default function OrdersPage() {
   const search = searchParams.get('search') || ''
   const [searchInput, setSearchInput] = useState(search)
 
-  const fetchOrders = async () => {
-    setLoading(true)
+  const fetchOrders = async (silent = false) => {
+    if (!silent && orders.length === 0) setLoading(true)
     try {
       const params = { page, limit: 15 }
       if (status) params.status = status
@@ -46,14 +46,14 @@ export default function OrdersPage() {
       setPages(res.data.pages || 1)
     } catch (err) {
       console.error(err)
-      setOrders([])
+      if (orders.length === 0) setOrders([])
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchOrders()
+    fetchOrders(orders.length > 0)
   }, [searchParams])
 
   const updateParam = (key, val) => {
@@ -138,8 +138,22 @@ export default function OrdersPage() {
           </div>
         )}
         {loading && orders.length === 0 ? (
-          <div className="py-20 flex justify-center">
-            <LoadingSpinner size="lg" />
+          <div className="p-4 space-y-3">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="animate-pulse flex items-center justify-between py-3 px-4 bg-gray-50/70 rounded-xl">
+                <div className="space-y-1.5 w-1/4">
+                  <div className="h-3.5 bg-gray-200 rounded w-28" />
+                  <div className="h-2.5 bg-gray-100 rounded w-20" />
+                </div>
+                <div className="space-y-1.5 w-1/4">
+                  <div className="h-3 bg-gray-200 rounded w-32" />
+                  <div className="h-2.5 bg-gray-100 rounded w-24" />
+                </div>
+                <div className="h-3.5 bg-gray-200 rounded w-16" />
+                <div className="h-6 bg-purple-100 rounded-full w-24" />
+                <div className="h-7 bg-gray-200 rounded-lg w-20" />
+              </div>
+            ))}
           </div>
         ) : orders.length === 0 ? (
           <div className="py-16 text-center text-gray-400">

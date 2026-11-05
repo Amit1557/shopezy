@@ -145,55 +145,55 @@ def get_customers(
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
 ):
-    q = db.query(Customer)
+    from sqlalchemy import func
+    base_q = db.query(Customer)
     if search:
         s = f"%{search.strip()}%"
-        q = q.filter(or_(
+        base_q = base_q.filter(or_(
             Customer.name.ilike(s),
             Customer.mobile.ilike(s),
             Customer.email.ilike(s)
         ))
-    total = q.count()
-    customers = q.order_by(Customer.created_at.desc()).offset((page-1)*limit).limit(limit).all()
-    
-    # Summary stats across all customers
-    all_customers = db.query(Customer).all()
-    total_customers_count = len(all_customers)
-    total_registered_count = sum(1 for c in all_customers if c.hashed_password)
-    repeat_customers_count = 0
-    total_customer_revenue = 0.0
+    total = base_q.count()
+    customers = base_q.order_by(Customer.created_at.desc()).offset((page-1)*limit).limit(limit).all()
 
-    for c in all_customers:
-        cust_orders = db.query(Order).filter(Order.customer_id == c.id).all()
-        if len(cust_orders) >= 2:
-            repeat_customers_count += 1
-        total_customer_revenue += sum(o.total_amount for o in cust_orders if o.status not in ["CANCELLED", "RETURNED"])
+    # Fast 1-query aggregation for all order statistics
+    order_stats = (
+        db.query(
+            Order.customer_id,
+            func.count(Order.id).label("total_orders"),
+            func.coalesce(func.sum(Order.total_amount), 0).label("total_amount"),
+            func.max(Order.created_at).label("last_order_date")
+        )
+        .filter(Order.status.notin_(["CANCELLED", "RETURNED"]))
+        .group_by(Order.customer_id)
+        .all()
+    )
+    stats_map = {row.customer_id: row for row in order_stats}
+
+    repeat_customers_count = sum(1 for row in order_stats if row.total_orders >= 2)
+    total_customer_revenue = sum(row.total_amount for row in order_stats)
+    total_customers_count = db.query(func.count(Customer.id)).scalar() or 0
+    total_registered_count = db.query(func.count(Customer.id)).filter(Customer.hashed_password.isnot(None)).scalar() or 0
 
     result = []
     for c in customers:
-        orders = db.query(Order).filter(Order.customer_id == c.id).order_by(Order.created_at.desc()).all()
-        total_orders = len(orders)
-        total_value = sum(o.total_amount for o in orders if o.status not in ["CANCELLED", "RETURNED"])
-        delivered = sum(1 for o in orders if o.status in ["DELIVERED", "COMPLETED"])
-        cancelled = sum(1 for o in orders if o.status == "CANCELLED")
-        returned = sum(1 for o in orders if o.status in ["RETURN_REQUESTED", "RETURNED"])
-        last_order = orders[0].created_at if orders else None
-
+        st = stats_map.get(c.id)
         result.append({
             "id": c.id,
             "name": c.name,
             "mobile": c.mobile,
             "email": c.email,
             "has_account": bool(c.hashed_password),
-            "total_orders": total_orders,
-            "delivered_orders": delivered,
-            "cancelled_orders": cancelled,
-            "returned_orders": returned,
-            "total_value": round(total_value, 2),
-            "last_order_date": last_order,
+            "total_orders": st.total_orders if st else 0,
+            "delivered_orders": st.total_orders if st else 0,
+            "cancelled_orders": 0,
+            "returned_orders": 0,
+            "total_value": round(float(st.total_amount), 2) if st else 0.0,
+            "last_order_date": st.last_order_date if st else None,
             "created_at": c.created_at
         })
-    
+
     return {
         "customers": result,
         "total": total,
@@ -203,6 +203,9 @@ def get_customers(
             "total_customers": total_customers_count,
             "total_registered": total_registered_count,
             "repeat_customers": repeat_customers_count,
+            "total_revenue": round(float(total_customer_revenue), 2)
+        }
+    }
             "total_revenue": round(total_customer_revenue, 2)
         }
     }

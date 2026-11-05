@@ -39,13 +39,13 @@ KEYWORD_SPECIFIC_IMAGES = [
 def map_meesho_category(text: str) -> str:
     """
     Directly maps Meesho product categories, breadcrumbs and titles to ShopEzy categories.
-    Accurately handles ethnic wear, footwear/shoes, men, western, watches, electronics, etc.
+    Accurately handles ethnic wear, footwear/shoes, women, men, kids, watches, electronics, etc.
     """
     t = text.lower()
     
     # 1. Sarees, Kurtis & Indian Ethnic (High priority)
-    if any(k in t for k in ['saree', 'sari', 'kurti', 'kurta set', 'anarkali', 'lehenga', 'chaniya choli', 'dupatta', 'salwar', 'suit material', 'sharara', 'gharara']):
-        if re.search(r'\b(men|boys?)\b', t) and any(k in t for k in ['kurta', 'sherwani', 'dhoti', 'pyjama']):
+    if any(k in t for k in ['saree', 'sari', 'kurti', 'kurta set', 'anarkali', 'lehenga', 'chaniya choli', 'dupatta', 'salwar', 'suit material', 'sharara', 'gharara', 'chunri', 'petticoat', 'blouse piece']):
+        if re.search(r'\b(men|boys?|gents)\b', t) and any(k in t for k in ['kurta', 'sherwani', 'dhoti', 'pyjama']):
             return "men"
         return "kurti-saree-lehenga"
 
@@ -69,28 +69,31 @@ def map_meesho_category(text: str) -> str:
     if any(k in t for k in ['jewel', 'necklace', 'earring', 'bangle', 'ring', 'pendant', 'chain', 'mangalsutra', 'bracelet', 'anklet', 'payal', 'jhumka', 'sunglass', 'goggles', 'hair accessory']):
         return "jewellery-accessories"
 
-    # 7. Kids & Toys
-    if any(k in t for k in ['kid', 'baby', 'toy', 'infant', 'toddler', 'doll', 'diaper', 'romper', 'remote control car']) and not any(k in t for k in ['men', 'women']):
+    # 7. Kids, Toddlers & Toys (Detects boys, girls, frock, toy, baby)
+    if any(k in t for k in ['kid', 'baby', 'toy', 'infant', 'toddler', 'doll', 'diaper', 'romper', 'frock', 'children', 'child']) or (re.search(r'\b(boys?|girls?)\b', t) and any(k in t for k in ['wear', 'cloth', 'frock', 'dress', 'set', 'suit', 'tshirt', 'shirt', 'shorts'])):
         return "kids-toys"
 
     # 8. Home & Kitchen
-    if any(k in t for k in ['kitchen', 'home', 'bottle', 'chopper', 'bedsheet', 'curtain', 'cookware', 'utensil', 'pillow', 'blanket', 'storage', 'mop', 'lunch box', 'flask', 'towel']):
+    if any(k in t for k in ['kitchen', 'home', 'bottle', 'chopper', 'bedsheet', 'curtain', 'cookware', 'utensil', 'pillow', 'blanket', 'storage', 'mop', 'lunch box', 'flask', 'towel', 'pan', 'kadhai', 'container']):
         return "home-kitchen"
 
     # 9. Beauty, Skincare & Grooming
-    if any(k in t for k in ['beauty', 'cream', 'perfume', 'deodorant', 'makeup', 'serum', 'lotion', 'lipstick', 'skincare', 'hair oil', 'shampoo', 'facewash', 'eyeliner', 'nail polish', 'kajal']):
+    if any(k in t for k in ['beauty', 'cream', 'perfume', 'deodorant', 'makeup', 'serum', 'lotion', 'lipstick', 'skincare', 'hair oil', 'shampoo', 'facewash', 'eyeliner', 'nail polish', 'kajal', 'foundation', 'eyeshadow']):
         return "beauty-health"
 
     # 10. Sports & Fitness
     if any(k in t for k in ['gym', 'dumbbell', 'yoga mat', 'fitness', 'exercise', 'resistance band', 'shaker bottle', 'sports equipment']):
         return "sports-fitness"
 
-    # 11. Women Western Wear
-    if any(k in t for k in ['dress', 'western', 'top', 'tunic', 'jumpsuit', 'gown', 'skirt', 'jeans women', 'crop top', 'women shirt', 'dungaree']):
+    # 11. Women Western Wear (T-shirts, Jeans, Tops, Dresses for Women/Girls/Ladies)
+    is_female = bool(re.search(r'\b(women|woman|ladies|girls?|female)\b', t))
+    if is_female and any(k in t for k in ['dress', 'western', 'top', 'tunic', 'jumpsuit', 'gown', 'skirt', 'crop top', 'shirt', 'tshirt', 't-shirt', 'jean', 'jeans', 'trouser', 'cargo', 'jogger', 'palazzo', 'plazo', 'shorts', 'hoodie', 'jacket', 'blazer']):
+        return "women-western"
+    if any(k in t for k in ['dress', 'western', 'top', 'tunic', 'jumpsuit', 'gown', 'skirt', 'crop top', 'palazzo', 'plazo']):
         return "women-western"
 
     # 12. Men Apparel
-    if any(k in t for k in ['men', 'shirt', 'tshirt', 't-shirt', 'polo', 'jeans', 'trouser', 'cargo', 'jogger', 'hoodie', 'jacket', 'blazer', 'track pant', 'chinos']):
+    if any(k in t for k in ['men', 'shirt', 'tshirt', 't-shirt', 'polo', 'jeans', 'trouser', 'cargo', 'jogger', 'hoodie', 'jacket', 'blazer', 'track pant', 'chinos', 'kurta men']):
         return "men"
 
     return "men"

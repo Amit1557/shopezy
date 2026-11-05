@@ -181,26 +181,25 @@ export default function ProductsAdminPage() {
           <p className="text-xs text-gray-500 mt-0.5">Manage products sourced from Meesho, adjust selling prices & margins</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* Subtle Backup / Restore icons */}
           <button
             type="button"
             onClick={handleExportBackup}
             disabled={backingUp}
-            className="btn-secondary text-xs py-2 px-3 inline-flex items-center gap-1.5 font-bold"
-            title="Download JSON backup of all your products"
+            className="p-2 border border-gray-200 hover:bg-gray-50 rounded-xl text-gray-600 transition-colors"
+            title="Backup all products (JSON)"
           >
-            <Download className="w-3.5 h-3.5 text-purple-600" />
-            <span>{backingUp ? 'Exporting...' : 'Backup JSON'}</span>
+            <Download className="w-4 h-4 text-gray-500" />
           </button>
 
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={restoring}
-            className="btn-secondary text-xs py-2 px-3 inline-flex items-center gap-1.5 font-bold"
-            title="Restore products from JSON backup"
+            className="p-2 border border-gray-200 hover:bg-gray-50 rounded-xl text-gray-600 transition-colors"
+            title="Restore products from backup JSON"
           >
-            <Upload className="w-3.5 h-3.5 text-emerald-600" />
-            <span>{restoring ? 'Restoring...' : 'Restore'}</span>
+            <Upload className="w-4 h-4 text-gray-500" />
           </button>
 
           <input
@@ -211,21 +210,15 @@ export default function ProductsAdminPage() {
             className="hidden"
           />
 
+          {/* Single, Clear Primary Add Product Button */}
           <button
             type="button"
             onClick={() => setIsImporterOpen(true)}
-            className="bg-gradient-to-r from-purple-700 to-brand-600 hover:from-purple-800 hover:to-brand-700 text-white text-xs py-2.5 px-3.5 rounded-xl font-black inline-flex items-center gap-1.5 shadow-md shadow-purple-200 transition-all cursor-pointer"
+            className="bg-gradient-to-r from-purple-700 to-brand-600 hover:from-purple-800 hover:to-brand-700 text-white text-xs py-2.5 px-4 rounded-xl font-black inline-flex items-center gap-2 shadow-md shadow-purple-200 transition-all cursor-pointer active:scale-95"
           >
             <Sparkles className="w-4 h-4 text-yellow-300" />
-            <span>⚡ 1-Click Fast Import</span>
+            <span>+ Add / Import Product</span>
           </button>
-
-          <Link
-            to="/admin/products/new"
-            className="btn-secondary text-xs py-2.5 px-3 inline-flex items-center gap-1.5 font-bold"
-          >
-            <Plus className="w-4 h-4" /> Custom Form
-          </Link>
         </div>
       </div>
 
@@ -270,8 +263,23 @@ export default function ProductsAdminPage() {
           </div>
         )}
         {loading && products.length === 0 ? (
-          <div className="py-20 flex justify-center">
-            <LoadingSpinner size="lg" />
+          <div className="p-4 space-y-3">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="animate-pulse flex items-center justify-between py-3 px-4 bg-gray-50/70 rounded-xl">
+                <div className="flex items-center gap-3 w-1/3">
+                  <div className="w-12 h-14 bg-gray-200 rounded-lg flex-shrink-0" />
+                  <div className="space-y-1.5 flex-1">
+                    <div className="h-3.5 bg-gray-200 rounded w-3/4" />
+                    <div className="h-2.5 bg-gray-100 rounded w-1/2" />
+                  </div>
+                </div>
+                <div className="h-4 bg-gray-200 rounded w-16" />
+                <div className="h-4 bg-gray-200 rounded w-16" />
+                <div className="h-5 bg-emerald-100 rounded w-20" />
+                <div className="h-6 bg-gray-200 rounded-full w-14" />
+                <div className="h-7 bg-purple-100 rounded-lg w-16" />
+              </div>
+            ))}
           </div>
         ) : products.length === 0 ? (
           <div className="py-16 text-center text-gray-400">

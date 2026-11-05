@@ -32,8 +32,25 @@ export default function ProductDetailPage() {
   }, [slug])
 
   if (loading) return (
-    <div className="min-h-[60vh] flex items-center justify-center">
-      <LoadingSpinner size="lg" />
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 animate-pulse">
+      <div className="h-4 bg-gray-200 rounded w-48 mb-6" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+        <div>
+          <div className="aspect-[3/4] bg-gray-200 rounded-2xl w-full mb-3" />
+          <div className="flex gap-2.5">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="w-20 h-24 bg-gray-200 rounded-xl flex-shrink-0" />
+            ))}
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div className="h-7 bg-gray-200 rounded w-4/5" />
+          <div className="h-5 bg-gray-100 rounded w-32" />
+          <div className="h-16 bg-gray-100 rounded-2xl w-full" />
+          <div className="h-10 bg-gray-200 rounded-xl w-3/4" />
+          <div className="h-12 bg-gray-200 rounded-xl w-full mt-6" />
+        </div>
+      </div>
     </div>
   )
   if (!product) return null

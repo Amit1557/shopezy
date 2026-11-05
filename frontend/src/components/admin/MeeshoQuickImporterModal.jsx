@@ -68,20 +68,22 @@ const CATEGORY_SHOWCASE_PHOTOS = {
 export function mapCategoryToSlug(text) {
   if (!text) return 'men'
   const t = text.toLowerCase()
-  if (/saree|sari|kurti|kurta set|anarkali|lehenga|ethnic|dupatta|salwar|suit material|sharara/i.test(t)) {
-    if (/\b(men|boys?)\b/i.test(t) && /kurta|sherwani|dhoti/i.test(t)) return 'men'
+  if (/saree|sari|kurti|kurta set|anarkali|lehenga|ethnic|dupatta|salwar|suit material|sharara|gharara/i.test(t)) {
+    if (/\b(men|boys?|gents)\b/i.test(t) && /kurta|sherwani|dhoti/i.test(t)) return 'men'
     return 'kurti-saree-lehenga'
   }
-  if (/shoe|sneaker|sandal|slipper|footwear|boot|loafer|crocs|heel|flat|bag|backpack|handbag|tote|purse|wallet/i.test(t)) return 'bags-footwear'
+  if (/shoe|sneaker|sandal|slipper|footwear|boot|loafer|crocs|heel|flat|bag|backpack|handbag|tote|purse|wallet|chappal/i.test(t)) return 'bags-footwear'
   if (/bra|panty|panties|lingerie|nighty|sleepwear|babydoll|boxer|brief/i.test(t)) return 'lingerie'
   if (/watch|smartwatch/i.test(t)) return 'watches'
   if (/earphone|headphone|earbud|airpod|speaker|electronic|charger|bluetooth|tws|neckband/i.test(t)) return 'electronics'
   if (/jewel|necklace|earring|bangle|ring|bracelet|chain|sunglass|jhumka/i.test(t)) return 'jewellery-accessories'
-  if (/kid|baby|toy|infant|toddler|romper/i.test(t) && !/men|women/i.test(t)) return 'kids-toys'
-  if (/kitchen|home|cookware|bottle|bedsheet|curtain|storage|lunch box/i.test(t)) return 'home-kitchen'
-  if (/beauty|makeup|cream|perfume|skincare|serum|lipstick|hair oil/i.test(t)) return 'beauty-health'
+  if (/kid|baby|toy|infant|toddler|romper|frock|children|child/i.test(t) || (/\b(boys?|girls?)\b/i.test(t) && /wear|cloth|frock|dress|set|suit|tshirt|shirt|shorts/i.test(t))) return 'kids-toys'
+  if (/kitchen|home|cookware|bottle|bedsheet|curtain|storage|lunch box|kadhai|pan/i.test(t)) return 'home-kitchen'
+  if (/beauty|makeup|cream|perfume|skincare|serum|lipstick|hair oil|eyeliner|kajal/i.test(t)) return 'beauty-health'
   if (/gym|dumbbell|fitness|yoga|exercise/i.test(t)) return 'sports-fitness'
-  if (/dress|western|top|gown|skirt|crop top/i.test(t)) return 'women-western'
+  const isFemale = /\b(women|woman|ladies|girls?|female)\b/i.test(t)
+  if (isFemale && /dress|western|top|tunic|jumpsuit|gown|skirt|crop top|shirt|tshirt|t-shirt|jean|jeans|trouser|cargo|jogger|palazzo|plazo|shorts|hoodie|jacket/i.test(t)) return 'women-western'
+  if (/dress|western|top|gown|skirt|crop top|palazzo|plazo/i.test(t)) return 'women-western'
   if (/men|shirt|tshirt|t-shirt|polo|jean|trouser|cargo|jogger|hoodie|jacket/i.test(t)) return 'men'
   return 'men'
 }
