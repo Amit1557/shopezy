@@ -148,6 +148,13 @@ class ReturnRequest(BaseModel):
     notes: Optional[str] = None
 
 
+class CancelOrderRequest(BaseModel):
+    order_id: str
+    mobile: str
+    reason: str
+    notes: Optional[str] = None
+
+
 class OrderStatusUpdate(BaseModel):
     status: str
     note: Optional[str] = None

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
 from typing import List, Optional
 from datetime import datetime, date
+import re
 from ....database.database import get_db
 from ....models.order import Order, OrderItem, OrderStatusHistory
 from ....models.customer import Customer, CustomerAddress
@@ -17,10 +18,16 @@ from ....schemas.order import (
     OrderStatusUpdate,
     MeeshoFulfilmentUpdate,
     ReturnRequest,
+    CancelOrderRequest,
 )
 from .deps import get_current_admin
 
 router = APIRouter()
+
+
+def _clean_mobile(raw: str) -> str:
+    digits = re.sub(r'[^0-9]', '', (raw or "").strip())
+    return digits[-10:] if len(digits) >= 10 else digits
 
 
 def generate_order_id(db: Session) -> str:
@@ -143,7 +150,10 @@ def track_order(order_id: str, mobile: str, db: Session = Depends(get_db)):
     )
     if not order:
         raise HTTPException(404, "Order not found")
-    if order.customer.mobile != mobile:
+    
+    order_mob = _clean_mobile(order.customer.mobile)
+    input_mob = _clean_mobile(mobile)
+    if order_mob != input_mob:
         raise HTTPException(403, "Mobile number does not match order")
 
     pub = OrderPublic(
@@ -166,7 +176,12 @@ def track_order(order_id: str, mobile: str, db: Session = Depends(get_db)):
 
 @router.get("/my-orders")
 def get_customer_orders(mobile: str, db: Session = Depends(get_db)):
-    customer = db.query(Customer).filter(Customer.mobile == mobile).first()
+    clean = _clean_mobile(mobile)
+    customer = db.query(Customer).filter(
+        (Customer.mobile == clean) |
+        (Customer.mobile == mobile.strip()) |
+        (Customer.mobile == "+91" + clean)
+    ).first()
     if not customer:
         return []
     orders = (
@@ -201,6 +216,50 @@ def get_customer_orders(mobile: str, db: Session = Depends(get_db)):
     return res
 
 
+@router.post("/cancel")
+def cancel_customer_order(data: CancelOrderRequest, db: Session = Depends(get_db)):
+    order = (
+        db.query(Order)
+        .options(joinedload(Order.customer))
+        .filter(Order.order_id == data.order_id)
+        .first()
+    )
+    if not order:
+        raise HTTPException(404, "Order not found")
+
+    order_mob = _clean_mobile(order.customer.mobile)
+    input_mob = _clean_mobile(data.mobile)
+    if order_mob != input_mob:
+        raise HTTPException(403, "Mobile number does not match order record")
+
+    if order.status == "CANCELLED":
+        raise HTTPException(400, "Order is already cancelled")
+
+    if order.status in ["DELIVERED", "COMPLETED"]:
+        raise HTTPException(400, "Order is already delivered. You can request a 7-day doorstep return instead.")
+
+    if order.status in ["RETURN_REQUESTED", "RETURNED"]:
+        raise HTTPException(400, f"Cannot cancel order in status: {order.status}")
+
+    order.status = "CANCELLED"
+    order.cancellation_reason = data.reason + (f" - {data.notes}" if data.notes else "")
+
+    history = OrderStatusHistory(
+        order_id=order.id,
+        status="CANCELLED",
+        note=f"Cancelled by customer: {order.cancellation_reason}",
+        changed_by="customer",
+    )
+    db.add(history)
+    db.commit()
+
+    return {
+        "message": "Order has been cancelled successfully.",
+        "order_id": order.order_id,
+        "status": order.status,
+    }
+
+
 @router.post("/request-return")
 def request_order_return(data: ReturnRequest, db: Session = Depends(get_db)):
     order = (
@@ -211,16 +270,21 @@ def request_order_return(data: ReturnRequest, db: Session = Depends(get_db)):
     )
     if not order:
         raise HTTPException(404, "Order not found")
-    if order.customer.mobile != data.mobile:
+
+    order_mob = _clean_mobile(order.customer.mobile)
+    input_mob = _clean_mobile(data.mobile)
+    if order_mob != input_mob:
         raise HTTPException(403, "Mobile number does not match order record")
 
-    if order.status not in ["DELIVERED", "COMPLETED", "SHIPPED"]:
-        raise HTTPException(
-            400,
-            f"Return can only be requested for delivered orders. Current status: {order.status}"
-        )
+    if order.status == "CANCELLED":
+        raise HTTPException(400, "Cancelled orders cannot be returned.")
 
-    # Set return requested
+    if order.status == "RETURN_REQUESTED":
+        raise HTTPException(400, "Return request is already under process for this order.")
+
+    if order.status == "RETURNED":
+        raise HTTPException(400, "This order has already been returned.")
+
     order.status = "RETURN_REQUESTED"
     order.return_reason = data.reason + (f" - {data.notes}" if data.notes else "")
     order.return_requested_at = datetime.now()
@@ -235,7 +299,7 @@ def request_order_return(data: ReturnRequest, db: Session = Depends(get_db)):
     db.commit()
 
     return {
-        "message": "Return request submitted successfully. Our team will verify and arrange pickup via Meesho.",
+        "message": "Return request submitted successfully. Our team will verify and arrange doorstep pickup via Meesho.",
         "order_id": order.order_id,
         "status": order.status,
     }

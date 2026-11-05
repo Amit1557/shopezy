@@ -9,12 +9,37 @@ const api = axios.create({
   },
 })
 
-// Attach admin token for authenticated requests
+// Attach appropriate token (admin or customer) for authenticated requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('admin_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  const adminToken = localStorage.getItem('admin_token')
+  const customerToken = localStorage.getItem('customer_token')
+
+  const url = config.url || ''
+  const isCustomerEndpoint =
+    url.startsWith('/auth/customer') ||
+    url.startsWith('/orders/my-orders') ||
+    url.startsWith('/orders/cancel') ||
+    url.startsWith('/orders/request-return')
+
+  if (isCustomerEndpoint) {
+    if (customerToken) {
+      config.headers.Authorization = `Bearer ${customerToken}`
+    } else if (adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`
+    }
+  } else if (url.startsWith('/admin') || url.includes('/admin/')) {
+    if (adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`
+    }
+  } else {
+    // Default fallback
+    if (adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`
+    } else if (customerToken) {
+      config.headers.Authorization = `Bearer ${customerToken}`
+    }
   }
+
   return config
 })
 
@@ -90,6 +115,7 @@ export const ordersPublicAPI = {
   place: (data) => api.post('/orders/place', data),
   track: (orderId, mobile) => api.get('/orders/track', { params: { order_id: orderId, mobile } }),
   getMyOrders: (mobile) => api.get('/orders/my-orders', { params: { mobile } }),
+  cancel: (data) => api.post('/orders/cancel', data),
   requestReturn: (data) => api.post('/orders/request-return', data),
 }
 

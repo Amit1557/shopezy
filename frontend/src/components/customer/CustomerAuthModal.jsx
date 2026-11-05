@@ -43,17 +43,20 @@ export default function CustomerAuthModal() {
 
     try {
       if (mode === 'login') {
-        if (!identifier.trim()) throw new Error('Please enter your mobile number or email')
+        const cleanIdent = identifier.trim()
+        if (!cleanIdent) throw new Error('Please enter your mobile number or email')
         if (!password) throw new Error('Please enter your password')
-        await loginCustomer(identifier.trim(), password)
+        await loginCustomer(cleanIdent, password)
       } else {
         if (!name.trim()) throw new Error('Please enter your full name')
-        if (!mobile.trim() || mobile.trim().length !== 10) throw new Error('Please enter a valid 10-digit mobile number')
-        if (!password || password.length < 6) throw new Error('Password must be at least 6 characters')
+        const rawDigits = mobile.replace(/[^0-9]/g, '')
+        const cleanPhone = rawDigits.length === 12 && rawDigits.startsWith('91') ? rawDigits.slice(2) : (rawDigits.length >= 10 ? rawDigits.slice(-10) : rawDigits)
+        if (cleanPhone.length !== 10) throw new Error('Please enter a valid 10-digit mobile number')
+        if (!password || password.length < 4) throw new Error('Password must be at least 4 characters')
         await registerCustomer({
           name: name.trim(),
-          mobile: mobile.trim(),
-          email: email.trim() || undefined,
+          mobile: cleanPhone,
+          email: email.trim().toLowerCase() || undefined,
           password
         })
       }

@@ -22,9 +22,11 @@ export function CustomerProvider({ children }) {
             setCustomer(res.data)
             localStorage.setItem('customer_info', JSON.stringify(res.data))
           })
-          .catch(() => {
-            // token expired or invalid
-            logoutCustomer()
+          .catch((err) => {
+            // Only clear token if server explicitly said 401 Unauthorized
+            if (err.response?.status === 401) {
+              logoutCustomer()
+            }
           })
       } catch {
         logoutCustomer()

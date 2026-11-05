@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Package, Search, ChevronRight, Phone, RotateCcw, AlertCircle,
-  CheckCircle, Clock, Truck, X, ArrowRight, ShieldCheck, User
+  CheckCircle, Clock, Truck, X, ArrowRight, ShieldCheck, User, XCircle
 } from 'lucide-react'
 import { ordersPublicAPI } from '../../services/api'
 import { formatPrice, formatDate, getStatusInfo } from '../../utils/helpers'
@@ -24,6 +24,13 @@ export default function MyOrdersPage() {
   const [returnReason, setReturnReason] = useState('Size issue (Too tight / Too loose)')
   const [returnNotes, setReturnNotes] = useState('')
   const [submittingReturn, setSubmittingReturn] = useState(false)
+
+  // Cancel modal states
+  const [cancelModalOpen, setCancelModalOpen] = useState(false)
+  const [orderToCancel, setOrderToCancel] = useState(null)
+  const [cancelReason, setCancelReason] = useState('Ordered by mistake')
+  const [cancelNotes, setCancelNotes] = useState('')
+  const [submittingCancel, setSubmittingCancel] = useState(false)
 
   // Auto-fetch if customer is logged in
   useEffect(() => {
@@ -82,6 +89,35 @@ export default function MyOrdersPage() {
       toast.error(err.response?.data?.detail || 'Failed to submit return request')
     } finally {
       setSubmittingReturn(false)
+    }
+  }
+
+  const openCancelModal = (order) => {
+    setOrderToCancel(order)
+    setCancelReason('Ordered by mistake')
+    setCancelNotes('')
+    setCancelModalOpen(true)
+  }
+
+  const handleSubmitCancel = async (e) => {
+    e.preventDefault()
+    if (!orderToCancel) return
+
+    setSubmittingCancel(true)
+    try {
+      await ordersPublicAPI.cancel({
+        order_id: orderToCancel.order_id,
+        mobile: mobile.trim() || customer?.mobile,
+        reason: cancelReason,
+        notes: cancelNotes.trim() || undefined
+      })
+      toast.success('Order cancelled successfully')
+      setCancelModalOpen(false)
+      fetchOrdersForMobile(mobile.trim() || customer?.mobile)
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to cancel order')
+    } finally {
+      setSubmittingCancel(false)
     }
   }
 
@@ -231,6 +267,19 @@ export default function MyOrdersPage() {
                     ))}
                   </div>
 
+                  {/* Cancelled Banner */}
+                  {order.status === 'CANCELLED' && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-800 flex items-center gap-2">
+                      <XCircle className="w-4 h-4 text-red-600 shrink-0" />
+                      <div>
+                        <span className="font-bold">Order Cancelled</span>
+                        {order.cancellation_reason && (
+                          <p className="text-[10px] text-red-600 mt-0.5">Reason: {order.cancellation_reason}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Return Requested Banner */}
                   {isReturnRequested && (
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 space-y-1">
@@ -267,17 +316,31 @@ export default function MyOrdersPage() {
                       <Truck className="w-3.5 h-3.5" /> Track Delivery Status
                     </Link>
 
-                    {/* Return button if delivered & not already requested */}
-                    {isDelivered && !isReturnRequested && !isReturned && (
-                      <button
-                        type="button"
-                        onClick={() => openReturnModal(order)}
-                        className="btn-secondary text-xs py-1.5 px-3 font-bold inline-flex items-center gap-1.5 text-gray-700 hover:text-brand-600 hover:border-brand-300"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5 text-purple-600" />
-                        Request Return / Exchange
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {/* Cancel button if order not yet shipped or delivered */}
+                      {['PENDING', 'CONFIRMED', 'PROCESSING'].includes(order.status) && (
+                        <button
+                          type="button"
+                          onClick={() => openCancelModal(order)}
+                          className="text-xs py-1.5 px-3 font-bold inline-flex items-center gap-1.5 text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg cursor-pointer transition-colors"
+                        >
+                          <XCircle className="w-3.5 h-3.5 text-red-500" />
+                          Cancel Order
+                        </button>
+                      )}
+
+                      {/* Return button if delivered or shipped & not already requested */}
+                      {['DELIVERED', 'COMPLETED', 'SHIPPED'].includes(order.status) && !isReturnRequested && !isReturned && (
+                        <button
+                          type="button"
+                          onClick={() => openReturnModal(order)}
+                          className="btn-secondary text-xs py-1.5 px-3 font-bold inline-flex items-center gap-1.5 text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg cursor-pointer transition-colors"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 text-purple-600" />
+                          Request Return / Exchange
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )
@@ -352,16 +415,94 @@ export default function MyOrdersPage() {
                 <button
                   type="button"
                   onClick={() => setReturnModalOpen(false)}
-                  className="btn-secondary text-xs py-2.5 flex-1 font-bold"
+                  className="btn-secondary text-xs py-2.5 flex-1 font-bold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingReturn}
-                  className="btn-primary text-xs py-2.5 flex-1 font-black shadow-brand flex items-center justify-center gap-1.5"
+                  className="btn-primary text-xs py-2.5 flex-1 font-black shadow-brand flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   {submittingReturn ? <LoadingSpinner size="sm" /> : <><RotateCcw className="w-3.5 h-3.5" /> Confirm Return</>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CANCEL ORDER MODAL */}
+      {cancelModalOpen && orderToCancel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-red-100 my-auto">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-600 to-rose-700 px-6 py-4 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <XCircle className="w-5 h-5 text-yellow-300" />
+                <div>
+                  <h3 className="text-sm font-black">Cancel Order</h3>
+                  <p className="text-[10px] text-red-100 font-mono">Order: {orderToCancel.order_id}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCancelModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmitCancel} className="p-6 space-y-4">
+              <div className="bg-red-50 p-3 rounded-xl border border-red-100 text-[11px] text-red-900 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>Are you sure you want to cancel this Cash on Delivery order? Once cancelled, the shipment process will be stopped immediately.</span>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-700">Reason for Cancellation *</label>
+                <select
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  className="input-field text-xs font-semibold"
+                >
+                  <option value="Ordered by mistake">Ordered by mistake</option>
+                  <option value="Want to change delivery address or phone number">Want to change delivery address or phone number</option>
+                  <option value="Want to change size, color, or quantity">Want to change size, color, or quantity</option>
+                  <option value="Found a cheaper price elsewhere">Found a cheaper price elsewhere</option>
+                  <option value="Delivery time is too slow">Delivery time is too slow</option>
+                  <option value="No longer needed / Changed my mind">No longer needed / Changed my mind</option>
+                  <option value="Other reason">Other reason</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-700">Remarks / Additional Notes (Optional)</label>
+                <textarea
+                  rows={2}
+                  value={cancelNotes}
+                  onChange={(e) => setCancelNotes(e.target.value)}
+                  placeholder="Optional details..."
+                  className="input-field text-xs resize-none"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCancelModalOpen(false)}
+                  className="btn-secondary text-xs py-2.5 flex-1 font-bold cursor-pointer"
+                >
+                  Keep Order
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingCancel}
+                  className="bg-red-600 hover:bg-red-700 text-white text-xs py-2.5 flex-1 font-black rounded-xl shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {submittingCancel ? <LoadingSpinner size="sm" /> : <><XCircle className="w-3.5 h-3.5" /> Confirm Cancellation</>}
                 </button>
               </div>
             </form>

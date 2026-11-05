@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func, or_
 from pydantic import BaseModel
-import random, time
+import random, time, re
 from typing import Optional
 from ....database.database import get_db
 from ....models.admin import Admin
@@ -145,21 +146,55 @@ def verify_otp(data: VerifyOtpRequest):
 # CUSTOMER AUTHENTICATION ENDPOINTS
 # ==========================================
 
+def _clean_customer_phone(raw: str) -> str:
+    digits = re.sub(r'[^0-9]', '', (raw or "").strip())
+    if len(digits) == 12 and digits.startswith('91'):
+        return digits[2:]
+    if len(digits) == 11 and digits.startswith('0'):
+        return digits[1:]
+    return digits[-10:] if len(digits) >= 10 else digits
+
+
 @router.post("/customer/register", response_model=CustomerAuthResponse)
 def register_customer(data: CustomerRegister, db: Session = Depends(get_db)):
-    existing = db.query(Customer).filter(Customer.mobile == data.mobile).first()
-    if existing and existing.hashed_password:
-        raise HTTPException(
-            status_code=400,
-            detail="An account already exists with this mobile number. Please log in."
-        )
+    clean_mob = _clean_customer_phone(data.mobile)
+    if len(clean_mob) != 10:
+        raise HTTPException(400, "Please enter a valid 10-digit Indian mobile number")
+
+    clean_email = data.email.strip().lower() if data.email and data.email.strip() else None
+
+    # Find existing customer by mobile or email
+    existing = db.query(Customer).filter(
+        (Customer.mobile == clean_mob) |
+        (Customer.mobile == data.mobile.strip()) |
+        (Customer.mobile == "+91" + clean_mob)
+    ).first()
 
     hashed_pw = get_password_hash(data.password)
 
+    if existing and existing.hashed_password:
+        # Check if password matches - if so, smoothly log them in!
+        if verify_password(data.password, existing.hashed_password):
+            token = create_access_token({
+                "sub": existing.mobile,
+                "customer_id": existing.id,
+                "role": "customer"
+            })
+            return {
+                "access_token": token,
+                "token_type": "bearer",
+                "customer": CustomerProfile.from_orm(existing)
+            }
+        raise HTTPException(
+            status_code=400,
+            detail="An account already exists with this mobile number. Please go to 'Sign In / Login' tab and enter your password."
+        )
+
     if existing:
         existing.name = data.name.strip()
-        if data.email:
-            existing.email = data.email.strip().lower()
+        existing.mobile = clean_mob
+        if clean_email:
+            existing.email = clean_email
         existing.hashed_password = hashed_pw
         db.commit()
         db.refresh(existing)
@@ -167,8 +202,8 @@ def register_customer(data: CustomerRegister, db: Session = Depends(get_db)):
     else:
         customer = Customer(
             name=data.name.strip(),
-            mobile=data.mobile.strip(),
-            email=data.email.strip().lower() if data.email else None,
+            mobile=clean_mob,
+            email=clean_email,
             hashed_password=hashed_pw
         )
         db.add(customer)
@@ -190,20 +225,32 @@ def register_customer(data: CustomerRegister, db: Session = Depends(get_db)):
 @router.post("/customer/login", response_model=CustomerAuthResponse)
 def login_customer(data: CustomerLogin, db: Session = Depends(get_db)):
     ident = data.identifier.strip()
-    customer = db.query(Customer).filter(
-        (Customer.mobile == ident) | (Customer.email == ident)
-    ).first()
+    clean_mob = _clean_customer_phone(ident)
+    clean_email = ident.lower()
+
+    # Search by cleaned mobile, raw identifier, +91 format, or case-insensitive email
+    filters = [
+        Customer.mobile == ident,
+        func.lower(Customer.email) == clean_email
+    ]
+    if len(clean_mob) == 10:
+        filters.extend([
+            Customer.mobile == clean_mob,
+            Customer.mobile == "+91" + clean_mob
+        ])
+
+    customer = db.query(Customer).filter(or_(*filters)).first()
 
     if not customer or not customer.hashed_password:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No account found with this mobile or email. Please sign up first."
+            detail="No account found with this mobile or email. Please click 'New Customer? Sign Up' to register."
         )
 
     if not verify_password(data.password, customer.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect password. Please try again."
+            detail="Incorrect password. Please verify your password or sign up if new."
         )
 
     token = create_access_token({
