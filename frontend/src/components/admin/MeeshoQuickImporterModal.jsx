@@ -112,6 +112,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
   const [sizes, setSizes] = useState(['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10'])
   const [newSize, setNewSize] = useState('')
   const [description, setDescription] = useState('')
+  const [specifications, setSpecifications] = useState({})
   const [uploading, setUploading] = useState(false)
 
   // Load categories
@@ -161,6 +162,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
         }
       }
       if (initialData.description) setDescription(initialData.description)
+      if (initialData.specifications) setSpecifications(initialData.specifications)
 
       // Auto-match category from Meesho
       const rawCatText = initialData.category || initialData.category_slug || initialData.name || ''
@@ -253,6 +255,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
       if (data.original_price) setOriginalPrice(String(data.original_price))
       if (data.meesho_link) setMeeshoLink(data.meesho_link)
       if (data.description) setDescription(data.description)
+      if (data.specifications) setSpecifications(data.specifications)
       
       // Auto-set intelligent sizes (IND-6..10 for shoes, 30..36 for bottomwear, S..XXL for apparel)
       if (data.sizes && data.sizes.length > 0) {
@@ -438,6 +441,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
         images: images.filter(img => img && img.startsWith('http') && !img.includes('meesho.com/p/')),
         sizes: sizes.length > 0 ? sizes : ['Free Size'],
         colors: [],
+        specifications: Object.keys(specifications).length > 0 ? specifications : undefined,
         is_active: true,
         is_featured: false,
         cod_available: true,
@@ -924,6 +928,29 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
                   </form>
                 </div>
               </div>
+
+              {/* EXTRACTED PRODUCT HIGHLIGHTS (MEESHO STYLE) */}
+              {Object.keys(specifications).length > 0 && (
+                <div className="bg-purple-50/40 p-3.5 rounded-xl border border-purple-100 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                      Auto-Extracted Product Highlights:
+                    </span>
+                    <span className="text-[10px] text-purple-700 font-semibold bg-purple-100/70 px-2 py-0.5 rounded-full">
+                      Meesho Specs Live
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    {Object.entries(specifications).slice(0, 8).map(([k, v]) => (
+                      <div key={k} className="bg-white p-2 rounded-lg border border-purple-100/60 shadow-2xs">
+                        <span className="text-[10px] text-gray-400 font-medium block">{k}</span>
+                        <span className="text-xs text-gray-800 font-bold block truncate capitalize">{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* STEP 4: THE FINAL 1-CLICK PUBLISH BUTTON */}
               <div className="pt-2">

@@ -481,12 +481,17 @@ def quick_publish_product(
 
     slug = make_slug(data.name, db)
 
-    # 3. Create Product
+    # 3. Create Product & Specs
+    product_specs = data.specifications or {}
+    if not product_specs:
+        parsed_helper = parse_meesho_data(data.name, data.purchase_cost)
+        product_specs = parsed_helper.get("specifications", {})
+
     product = Product(
         name=data.name,
         slug=slug,
         description=data.description or f"Trendy and premium quality {data.name}. Sourced with verified quality checks, comfortable wear and doorstep COD delivery.",
-        specifications=data.specifications or {},
+        specifications=product_specs,
         category_id=category_id,
         purchase_cost=purchase_cost,
         selling_price=selling_price,

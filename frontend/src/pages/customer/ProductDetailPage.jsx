@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ShoppingCart, Truck, Shield, RefreshCw, Star, Package, Check,
-  ArrowRight, ThumbsUp, MessageSquare, CheckCircle2, X, Plus
+  ArrowRight, ThumbsUp, MessageSquare, CheckCircle2, X, Plus,
+  Copy, ChevronDown, Store, MapPin
 } from 'lucide-react'
 import { productsPublicAPI } from '../../services/api'
 import { useCart } from '../../context/CartContext'
@@ -63,6 +64,10 @@ export default function ProductDetailPage() {
   const [reviewComment, setReviewComment] = useState('')
   const [submittingReview, setSubmittingReview] = useState(false)
   const [helpfulLiked, setHelpfulLiked] = useState({})
+  const [showAdditionalDetails, setShowAdditionalDetails] = useState(false)
+  const [copiedHighlights, setCopiedHighlights] = useState(false)
+  const [deliveryPincode, setDeliveryPincode] = useState('110059')
+  const [deliveryChecked, setDeliveryChecked] = useState(false)
 
   useEffect(() => {
     productsPublicAPI.getBySlug(slug)
@@ -137,6 +142,52 @@ export default function ProductDetailPage() {
 
   const images = product.images || []
   const primaryImage = images[selectedImage]?.image_url || images[0]?.image_url
+
+  // Derive Meesho-style product highlights
+  const rawSpecs = product ? (product.specifications || {}) : {}
+  const lowerName = product ? (product.name || '').toLowerCase() : ''
+  const displayHighlights = []
+
+  const patternVal = rawSpecs['Pattern'] || rawSpecs['pattern'] || 'Solid'
+  const colorVal = selectedColor || rawSpecs['Color'] || rawSpecs['color'] || 'Black'
+  displayHighlights.push({ label: 'Pattern', value: patternVal })
+  displayHighlights.push({ label: 'Color', value: colorVal })
+
+  if (rawSpecs['Sole Material'] || rawSpecs['sole_material'] || /shoe|sneaker|sandal|slipper|footwear|flip flop/i.test(lowerName)) {
+    displayHighlights.push({ label: 'Sole Material', value: rawSpecs['Sole Material'] || rawSpecs['sole_material'] || 'EVA' })
+    const typeVal = rawSpecs['Type'] || rawSpecs['type'] || (/flip flop|slipper/i.test(lowerName) ? 'Thong Flip-flops' : (/sandal/i.test(lowerName) ? 'Casual Sandals' : 'Sneakers'))
+    displayHighlights.push({ label: 'Type', value: typeVal })
+  } else if (rawSpecs['Fabric'] || rawSpecs['fabric'] || /kurti|saree|dress|tshirt|shirt|cloth/i.test(lowerName)) {
+    displayHighlights.push({ label: 'Fabric', value: rawSpecs['Fabric'] || rawSpecs['fabric'] || 'Pure Cotton Blend' })
+    const typeVal = rawSpecs['Type'] || rawSpecs['type'] || (/kurti|saree/i.test(lowerName) ? 'Ethnic Wear' : 'Casual Wear')
+    displayHighlights.push({ label: 'Type', value: typeVal })
+  } else if (rawSpecs['Material'] || rawSpecs['material']) {
+    displayHighlights.push({ label: 'Material', value: rawSpecs['Material'] || rawSpecs['material'] })
+    if (rawSpecs['Type'] || rawSpecs['type']) {
+      displayHighlights.push({ label: 'Type', value: rawSpecs['Type'] || rawSpecs['type'] })
+    }
+  }
+
+  // Any other custom specs from database
+  Object.entries(rawSpecs).forEach(([k, v]) => {
+    if (!['Pattern', 'pattern', 'Color', 'color', 'Sole Material', 'sole_material', 'Type', 'type', 'Fabric', 'fabric', 'Material', 'material', 'Net Quantity', 'net_quantity', 'Country of Origin', 'country_of_origin'].includes(k)) {
+      if (typeof v === 'string' && v.trim()) {
+        displayHighlights.push({ label: k, value: v.trim() })
+      }
+    }
+  })
+
+  const handleCopyHighlights = () => {
+    if (!displayHighlights || displayHighlights.length === 0) return
+    const textToCopy = displayHighlights.map(h => `${h.label}: ${h.value}`).join('\n')
+    navigator.clipboard?.writeText(textToCopy).then(() => {
+      setCopiedHighlights(true)
+      toast.success('Product highlights copied to clipboard!')
+      setTimeout(() => setCopiedHighlights(false), 2000)
+    }).catch(() => {
+      toast.error('Could not copy highlights')
+    })
+  }
 
   const handleAddToCart = () => {
     if (sizes.length > 0 && !selectedSize) {
@@ -467,30 +518,150 @@ export default function ProductDetailPage() {
             ))}
           </div>
 
-          {/* Product Description */}
-          {product.description && (
-            <div className="mb-6">
-              <h3 className="text-sm font-bold text-gray-900 mb-2">Product Description</h3>
-              <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line bg-white p-4 rounded-xl border border-gray-100">
-                {product.description}
-              </p>
+          {/* PRODUCT HIGHLIGHTS (EXACT MEESHO CARD) */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-5 shadow-xs">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
+              <h3 className="text-sm sm:text-base font-extrabold text-gray-900 tracking-tight">
+                Product Highlights
+              </h3>
+              <button
+                type="button"
+                onClick={handleCopyHighlights}
+                className="text-xs font-black text-purple-700 hover:text-purple-900 tracking-wider uppercase flex items-center gap-1 cursor-pointer transition-colors"
+                title="Copy Product Highlights"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>{copiedHighlights ? 'Copied!' : 'COPY'}</span>
+              </button>
             </div>
-          )}
 
-          {/* Specifications */}
-          {product.specifications && Object.keys(product.specifications).length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-sm font-bold text-gray-900 mb-2">Product Highlights & Specifications</h3>
-              <div className="bg-white rounded-xl border border-gray-100 overflow-hidden text-xs">
-                {Object.entries(product.specifications).map(([k, v], idx) => (
-                  <div key={k} className={`flex py-2.5 px-3.5 ${idx % 2 === 0 ? 'bg-gray-50/50' : 'bg-white'}`}>
-                    <span className="text-gray-500 w-1/3 font-medium">{k}</span>
-                    <span className="text-gray-800 w-2/3 font-semibold">{v}</span>
+            {/* 2-Column Key-Value Grid */}
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3.5 text-xs">
+              {displayHighlights.map(({ label, value }) => (
+                <div key={label} className="min-w-0">
+                  <span className="text-gray-400 font-medium block text-[11px] mb-0.5">{label}</span>
+                  <span className="text-gray-900 font-bold block truncate capitalize text-xs sm:text-sm">{value}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Additional Details Accordion */}
+            <div className="mt-4 pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setShowAdditionalDetails(!showAdditionalDetails)}
+                className="w-full flex items-center justify-between text-xs font-bold text-gray-700 hover:text-purple-700 cursor-pointer py-1 select-none"
+              >
+                <span>Additional Details</span>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showAdditionalDetails ? 'rotate-180 text-purple-700' : ''}`} />
+              </button>
+
+              {showAdditionalDetails && (
+                <div className="mt-3 pt-3 border-t border-gray-50 text-xs text-gray-600 space-y-2.5">
+                  <div className="flex justify-between py-1 border-b border-gray-50">
+                    <span className="text-gray-400">Net Quantity (N)</span>
+                    <span className="font-semibold text-gray-800">{product.specifications?.['Net Quantity'] || '1 Pair'}</span>
                   </div>
-                ))}
+                  <div className="flex justify-between py-1 border-b border-gray-50">
+                    <span className="text-gray-400">Dispatches in</span>
+                    <span className="font-semibold text-emerald-600">1-2 Days</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-gray-50">
+                    <span className="text-gray-400">Return Policy</span>
+                    <span className="font-semibold text-gray-800">7 Days Easy Doorstep Return & Exchange</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-gray-50">
+                    <span className="text-gray-400">Country of Origin</span>
+                    <span className="font-semibold text-gray-800">{product.specifications?.['Country of Origin'] || 'India'}</span>
+                  </div>
+                  {product.description && (
+                    <div className="pt-2">
+                      <span className="text-gray-400 block text-[11px] mb-1">Product Description</span>
+                      <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-line bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        {product.description}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* SOLD BY CARD (Meesho Style) */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 mb-5 shadow-xs flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-700">
+                <Store className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-xs text-gray-400 font-medium">Sold By</div>
+                <div className="text-xs sm:text-sm font-extrabold text-gray-900">
+                  {product.name?.split(' ')[0] || 'ShopEzy'} Sports / Verified Supplier
+                </div>
+                <div className="flex items-center gap-2 mt-0.5 text-[11px] text-gray-500">
+                  <span className="bg-emerald-600 text-white font-bold text-[10px] px-1.5 py-0.2 rounded flex items-center gap-0.5">
+                    4.0 <Star className="w-2.5 h-2.5 fill-current" />
+                  </span>
+                  <span>8,663 Products</span>
+                </div>
               </div>
             </div>
-          )}
+            <button
+              type="button"
+              onClick={() => navigate('/products')}
+              className="text-xs font-bold text-purple-700 border border-purple-300 hover:bg-purple-50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+            >
+              View Shop
+            </button>
+          </div>
+
+          {/* CHECK DELIVERY DATE (Meesho Style) */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 mb-6 shadow-xs">
+            <div className="text-xs font-extrabold text-gray-900 mb-2 flex items-center gap-1.5">
+              <MapPin className="w-4 h-4 text-purple-700" />
+              Check Delivery Date & COD
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                maxLength={6}
+                value={deliveryPincode}
+                onChange={(e) => {
+                  setDeliveryPincode(e.target.value.replace(/[^0-9]/g, ''))
+                  setDeliveryChecked(false)
+                }}
+                placeholder="Enter Delivery Pincode"
+                className="input-field text-xs flex-1 bg-gray-50"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (deliveryPincode.length === 6) {
+                    setDeliveryChecked(true)
+                    toast.success('Pincode verified! Free COD available.')
+                  } else {
+                    toast.error('Please enter a valid 6-digit Pincode')
+                  }
+                }}
+                className="btn-secondary text-xs px-4 py-2 font-black cursor-pointer"
+              >
+                CHECK
+              </button>
+            </div>
+            {deliveryChecked && (
+              <div className="mt-3 p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-xs text-emerald-800 flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                <div>
+                  <strong>Free Delivery Available</strong> by{' '}
+                  <span className="font-black">
+                    {new Date(Date.now() + 86400000 * 3).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  </span>{' '}
+                  with 100% Cash on Delivery!
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

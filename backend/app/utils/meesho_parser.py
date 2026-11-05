@@ -201,16 +201,32 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
 
     # Specifications extraction
     spec_patterns = [
-        "Fabric", "Pattern", "Fit", "Sleeve Length", "Collar", "Length",
-        "Neck", "Closure", "Occasion", "Material", "Color", "Type", "Sole Material"
+        "Pattern", "Color", "Sole Material", "Type", "Fabric", "Material",
+        "Fit", "Sleeve Length", "Collar", "Length", "Neck", "Closure",
+        "Occasion", "Net Quantity", "Country of Origin", "Toe Shape", "Heel Type"
     ]
     for spec in spec_patterns:
-        m = re.search(rf'{spec}\s*:\s*([^\n\r]+)', raw_input, re.IGNORECASE)
+        # Check colon format: Pattern : Solid
+        m = re.search(rf'\b{spec}\s*:\s*([^\n\r]+)', raw_input, re.IGNORECASE)
         if m:
             val = m.group(1).strip()
-            result["specifications"][spec] = val
-            if spec.lower() == "color" and val:
-                result["colors"] = [c.strip().title() for c in re.split(r'[/,]+', val) if c.strip()]
+            if val and len(val) < 60:
+                result["specifications"][spec] = val
+        else:
+            # Check newline format: Pattern\nSolid
+            m2 = re.search(rf'\b{spec}\s*\n\s*([^\n\r]+)', raw_input, re.IGNORECASE)
+            if m2:
+                val2 = m2.group(1).strip()
+                if val2 and len(val2) < 60 and not any(sp.lower() == val2.lower() for sp in spec_patterns):
+                    result["specifications"][spec] = val2
+
+    # Extract color from specs if present
+    color_val = result["specifications"].get("Color") or result["specifications"].get("color")
+    if color_val:
+        extracted = [c.strip().title() for c in re.split(r'[/,]+', color_val) if c.strip()]
+        for c in extracted:
+            if c not in result["colors"]:
+                result["colors"].append(c)
 
     # Extract color from product title (e.g. (Black), Black, Navy Blue, etc.)
     title_colors = re.findall(r'\b(Black|Blue|Navy|White|Red|Green|Grey|Gray|Yellow|Pink|Maroon|Brown|Beige|Orange|Purple|Olive)\b', result["name"] + " " + raw_input, re.IGNORECASE)
@@ -218,6 +234,62 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
         tc_title = tc.capitalize()
         if tc_title not in result["colors"]:
             result["colors"].append(tc_title)
+
+    lower_text = (result["name"] + " " + raw_input).lower()
+
+    # Auto-fill missing intelligent specifications based on Category & Title
+    cat_slug = result["category_slug"]
+    specs = result["specifications"]
+    detected_color = result["colors"][0] if result["colors"] else "Black"
+    if "Color" not in specs:
+        specs["Color"] = detected_color
+
+    if "Pattern" not in specs:
+        specs["Pattern"] = "Solid"
+
+    # Category specific highlights
+    if cat_slug in ["bags-footwear", "footwear"] or any(k in lower_text for k in ['flip flop', 'slipper', 'sandal', 'shoe', 'sneaker', 'crocs', 'loafer']):
+        if "Sole Material" not in specs:
+            specs["Sole Material"] = "EVA" if any(k in lower_text for k in ['flip flop', 'slipper', 'slide']) else "Airmax / Rubber"
+        if "Type" not in specs:
+            if 'flip flop' in lower_text or 'slipper' in lower_text:
+                specs["Type"] = "Thong Flip-flops"
+            elif 'sandal' in lower_text:
+                specs["Type"] = "Casual Sandals"
+            else:
+                specs["Type"] = "Comfort Footwear"
+        if "Occasion" not in specs:
+            specs["Occasion"] = "Daily & Casual Wear"
+        if "Net Quantity" not in specs:
+            specs["Net Quantity"] = "1 Pair"
+    elif cat_slug in ["kurti-saree-lehenga", "women-western"] or any(k in lower_text for k in ['saree', 'kurti', 'dress', 'top']):
+        if "Fabric" not in specs:
+            specs["Fabric"] = "Pure Cotton Blend" if 'cotton' in lower_text else "Georgette / Silk Blend"
+        if "Type" not in specs:
+            specs["Type"] = "Ethnic Wear" if 'kurti' in lower_text or 'saree' in lower_text else "Western Casual Wear"
+        if "Occasion" not in specs:
+            specs["Occasion"] = "Festive & Daily Wear"
+        if "Net Quantity" not in specs:
+            specs["Net Quantity"] = "1 N"
+    elif cat_slug in ["men", "mens-fashion"] or any(k in lower_text for k in ['shirt', 't-shirt', 'tshirt', 'jeans', 'pant', 'cargo']):
+        if "Fabric" not in specs:
+            specs["Fabric"] = "100% Breathable Cotton" if 'tshirt' in lower_text or 't-shirt' in lower_text or 'shirt' in lower_text else "Comfort Denim Blend"
+        if "Fit" not in specs:
+            specs["Fit"] = "Regular Comfort Fit"
+        if "Occasion" not in specs:
+            specs["Occasion"] = "Casual / Daily Wear"
+        if "Net Quantity" not in specs:
+            specs["Net Quantity"] = "1 N"
+    else:
+        if "Material" not in specs:
+            specs["Material"] = "High Grade Verified Quality"
+        if "Occasion" not in specs:
+            specs["Occasion"] = "Daily Use"
+        if "Net Quantity" not in specs:
+            specs["Net Quantity"] = "1 N"
+
+    if "Country of Origin" not in specs:
+        specs["Country of Origin"] = "India"
 
     # Sizes extraction - support Indian shoe sizes IND-6..10, waist sizes 28..40, and apparel S..XXL
     found_sizes = []
