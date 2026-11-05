@@ -43,10 +43,18 @@ export default function CustomerAuthModal() {
 
     try {
       if (mode === 'login') {
-        const cleanIdent = identifier.trim()
-        if (!cleanIdent) throw new Error('Please enter your mobile number or email')
+        const raw = identifier.trim()
+        if (!raw) throw new Error('Please enter your mobile number or email')
         if (!password) throw new Error('Please enter your password')
-        await loginCustomer(cleanIdent, password)
+
+        let identToSend = raw
+        if (!raw.includes('@')) {
+          const digits = raw.replace(/[^0-9]/g, '')
+          if (digits.length >= 10) {
+            identToSend = digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits.slice(-10)
+          }
+        }
+        await loginCustomer(identToSend, password)
       } else {
         if (!name.trim()) throw new Error('Please enter your full name')
         const rawDigits = mobile.replace(/[^0-9]/g, '')
