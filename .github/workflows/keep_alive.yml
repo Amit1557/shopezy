@@ -1,0 +1,17 @@
+name: Keep Alive Render Backend
+
+on:
+  schedule:
+    # Run every 10 minutes
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Backend Health Endpoint
+        run: |
+          echo "Pinging Render backend to prevent sleep mode..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://shopezy-backend-dn00.onrender.com/health || echo "FAILED")
+          echo "Render response status: $STATUS"
