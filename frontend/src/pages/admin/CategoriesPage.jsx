@@ -81,11 +81,13 @@ export default function CategoriesPage() {
 
   const handleDelete = async (cat) => {
     if (!window.confirm(`Are you sure you want to delete category "${cat.name}"?`)) return
+    const prev = [...categories]
+    setCategories(c => c.filter(item => item.id !== cat.id))
+    toast.success('Category deleted')
     try {
       await categoriesAPI.delete(cat.id)
-      toast.success('Category deleted')
-      fetchCategories()
     } catch {
+      setCategories(prev)
       toast.error('Failed to delete category')
     }
   }

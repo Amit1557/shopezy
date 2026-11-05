@@ -46,8 +46,8 @@ export default function ProductsAdminPage() {
   const categoryId = searchParams.get('category_id') || ''
   const [searchInput, setSearchInput] = useState(search)
 
-  const fetchProducts = async () => {
-    setLoading(true)
+  const fetchProducts = async (isInitial = false) => {
+    if (isInitial || products.length === 0) setLoading(true)
     try {
       const params = { page, limit: 12 }
       if (search) params.search = search
@@ -69,7 +69,7 @@ export default function ProductsAdminPage() {
   }
 
   useEffect(() => {
-    fetchProducts()
+    fetchProducts(products.length === 0)
   }, [searchParams])
 
   const updateParam = (key, val) => {
@@ -80,34 +80,46 @@ export default function ProductsAdminPage() {
     setSearchParams(p)
   }
 
+  // Instant Optimistic Toggle Status (0ms)
   const handleToggleStatus = async (product) => {
+    const prevStatus = product.is_active
+    setProducts(prev => prev.map(p => p.id === product.id ? { ...p, is_active: !prevStatus } : p))
+    toast.success(`Product ${!prevStatus ? 'activated' : 'deactivated'}`)
     try {
-      await productsAdminAPI.update(product.id, { is_active: !product.is_active })
-      toast.success(`Product ${product.is_active ? 'deactivated' : 'activated'}`)
-      fetchProducts()
+      await productsAdminAPI.update(product.id, { is_active: !prevStatus })
     } catch {
+      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, is_active: prevStatus } : p))
       toast.error('Failed to update product status')
     }
   }
 
+  // Instant Optimistic Toggle Featured (0ms)
   const handleToggleFeatured = async (product) => {
+    const prevFeatured = product.is_featured
+    setProducts(prev => prev.map(p => p.id === product.id ? { ...p, is_featured: !prevFeatured } : p))
+    toast.success(`Product ${!prevFeatured ? 'added to' : 'removed from'} featured`)
     try {
-      await productsAdminAPI.update(product.id, { is_featured: !product.is_featured })
-      toast.success(`Product ${product.is_featured ? 'removed from' : 'added to'} featured`)
-      fetchProducts()
+      await productsAdminAPI.update(product.id, { is_featured: !prevFeatured })
     } catch {
+      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, is_featured: prevFeatured } : p))
       toast.error('Failed to update featured flag')
     }
   }
 
+  // Instant Optimistic Delete (0ms - disappears immediately!)
   const handleDelete = async (id, name) => {
     if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return
+    const prevList = [...products]
+    const prevTotal = total
+    setProducts(prev => prev.filter(p => p.id !== id))
+    setTotal(t => Math.max(0, t - 1))
+    toast.success('Product deleted successfully')
     try {
       await productsAdminAPI.delete(id)
-      toast.success('Product deleted successfully')
-      fetchProducts()
     } catch {
-      toast.error('Failed to delete product')
+      setProducts(prevList)
+      setTotal(prevTotal)
+      toast.error('Failed to delete product from server')
     }
   }
 
@@ -251,8 +263,13 @@ export default function ProductsAdminPage() {
       </div>
 
       {/* Table */}
-      <div className="card overflow-hidden">
-        {loading ? (
+      <div className="card overflow-hidden relative">
+        {loading && products.length > 0 && (
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-10 transition-all">
+            <LoadingSpinner size="md" />
+          </div>
+        )}
+        {loading && products.length === 0 ? (
           <div className="py-20 flex justify-center">
             <LoadingSpinner size="lg" />
           </div>

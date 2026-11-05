@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_
+from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy import or_, and_, func
 from typing import List, Optional, Dict, Any
 import os, uuid, re
 from ....database.database import get_db
@@ -49,35 +49,33 @@ def get_public_products(
     featured: Optional[bool] = None,
     db: Session = Depends(get_db),
 ):
-    q = db.query(Product).options(
-        joinedload(Product.images), joinedload(Product.variants)
-    ).filter(Product.is_active == True)
+    base_q = db.query(Product).filter(Product.is_active == True)
 
     if category_id:
-        q = q.filter(Product.category_id == category_id)
+        base_q = base_q.filter(Product.category_id == category_id)
     elif category_slug and category_slug != 'popular':
         from ....models.category import Category
         cat = db.query(Category).filter(Category.slug == category_slug).first()
         if cat:
-            q = q.filter(Product.category_id == cat.id)
+            base_q = base_q.filter(Product.category_id == cat.id)
     if search:
-        q = q.filter(Product.name.ilike(f"%{search}%"))
+        base_q = base_q.filter(Product.name.ilike(f"%{search}%"))
     if min_price is not None:
-        q = q.filter(Product.selling_price >= min_price)
+        base_q = base_q.filter(Product.selling_price >= min_price)
     if max_price is not None:
-        q = q.filter(Product.selling_price <= max_price)
+        base_q = base_q.filter(Product.selling_price <= max_price)
     if min_rating is not None:
-        q = q.filter(Product.average_rating >= min_rating)
+        base_q = base_q.filter(Product.average_rating >= min_rating)
     if min_discount is not None:
-        q = q.filter(Product.discount_percentage >= min_discount)
+        base_q = base_q.filter(Product.discount_percentage >= min_discount)
     if size:
-        q = q.filter(
+        base_q = base_q.filter(
             Product.variants.any(
                 and_(ProductVariant.variant_type == "size", ProductVariant.value == size)
             )
         )
     if color:
-        q = q.filter(
+        base_q = base_q.filter(
             or_(
                 Product.name.ilike(f"%{color}%"),
                 Product.variants.any(
@@ -86,26 +84,31 @@ def get_public_products(
             )
         )
     if gender:
-        q = q.filter(
+        base_q = base_q.filter(
             or_(
                 Product.name.ilike(f"%{gender}%"),
                 Product.description.ilike(f"%{gender}%"),
             )
         )
     if featured is not None:
-        q = q.filter(Product.is_featured == featured)
+        base_q = base_q.filter(Product.is_featured == featured)
 
     if sort == "price_asc":
-        q = q.order_by(Product.selling_price.asc())
+        ordered_q = base_q.order_by(Product.selling_price.asc())
     elif sort == "price_desc":
-        q = q.order_by(Product.selling_price.desc())
+        ordered_q = base_q.order_by(Product.selling_price.desc())
     elif sort == "popular":
-        q = q.order_by(Product.total_orders.desc())
+        ordered_q = base_q.order_by(Product.total_orders.desc())
     else:
-        q = q.order_by(Product.created_at.desc())
+        ordered_q = base_q.order_by(Product.created_at.desc())
 
-    total = q.count()
-    products = q.offset((page - 1) * limit).limit(limit).all()
+    total = base_q.count()
+    products = (
+        ordered_q.options(selectinload(Product.images), selectinload(Product.variants))
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
 
     return {
         "products": [ProductPublic.from_orm(p) for p in products],
@@ -119,7 +122,7 @@ def get_public_products(
 def get_public_product(slug: str, db: Session = Depends(get_db)):
     product = (
         db.query(Product)
-        .options(joinedload(Product.images), joinedload(Product.variants))
+        .options(selectinload(Product.images), selectinload(Product.variants))
         .filter(Product.slug == slug, Product.is_active == True)
         .first()
     )
@@ -139,15 +142,22 @@ def get_admin_products(
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin),
 ):
-    q = db.query(Product).options(joinedload(Product.images), joinedload(Product.variants))
+    base_q = db.query(Product)
     if search:
-        q = q.filter(Product.name.ilike(f"%{search}%"))
+        base_q = base_q.filter(Product.name.ilike(f"%{search}%"))
     if category_id:
-        q = q.filter(Product.category_id == category_id)
+        base_q = base_q.filter(Product.category_id == category_id)
     if is_active is not None:
-        q = q.filter(Product.is_active == is_active)
-    total = q.count()
-    products = q.order_by(Product.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+        base_q = base_q.filter(Product.is_active == is_active)
+
+    total = base_q.count()
+    products = (
+        base_q.options(selectinload(Product.images), selectinload(Product.variants))
+        .order_by(Product.created_at.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
     return {
         "products": [ProductAdmin.from_orm(p) for p in products],
         "total": total,
