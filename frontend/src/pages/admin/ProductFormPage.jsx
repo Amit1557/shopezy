@@ -168,6 +168,12 @@ export default function ProductFormPage() {
       if (data.meesho_link) setMeeshoLink(data.meesho_link)
       if (data.sizes && data.sizes.length > 0) setSizes(data.sizes)
       if (data.colors && data.colors.length > 0) setColors(data.colors)
+
+      // Auto-select category matching Meesho
+      if (data.category_slug && categories.length > 0) {
+        const match = categories.find(c => c.slug === data.category_slug) || categories.find(c => c.slug.includes(data.category_slug))
+        if (match) setCategoryId(String(match.id))
+      }
       if (data.images && data.images.length > 0) {
         setImages(prev => [
           ...prev,

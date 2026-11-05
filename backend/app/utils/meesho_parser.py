@@ -36,6 +36,66 @@ KEYWORD_SPECIFIC_IMAGES = [
     (['bottle', 'chopper', 'cookware', 'kitchen'], "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=800&q=80"),
 ]
 
+def map_meesho_category(text: str) -> str:
+    """
+    Directly maps Meesho product categories, breadcrumbs and titles to ShopEzy categories.
+    Accurately handles ethnic wear, footwear/shoes, men, western, watches, electronics, etc.
+    """
+    t = text.lower()
+    
+    # 1. Sarees, Kurtis & Indian Ethnic (High priority)
+    if any(k in t for k in ['saree', 'sari', 'kurti', 'kurta set', 'anarkali', 'lehenga', 'chaniya choli', 'dupatta', 'salwar', 'suit material', 'sharara', 'gharara']):
+        if re.search(r'\b(men|boys?)\b', t) and any(k in t for k in ['kurta', 'sherwani', 'dhoti', 'pyjama']):
+            return "men"
+        return "kurti-saree-lehenga"
+
+    # 2. Footwear, Shoes, Slippers & Bags (Always priority over generic gender words)
+    if any(k in t for k in ['shoe', 'sneaker', 'sandal', 'slipper', 'chappal', 'boot', 'footwear', 'loafer', 'crocs', 'heel', 'flat', 'mojari', 'flip flop', 'bag', 'backpack', 'handbag', 'tote', 'duffle', 'luggage', 'sling bag', 'clutch', 'wallet']):
+        return "bags-footwear"
+
+    # 3. Lingerie, Sleepwear & Innerwear
+    if any(k in t for k in ['bra', 'panty', 'panties', 'lingerie', 'nighty', 'nightwear', 'sleepwear', 'babydoll', 'boxer', 'brief', 'camisole']):
+        return "lingerie"
+
+    # 4. Watches & Smartwatches
+    if any(k in t for k in ['watch', 'smartwatch', 'analog watch', 'digital watch', 'chronograph']):
+        return "watches"
+
+    # 5. Electronics & Audio
+    if any(k in t for k in ['earphone', 'headphone', 'earbud', 'airpod', 'tws', 'bluetooth', 'speaker', 'charger', 'usb cable', 'mobile cover', 'mobile case', 'power bank', 'tempered glass', 'neckband']):
+        return "electronics"
+
+    # 6. Jewellery & Fashion Accessories
+    if any(k in t for k in ['jewel', 'necklace', 'earring', 'bangle', 'ring', 'pendant', 'chain', 'mangalsutra', 'bracelet', 'anklet', 'payal', 'jhumka', 'sunglass', 'goggles', 'hair accessory']):
+        return "jewellery-accessories"
+
+    # 7. Kids & Toys
+    if any(k in t for k in ['kid', 'baby', 'toy', 'infant', 'toddler', 'doll', 'diaper', 'romper', 'remote control car']) and not any(k in t for k in ['men', 'women']):
+        return "kids-toys"
+
+    # 8. Home & Kitchen
+    if any(k in t for k in ['kitchen', 'home', 'bottle', 'chopper', 'bedsheet', 'curtain', 'cookware', 'utensil', 'pillow', 'blanket', 'storage', 'mop', 'lunch box', 'flask', 'towel']):
+        return "home-kitchen"
+
+    # 9. Beauty, Skincare & Grooming
+    if any(k in t for k in ['beauty', 'cream', 'perfume', 'deodorant', 'makeup', 'serum', 'lotion', 'lipstick', 'skincare', 'hair oil', 'shampoo', 'facewash', 'eyeliner', 'nail polish', 'kajal']):
+        return "beauty-health"
+
+    # 10. Sports & Fitness
+    if any(k in t for k in ['gym', 'dumbbell', 'yoga mat', 'fitness', 'exercise', 'resistance band', 'shaker bottle', 'sports equipment']):
+        return "sports-fitness"
+
+    # 11. Women Western Wear
+    if any(k in t for k in ['dress', 'western', 'top', 'tunic', 'jumpsuit', 'gown', 'skirt', 'jeans women', 'crop top', 'women shirt', 'dungaree']):
+        return "women-western"
+
+    # 12. Men Apparel
+    if any(k in t for k in ['men', 'shirt', 'tshirt', 't-shirt', 'polo', 'jeans', 'trouser', 'cargo', 'jogger', 'hoodie', 'jacket', 'blazer', 'track pant', 'chinos']):
+        return "men"
+
+    return "men"
+
+
 def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent: float = 60.0) -> Dict[str, Any]:
     """
     Intelligently parses Meesho product link or Meesho shared product description.
@@ -66,7 +126,7 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
         parsed_url = urlparse(url)
         path_parts = [p for p in parsed_url.path.split('/') if p]
         
-        # e.g., /premium-sports-gym-trending-stylish/p/gtq4o4 -> slug is 'premium-sports-gym-trending-stylish'
+        # e.g., /men-lightweight-breathable-mesh-running-sports-shoes/p/gtq4o4
         for part in path_parts:
             if part not in ['p', 's', 'catalog', 'product', 'd'] and len(part) > 3 and not re.match(r'^[a-z0-9]{5,10}$', part):
                 clean_title = part.replace('-', ' ').replace('_', ' ').title()
@@ -86,19 +146,39 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
     if name_match:
         result["name"] = name_match.group(1).strip()
 
+    # Category extraction from text if explicitly provided
+    cat_match = re.search(r'(?:Category|Breadcrumbs?|Department|Collection)\s*[:=]?\s*([^\n\r]+)', raw_input, re.IGNORECASE)
+    explicit_category = cat_match.group(1).strip() if cat_match else ""
+
     # Price / Cost extraction
-    price_match = re.search(r'(?:Price|Rs\.?|₹|Cost|\bINR\b)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)', raw_input, re.IGNORECASE)
-    if price_match:
+    price_found = None
+    labeled_price = re.search(r'(?:Price|Cost|Rate|Meesho\s*Price)\s*[:=]?\s*(?:₹|Rs\.?|INR)?\s*([0-9]{2,5}(?:\.[0-9]+)?)', raw_input, re.IGNORECASE)
+    if labeled_price:
         try:
-            result["purchase_cost"] = float(price_match.group(1))
+            price_found = float(labeled_price.group(1))
         except ValueError:
             pass
-    else:
-        # Fallback: check if text has standalone 3-4 digit price (e.g. 274, 299, 349) excluding years
-        digits = re.findall(r'\b([1-9][0-9]{1,3})\b', raw_input)
-        valid_digits = [float(d) for d in digits if not (2020 <= int(d) <= 2030)]
-        if valid_digits:
-            result["purchase_cost"] = valid_digits[0]
+
+    if not price_found:
+        sym_prices = re.findall(r'(?:₹|Rs\.?|INR)\s*([0-9]{2,5}(?:\.[0-9]+)?)', raw_input, re.IGNORECASE)
+        if sym_prices:
+            try:
+                valid_syms = [float(p) for p in sym_prices if 40 <= float(p) <= 25000]
+                if valid_syms:
+                    price_found = min(valid_syms)
+            except ValueError:
+                pass
+
+    if not price_found:
+        slash_match = re.search(r'\b([1-9][0-9]{1,4})\s*/-', raw_input)
+        if slash_match:
+            try:
+                price_found = float(slash_match.group(1))
+            except ValueError:
+                pass
+
+    if price_found:
+        result["purchase_cost"] = price_found
 
     # Explicit user cost overrides everything
     if meesho_cost and meesho_cost > 0:
@@ -112,34 +192,9 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
         else:
             result["name"] = "Trendy Meesho Sourced Product"
 
-    # Precise Meesho Category Mapping
-    lower_text = (result["name"] + " " + raw_input).lower()
-    if any(w in lower_text for w in ['saree', 'kurti', 'anarkali', 'lehenga', 'dupatta', 'suit material', 'salwar']):
-        result["category_slug"] = "kurti-saree-lehenga"
-    elif any(w in lower_text for w in ['shoe', 'sneaker', 'sandal', 'slipper', 'boot', 'footwear', 'loafer', 'crocs', 'heel', 'flat', 'bag', 'backpack', 'tote', 'duffle', 'luggage']):
-        result["category_slug"] = "bags-footwear"
-    elif any(w in lower_text for w in ['bra', 'panty', 'panties', 'lingerie', 'nighty', 'nightwear', 'sleepwear', 'babydoll']):
-        result["category_slug"] = "lingerie"
-    elif any(w in lower_text for w in ['earphone', 'headphone', 'earbuds', 'bluetooth', 'speaker', 'charger', 'cable', 'mobile case', 'power bank']):
-        result["category_slug"] = "electronics"
-    elif any(w in lower_text for w in ['watch', 'smartwatch']):
-        result["category_slug"] = "watches"
-    elif any(w in lower_text for w in ['gym', 'dumbbell', 'yoga mat', 'fitness', 'sport']):
-        result["category_slug"] = "sports-fitness"
-    elif any(w in lower_text for w in ['kid', 'baby', 'toy', 'boy', 'girl', 'child', 'toddler', 'diaper']):
-        result["category_slug"] = "kids-toys"
-    elif any(w in lower_text for w in ['dress', 'western', 'top', 'tunic', 'jumpsuit', 'gown', 'skirt']):
-        result["category_slug"] = "women-western"
-    elif any(w in lower_text for w in ['kitchen', 'home', 'bottle', 'chopper', 'bedsheet', 'curtain', 'cookware', 'storage']):
-        result["category_slug"] = "home-kitchen"
-    elif any(w in lower_text for w in ['beauty', 'cream', 'perfume', 'makeup', 'serum', 'lotion', 'lipstick', 'skincare', 'hair']):
-        result["category_slug"] = "beauty-health"
-    elif any(w in lower_text for w in ['jewel', 'necklace', 'earring', 'bangle', 'ring', 'pendant', 'mangalsutra', 'wallet', 'belt', 'sunglass']):
-        result["category_slug"] = "jewellery-accessories"
-    elif any(w in lower_text for w in ['men', 'shirt', 'tshirt', 't-shirt', 'jeans', 'trouser', 'blazer', 'track pant']):
-        result["category_slug"] = "men"
-    else:
-        result["category_slug"] = "popular"
+    # Category Mapping: Use explicit category first, or map product title + input
+    target_category_source = (explicit_category + " " + result["name"] + " " + raw_input).strip()
+    result["category_slug"] = map_meesho_category(target_category_source)
 
     # Specifications extraction
     spec_patterns = [
@@ -156,6 +211,7 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
 
     # Sizes extraction - support Indian shoe sizes IND-6..10, waist sizes 28..40, and apparel S..XXL
     found_sizes = []
+    lower_text = (result["name"] + " " + raw_input).lower()
     
     # 1. Bottomwear waist sizes e.g. 28, 30, 32, 34, 36, 38, 40 (for Jeans, Cargo, Joggers, Pants)
     is_bottomwear = any(k in lower_text for k in ['jean', 'cargo', 'jogger', 'pant', 'trouser', 'chinos', 'bottomwear'])
