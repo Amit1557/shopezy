@@ -64,7 +64,7 @@ export default function CustomerAuthModal() {
         await registerCustomer({
           name: name.trim(),
           mobile: cleanPhone,
-          email: email.trim().toLowerCase() || undefined,
+          email: email.trim() || undefined,
           password
         })
       }

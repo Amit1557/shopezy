@@ -161,7 +161,7 @@ def register_customer(data: CustomerRegister, db: Session = Depends(get_db)):
     if len(clean_mob) != 10:
         raise HTTPException(400, "Please enter a valid 10-digit Indian mobile number")
 
-    clean_email = data.email.strip().lower() if data.email and data.email.strip() else None
+    clean_email = data.email.strip() if data.email and data.email.strip() else None
 
     # Find existing customer by mobile or email
     existing = db.query(Customer).filter(
@@ -226,12 +226,11 @@ def register_customer(data: CustomerRegister, db: Session = Depends(get_db)):
 def login_customer(data: CustomerLogin, db: Session = Depends(get_db)):
     ident = data.identifier.strip()
     clean_mob = _clean_customer_phone(ident)
-    clean_email = ident.lower()
 
-    # Search by cleaned mobile, raw identifier, +91 format, or case-insensitive email
+    # Search by cleaned mobile, raw identifier, +91 format, or strict case-sensitive email
     filters = [
         Customer.mobile == ident,
-        func.lower(Customer.email) == clean_email
+        Customer.email == ident
     ]
     if len(clean_mob) == 10:
         filters.extend([
