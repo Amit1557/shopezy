@@ -489,3 +489,27 @@ def admin_return_action(
     db.commit()
     return {"message": "Return status updated successfully", "status": new_status}
 
+
+@router.delete("/admin/{order_id_str}")
+def delete_admin_order(
+    order_id_str: str,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
+    order = db.query(Order).filter(Order.order_id == order_id_str).first()
+    if not order:
+        raise HTTPException(404, "Order not found")
+
+    # Cleanly remove all associated records
+    db.query(MeeshoFulfilment).filter(MeeshoFulfilment.order_id == order.id).delete()
+    db.query(OrderStatusHistory).filter(OrderStatusHistory.order_id == order.id).delete()
+    db.query(OrderItem).filter(OrderItem.order_id == order.id).delete()
+
+    db.delete(order)
+    db.commit()
+
+    return {
+        "message": f"Order {order_id_str} permanently removed from system",
+        "deleted_order_id": order_id_str
+    }
+

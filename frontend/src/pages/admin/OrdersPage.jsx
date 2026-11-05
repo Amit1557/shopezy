@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   Search, Filter, ChevronLeft, ChevronRight, Eye, RefreshCw,
-  Calendar, CheckCircle2, AlertCircle, ShoppingBag, ArrowUpDown
+  Calendar, CheckCircle2, AlertCircle, ShoppingBag, ArrowUpDown, Trash2
 } from 'lucide-react'
 import { ordersAdminAPI } from '../../services/api'
 import { formatPrice, formatDate, getStatusInfo } from '../../utils/helpers'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import Pagination from '../../components/ui/Pagination'
+import toast from 'react-hot-toast'
 
 const STATUS_TABS = [
   { id: '', label: 'All Orders' },
@@ -33,6 +34,24 @@ export default function OrdersPage() {
   const status = searchParams.get('status') || ''
   const search = searchParams.get('search') || ''
   const [searchInput, setSearchInput] = useState(search)
+  const [deletingOrder, setDeletingOrder] = useState(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
+  const handleDeleteOrder = async () => {
+    if (!deletingOrder) return
+    setDeleteLoading(true)
+    try {
+      await ordersAdminAPI.delete(deletingOrder.order_id)
+      toast.success(`Order ${deletingOrder.order_id} deleted successfully!`)
+      setOrders(prev => prev.filter(o => o.order_id !== deletingOrder.order_id))
+      setTotal(prev => Math.max(0, prev - 1))
+      setDeletingOrder(null)
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to delete order')
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
 
   const fetchOrders = async (silent = false) => {
     if (!silent && orders.length === 0) setLoading(true)
@@ -246,12 +265,22 @@ export default function OrdersPage() {
 
                     {/* Actions */}
                     <td className="py-3.5 px-4 text-right">
-                      <Link
-                        to={`/admin/orders/${order.order_id}`}
-                        className="btn-primary text-[11px] py-1.5 px-3 font-bold inline-flex items-center gap-1"
-                      >
-                        <Eye className="w-3.5 h-3.5" /> Manage
-                      </Link>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Link
+                          to={`/admin/orders/${order.order_id}`}
+                          className="btn-primary text-[11px] py-1.5 px-3 font-bold inline-flex items-center gap-1"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Manage
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingOrder(order)}
+                          title="Delete Order Permanently"
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-200 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -263,6 +292,49 @@ export default function OrdersPage() {
 
       {/* Pagination */}
       <Pagination page={page} pages={pages} onPageChange={p => updateParam('page', p)} />
+
+      {/* Delete Order Confirmation Modal */}
+      {deletingOrder && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center font-bold shrink-0">
+                <Trash2 className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-gray-900">Delete Customer Order?</h3>
+                <p className="text-xs text-gray-500">Permanent removal from system</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Are you sure you want to permanently delete order <strong className="font-mono text-gray-900">{deletingOrder.order_id}</strong> for customer <strong className="text-gray-900">{deletingOrder.customer?.name}</strong>?
+              <br />
+              <span className="text-red-600 text-[11px] font-semibold mt-1.5 block">
+                ⚠️ All order items, Meesho sourcing records, and tracking history for this order will be permanently erased.
+              </span>
+            </p>
+            <div className="flex justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingOrder(null)}
+                disabled={deleteLoading}
+                className="btn-secondary text-xs py-2 px-4"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteOrder}
+                disabled={deleteLoading}
+                className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 px-4 rounded-xl flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+              >
+                {deleteLoading ? <LoadingSpinner size="sm" /> : <Trash2 className="w-3.5 h-3.5" />}
+                <span>Confirm Delete</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

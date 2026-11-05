@@ -206,9 +206,6 @@ def get_customers(
             "total_revenue": round(float(total_customer_revenue), 2)
         }
     }
-            "total_revenue": round(total_customer_revenue, 2)
-        }
-    }
 
 @router.get("/customers/{customer_id}")
 def get_customer_detail(

@@ -286,105 +286,83 @@ export default function ProductDetailPage() {
         <span className="text-gray-800 font-medium truncate max-w-xs">{product.name}</span>
       </nav>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-        {/* Left: Gallery (EXACT MEESHO STYLE - Full Image, NO Cropping!) */}
-        <div>
-          {/* Main Photo Box - Clean white box with object-contain */}
-          <div className="relative aspect-square max-h-[500px] w-full bg-white rounded-2xl overflow-hidden mb-3 border border-gray-200 shadow-xs flex items-center justify-center p-3 sm:p-5">
-            {primaryImage ? (
-              <img
-                src={primaryImage}
-                alt={product.name}
-                className="w-full h-full object-contain transition-all duration-300 select-none"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                <ShoppingCart className="w-16 h-16 text-gray-300" />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+        {/* Left Column (Exact Meesho Layout: Vertical Thumbnails + Big Photo + CTA Buttons + Similar Products) */}
+        <div className="lg:col-span-5 flex flex-col gap-4">
+          <div className="flex flex-col-reverse md:flex-row gap-3">
+            {/* Vertical Thumbnails (Desktop: vertical on left; Mobile: horizontal below) */}
+            {images.length > 1 && (
+              <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-y-auto md:max-h-[460px] pb-1 md:pb-0 scrollbar-thin shrink-0">
+                {images.map((img, i) => (
+                  <button
+                    key={img.id || i}
+                    type="button"
+                    onClick={() => setSelectedImage(i)}
+                    className={`shrink-0 w-14 h-14 md:w-16 md:h-16 bg-white rounded-lg p-1 overflow-hidden border-2 transition-all flex items-center justify-center cursor-pointer ${
+                      i === selectedImage
+                        ? 'border-purple-600 ring-2 ring-purple-100 shadow-sm'
+                        : 'border-gray-200 opacity-75 hover:opacity-100 hover:border-gray-400'
+                    }`}
+                  >
+                    <img src={img.image_url} alt="" className="w-full h-full object-contain" />
+                  </button>
+                ))}
               </div>
             )}
-            
-            {product.discount_percentage > 0 && (
-              <div className="absolute top-3 left-3 bg-red-600 text-white text-[11px] font-black px-2.5 py-1 rounded-full shadow-md">
-                {Math.round(product.discount_percentage)}% OFF
-              </div>
-            )}
-            {product.cod_available && (
-              <div className="absolute top-3 right-3 bg-emerald-600 text-white text-[11px] font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
-                <Check className="w-3 h-3 stroke-[3]" /> COD Available
-              </div>
-            )}
-          </div>
 
-          {/* Thumbnails Row */}
-          {images.length > 1 && (
-            <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-thin">
-              {images.map((img, i) => (
-                <button
-                  key={img.id || i}
-                  type="button"
-                  onClick={() => setSelectedImage(i)}
-                  className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-xl p-1 overflow-hidden border-2 transition-all flex items-center justify-center cursor-pointer ${
-                    i === selectedImage
-                      ? 'border-purple-600 shadow-md ring-2 ring-purple-100 scale-105'
-                      : 'border-gray-200 opacity-75 hover:opacity-100 hover:border-gray-400'
-                  }`}
-                >
-                  <img src={img.image_url} alt="" className="w-full h-full object-contain" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Right: Product Details */}
-        <div className="flex flex-col">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 leading-snug mb-2">
-            {product.name}
-          </h1>
-
-          {/* Ratings Pill (Meesho style) */}
-          <div className="flex items-center gap-2 mb-4">
-            <span className="inline-flex items-center gap-1 bg-emerald-700 text-white px-2 py-0.5 rounded text-xs font-black shadow-xs">
-              <span>{displayRating.toFixed(1)}</span>
-              <Star className="w-3 h-3 fill-white" />
-            </span>
-            <span className="text-xs text-gray-500 font-semibold">
-              {totalReviewsCount * 3} Ratings, {reviews.length} Reviews
-            </span>
-            <span className="text-[10px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full font-bold ml-1">
-              Verified Indian Seller
-            </span>
-          </div>
-
-          {/* Pricing Box */}
-          <div className="bg-purple-50/50 p-4 rounded-2xl mb-5 border border-purple-100">
-            <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-black text-gray-900">
-                {formatPrice(product.selling_price)}
-              </span>
-              {product.original_price && product.original_price > product.selling_price && (
-                <>
-                  <span className="text-sm text-gray-400 line-through font-medium">
-                    {formatPrice(product.original_price)}
-                  </span>
-                  <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
-                    {Math.round(product.discount_percentage)}% OFF
-                  </span>
-                </>
+            {/* Main Photo Box */}
+            <div className="relative flex-1 aspect-square max-h-[460px] w-full bg-white rounded-xl overflow-hidden border border-gray-200 shadow-xs flex items-center justify-center p-3 sm:p-5">
+              {primaryImage ? (
+                <img
+                  src={primaryImage}
+                  alt={product.name}
+                  className="w-full h-full object-contain transition-all duration-300 select-none"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                  <ShoppingCart className="w-16 h-16 text-gray-300" />
+                </div>
+              )}
+              
+              {product.discount_percentage > 0 && (
+                <div className="absolute top-3 left-3 bg-red-600 text-white text-[11px] font-black px-2.5 py-1 rounded-full shadow-md">
+                  {Math.round(product.discount_percentage)}% OFF
+                </div>
+              )}
+              {product.cod_available && (
+                <div className="absolute top-3 right-3 bg-emerald-600 text-white text-[11px] font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
+                  <Check className="w-3 h-3 stroke-[3]" /> COD Available
+                </div>
               )}
             </div>
-            <div className="text-xs text-gray-500 mt-1">Inclusive of all taxes • 100% Free Shipping Included</div>
           </div>
 
-          {/* COLOR OPTIONS / SIMILAR PRODUCTS (Meesho Style) */}
+          {/* Action CTA Buttons (Meesho Style - directly under photo) */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              className="flex-1 bg-white hover:bg-purple-50 text-purple-800 border-2 border-purple-700 py-3.5 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm font-extrabold shadow-xs transition-colors cursor-pointer"
+            >
+              <ShoppingCart className="w-4 h-4 text-purple-700" /> Add to Cart
+            </button>
+            <button
+              type="button"
+              onClick={handleBuyNow}
+              className="flex-1 bg-purple-700 hover:bg-purple-800 text-white py-3.5 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm font-black shadow-md transition-colors cursor-pointer"
+            >
+              <span>» Buy Now</span>
+            </button>
+          </div>
+
+          {/* SIMILAR PRODUCTS / COLOR OPTIONS (Meesho Style) */}
           {colors.length > 0 && (
-            <div className="mb-5 bg-gray-50/80 p-3.5 rounded-2xl border border-gray-200">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs">
               <div className="flex justify-between items-center mb-2.5">
-                <label className="text-xs font-black uppercase tracking-wider text-gray-800 flex items-center gap-1.5">
-                  <span>Color Options ({colors.length}):</span>
-                  {selectedColor && <span className="text-purple-700 font-bold capitalize text-sm">{selectedColor}</span>}
-                </label>
-                <span className="text-[10px] text-gray-400 font-medium">Tap to select color</span>
+                <h4 className="text-xs font-black text-gray-900 tracking-tight">
+                  {colors.length} Similar Products
+                </h4>
+                {selectedColor && <span className="text-[11px] text-purple-700 font-bold capitalize">Color: {selectedColor}</span>}
               </div>
               <div className="flex flex-wrap gap-2.5">
                 {colors.map((c, idx) => {
@@ -401,20 +379,20 @@ export default function ProductDetailPage() {
                         }
                       }}
                       disabled={!c.is_available}
-                      className={`group flex items-center gap-2 p-1.5 pr-3 rounded-xl border-2 transition-all cursor-pointer ${
+                      className={`group flex items-center gap-2 p-1.5 pr-3 rounded-xl border-2 transition-all cursor-pointer bg-white ${
                         isSelected
-                          ? 'border-purple-600 bg-white ring-2 ring-purple-100 shadow-sm'
-                          : 'border-gray-200 bg-white hover:border-purple-300'
+                          ? 'border-purple-600 ring-2 ring-purple-100 shadow-xs'
+                          : 'border-gray-200 hover:border-purple-300'
                       }`}
                     >
-                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center p-0.5 border border-gray-100">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center p-0.5 border border-gray-100">
                         <img src={colorImg} alt={c.value} className="w-full h-full object-contain" />
                       </div>
                       <div className="text-left">
                         <div className={`text-xs font-bold capitalize ${isSelected ? 'text-purple-900 font-black' : 'text-gray-700'}`}>
                           {c.value}
                         </div>
-                        {isSelected && <span className="text-[9px] text-emerald-600 font-black">✓ Selected</span>}
+                        {isSelected && <span className="text-[9px] text-emerald-600 font-bold block">✓ Selected</span>}
                       </div>
                     </button>
                   )
@@ -422,11 +400,57 @@ export default function ProductDetailPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Right: Product Details & Specs */}
+        <div className="lg:col-span-7 flex flex-col">
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 leading-snug mb-2">
+            {product.name}
+          </h1>
+
+          {/* Pricing Box (Meesho Style) */}
+          <div className="mb-4">
+            <div className="flex items-baseline gap-3">
+              <span className="text-3xl font-black text-gray-900">
+                {formatPrice(product.selling_price)}
+              </span>
+              {product.original_price && product.original_price > product.selling_price && (
+                <>
+                  <span className="text-sm text-gray-400 line-through font-medium">
+                    {formatPrice(product.original_price)}
+                  </span>
+                  <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                    {Math.round(product.discount_percentage)}% OFF
+                  </span>
+                </>
+              )}
+            </div>
+            <div className="text-[11px] text-gray-400 mt-0.5">Inclusive of all taxes • 100% Free Shipping Included</div>
+          </div>
+
+          {/* Ratings Pill (Meesho style) */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="inline-flex items-center gap-1 bg-emerald-700 text-white px-2 py-0.5 rounded text-xs font-black shadow-xs">
+              <span>{displayRating.toFixed(1)}</span>
+              <Star className="w-3 h-3 fill-white" />
+            </span>
+            <span className="text-xs text-gray-500 font-semibold">
+              {totalReviewsCount * 3} Ratings, {reviews.length} Reviews
+            </span>
+          </div>
+
+          {/* Mall / Verified Brand Badge (Meesho Style) */}
+          <div className="inline-flex items-center gap-2 bg-purple-50/70 border border-purple-100 px-3 py-1.5 rounded-lg mb-4 self-start text-xs font-bold text-purple-900">
+            <span className="bg-purple-700 text-white text-[10px] font-black px-1.5 py-0.2 rounded">Mall</span>
+            <span>🛡️ Original Brand</span>
+            <span className="text-gray-300">•</span>
+            <span>Authorised Seller</span>
+          </div>
 
           {/* SIZES SELECTOR */}
           {sizes.length > 0 && (
-            <div className="mb-5">
-              <div className="flex justify-between items-center mb-2">
+            <div className="mb-5 bg-white p-4 rounded-xl border border-gray-200">
+              <div className="flex justify-between items-center mb-2.5">
                 <label className="text-xs font-black uppercase tracking-wider text-gray-800">Select Size</label>
                 {selectedSize && <span className="text-xs text-purple-700 font-bold">Selected: {selectedSize}</span>}
               </div>
@@ -437,7 +461,7 @@ export default function ProductDetailPage() {
                     type="button"
                     onClick={() => s.is_available && setSelectedSize(s.value)}
                     disabled={!s.is_available}
-                    className={`min-w-14 h-10 px-3.5 rounded-xl border-2 text-xs font-bold transition-all cursor-pointer ${
+                    className={`min-w-16 h-10 px-4 rounded-full border-2 text-xs font-bold transition-all cursor-pointer ${
                       selectedSize === s.value
                         ? 'border-purple-600 bg-purple-50 text-purple-800 shadow-xs ring-1 ring-purple-200'
                         : s.is_available
@@ -453,43 +477,25 @@ export default function ProductDetailPage() {
           )}
 
           {/* QUANTITY */}
-          <div className="mb-6">
-            <label className="text-xs font-black uppercase tracking-wider text-gray-800 block mb-2">Quantity</label>
+          <div className="mb-5 flex items-center justify-between bg-gray-50/60 p-3 rounded-xl border border-gray-200">
+            <span className="text-xs font-bold text-gray-700">Select Quantity</span>
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="w-9 h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center text-base font-bold text-gray-700 hover:border-purple-400 active:scale-95 transition-all shadow-xs cursor-pointer"
+                className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-base font-bold text-gray-700 hover:border-purple-400 active:scale-95 transition-all shadow-xs cursor-pointer"
               >
                 −
               </button>
-              <span className="text-base font-black w-6 text-center">{quantity}</span>
+              <span className="text-sm font-black w-6 text-center">{quantity}</span>
               <button
                 type="button"
                 onClick={() => setQuantity(q => q + 1)}
-                className="w-9 h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center text-base font-bold text-gray-700 hover:border-purple-400 active:scale-95 transition-all shadow-xs cursor-pointer"
+                className="w-8 h-8 rounded-lg border border-gray-200 bg-white flex items-center justify-center text-base font-bold text-gray-700 hover:border-purple-400 active:scale-95 transition-all shadow-xs cursor-pointer"
               >
                 +
               </button>
             </div>
-          </div>
-
-          {/* Action CTA Buttons */}
-          <div className="flex gap-3 mb-6">
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              className="flex-1 btn-secondary flex items-center justify-center gap-2 py-3.5 text-xs sm:text-sm font-bold shadow-xs cursor-pointer"
-            >
-              <ShoppingCart className="w-4 h-4" /> Add to Cart
-            </button>
-            <button
-              type="button"
-              onClick={handleBuyNow}
-              className="flex-1 btn-primary flex items-center justify-center gap-2 py-3.5 text-xs sm:text-sm font-black shadow-md cursor-pointer"
-            >
-              Buy Now (COD) <ArrowRight className="w-4 h-4" />
-            </button>
           </div>
 
           {/* COD highlight banner */}

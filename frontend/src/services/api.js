@@ -127,6 +127,7 @@ export const ordersAdminAPI = {
   updateNotes: (orderId, notes) => api.put(`/orders/admin/${orderId}/notes`, null, { params: { notes } }),
   updateMeesho: (orderId, data) => api.put(`/orders/admin/${orderId}/meesho`, data),
   returnAction: (orderId, data) => api.put(`/orders/admin/${orderId}/return-action`, data),
+  delete: (orderId) => api.delete(`/orders/admin/${orderId}`),
 }
 
 // Analytics - Admin
