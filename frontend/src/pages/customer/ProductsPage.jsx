@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams, useParams, Link } from 'react-router-dom'
-import { Filter, X, ShoppingBag, ArrowUpDown, SlidersHorizontal, Search } from 'lucide-react'
+import { Filter, X, ShoppingBag, ArrowUpDown, SlidersHorizontal, Search, Sparkles } from 'lucide-react'
 import { productsPublicAPI, categoriesAPI } from '../../services/api'
 import ProductCard from '../../components/customer/ProductCard'
 import MeeshoFilterSidebar from '../../components/customer/MeeshoFilterSidebar'
-import Pagination from '../../components/ui/Pagination'
 import EmptyState from '../../components/ui/EmptyState'
 
 const SORT_OPTIONS = [
@@ -21,10 +20,12 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState([])
   const [total, setTotal] = useState(0)
   const [pages, setPages] = useState(1)
+  const [currentPage, setCurrentPage] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
+  const loadMoreRef = useRef(null)
 
-  const page = parseInt(searchParams.get('page') || '1')
   const sort = searchParams.get('sort') || 'popular'
   const search = searchParams.get('search') || ''
   const subcategory = searchParams.get('subcategory') || ''
@@ -48,33 +49,39 @@ export default function ProductsPage() {
     categoriesAPI.getAll(false).then(res => setCategories(res.data || [])).catch(() => {})
   }, [])
 
+  const buildParams = useCallback((pageToFetch) => {
+    const params = { page: pageToFetch, sort, limit: 16 }
+    if (search) params.search = search
+    if (subcategory) params.subcategory = subcategory
+    const extraTerms = [shape, strap, fabric].filter(Boolean).join(' ')
+    if (extraTerms) {
+      params.search = params.search ? `${params.search} ${extraTerms}` : extraTerms
+    }
+    if (categoryId) params.category_id = categoryId
+    if (activeCategorySlug && activeCategorySlug !== 'popular') params.category_slug = activeCategorySlug
+    if (minPrice) params.min_price = minPrice
+    if (maxPrice) params.max_price = maxPrice
+    if (minRating) params.min_rating = minRating
+    if (minDiscount) params.min_discount = minDiscount
+    if (size) params.size = size
+    if (color) params.color = color
+    if (gender) params.gender = gender
+    if (featured) params.featured = featured
+    return params
+  }, [
+    sort, search, subcategory, shape, strap, fabric, categoryId, activeCategorySlug,
+    minPrice, maxPrice, minRating, minDiscount, size, color, gender, featured
+  ])
+
+  // Initial fetch on filters/route change
   useEffect(() => {
     let isCurrent = true
-    const fetchProducts = async () => {
-      setLoading(true)
+    setCurrentPage(1)
+    setLoading(true)
+
+    const fetchInitial = async () => {
       try {
-        const params = { page, sort, limit: 16 }
-
-        // Support direct subcategory query param and search terms
-        if (search) params.search = search
-        if (subcategory) params.subcategory = subcategory
-        const extraTerms = [shape, strap, fabric].filter(Boolean).join(' ')
-        if (extraTerms) {
-          params.search = params.search ? `${params.search} ${extraTerms}` : extraTerms
-        }
-
-        if (categoryId) params.category_id = categoryId
-        if (activeCategorySlug && activeCategorySlug !== 'popular') params.category_slug = activeCategorySlug
-        if (minPrice) params.min_price = minPrice
-        if (maxPrice) params.max_price = maxPrice
-        if (minRating) params.min_rating = minRating
-        if (minDiscount) params.min_discount = minDiscount
-        if (size) params.size = size
-        if (color) params.color = color
-        if (gender) params.gender = gender
-        if (featured) params.featured = featured
-
-        const res = await productsPublicAPI.getAll(params)
+        const res = await productsPublicAPI.getAll(buildParams(1))
         if (isCurrent) {
           setProducts(res.data.products || [])
           setTotal(res.data.total || 0)
@@ -87,11 +94,53 @@ export default function ProductsPage() {
       }
     }
 
-    fetchProducts()
-    return () => {
-      isCurrent = false
+    fetchInitial()
+    return () => { isCurrent = false }
+  }, [buildParams, slug])
+
+  // Load more items for infinite scroll
+  const handleLoadMore = useCallback(async () => {
+    if (loading || loadingMore || currentPage >= pages) return
+    const nextPage = currentPage + 1
+    setLoadingMore(true)
+    try {
+      const res = await productsPublicAPI.getAll(buildParams(nextPage))
+      const incoming = res.data.products || []
+      setProducts(prev => {
+        const seen = new Set(prev.map(p => p.id))
+        const unique = incoming.filter(p => !seen.has(p.id))
+        return [...prev, ...unique]
+      })
+      setCurrentPage(nextPage)
+      setPages(res.data.pages || 1)
+      setTotal(res.data.total || 0)
+    } catch (err) {
+      console.error('Error loading more products:', err)
+    } finally {
+      setLoadingMore(false)
     }
-  }, [searchParams, slug])
+  }, [loading, loadingMore, currentPage, pages, buildParams])
+
+  // Auto-trigger load more as user scrolls down towards the bottom
+  useEffect(() => {
+    if (loading || loadingMore || currentPage >= pages) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          handleLoadMore()
+        }
+      },
+      { threshold: 0.1, rootMargin: '300px' }
+    )
+
+    const el = loadMoreRef.current
+    if (el) observer.observe(el)
+
+    return () => {
+      if (el) observer.unobserve(el)
+    }
+  }, [loading, loadingMore, currentPage, pages, handleLoadMore])
 
   const updateParam = (key, value) => {
     const p = new URLSearchParams(searchParams)
@@ -313,8 +362,46 @@ export default function ProductsPage() {
             </div>
           )}
 
-          {/* Pagination */}
-          <Pagination page={page} pages={pages} onPageChange={p => updateParam('page', p)} />
+          {/* Meesho-Style Infinite Scroll Indicator & Sentinel */}
+          {!loading && products.length > 0 && (
+            <div className="mt-8 mb-6">
+              {currentPage < pages && (
+                <div ref={loadMoreRef} className="flex flex-col items-center justify-center py-6 gap-3">
+                  {loadingMore ? (
+                    <div className="flex items-center gap-2.5 bg-purple-50 text-purple-900 border border-purple-200 px-5 py-2.5 rounded-full shadow-xs animate-pulse">
+                      <div className="w-4 h-4 rounded-full border-2 border-purple-300 border-t-purple-700 animate-spin" />
+                      <span className="text-xs font-black">Loading more products...</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleLoadMore}
+                      className="group bg-white hover:bg-purple-50 text-purple-800 border-2 border-purple-200 hover:border-purple-400 font-black text-xs py-2.5 px-6 rounded-2xl shadow-sm transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                    >
+                      <span>Scroll down or tap to load more</span>
+                      <span className="bg-purple-100 group-hover:bg-purple-200 text-purple-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                        {products.length} of {total}
+                      </span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {currentPage >= pages && total > 0 && (
+                <div className="py-8 flex flex-col items-center justify-center text-center gap-1.5 border-t border-gray-100 mt-6">
+                  <div className="inline-flex items-center gap-2 bg-gray-50 text-gray-600 px-4 py-1.5 rounded-full text-xs font-bold border border-gray-200/80">
+                    <span>🎉 You've reached the end! Viewed all {total} products.</span>
+                  </div>
+                  <button
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    className="text-xs font-extrabold text-purple-700 hover:text-purple-950 hover:underline cursor-pointer mt-1"
+                  >
+                    Back to Top ↑
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
