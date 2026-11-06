@@ -27,10 +27,31 @@ export default function ProductsAdminPage() {
   const [initialBulkData, setInitialBulkData] = useState(null)
   const [editingProduct, setEditingProduct] = useState(null)
 
-  // Listen for 1-Click Bookmarklet importData & bulkImportData in URL
+  // Listen for 1-Click Bookmarklet importData, bulkImport (window.name) & bulkImportData in URL
   useEffect(() => {
     const importParam = searchParams.get('importData')
     const bulkParam = searchParams.get('bulkImportData')
+    const isBulkWindowName = searchParams.get('bulkImport') === '1'
+
+    if (isBulkWindowName) {
+      try {
+        const rawName = window.name
+        if (rawName && rawName.startsWith('[')) {
+          const parsed = JSON.parse(rawName)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setInitialBulkData(parsed)
+            setIsBulkImporterOpen(true)
+            window.name = '' // Clear window name after reading
+            const p = new URLSearchParams(searchParams)
+            p.delete('bulkImport')
+            setSearchParams(p, { replace: true })
+            return
+          }
+        }
+      } catch (err) {
+        console.error('Failed to parse window.name bulk data', err)
+      }
+    }
 
     if (bulkParam) {
       try {
