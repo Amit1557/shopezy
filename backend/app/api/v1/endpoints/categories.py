@@ -72,7 +72,7 @@ def realign_meesho_categories_endpoint(
     if not authorized:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
-    from ...utils.init_db import init_db
+    from ....utils.init_db import init_db
     init_db()
 
     # Query and return fresh active categories
