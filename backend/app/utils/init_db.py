@@ -25,15 +25,25 @@ def init_db():
         # Safe migration for tags column if not exists
         try:
             from sqlalchemy import text
-            db.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'::jsonb;"))
-            db.commit()
+            if "sqlite" in str(engine.url):
+                try:
+                    db.execute(text("ALTER TABLE products ADD COLUMN tags JSON DEFAULT '[]';"))
+                    db.commit()
+                except Exception:
+                    db.rollback()
+            else:
+                try:
+                    db.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'::jsonb;"))
+                    db.commit()
+                except Exception:
+                    try:
+                        db.rollback()
+                        db.execute(text("ALTER TABLE products ADD COLUMN tags JSON DEFAULT '[]';"))
+                        db.commit()
+                    except Exception:
+                        db.rollback()
         except Exception:
-            try:
-                db.rollback()
-                db.execute(text("ALTER TABLE products ADD COLUMN tags TEXT DEFAULT '[]';"))
-                db.commit()
-            except Exception:
-                db.rollback()
+            db.rollback()
 
         # Create default admin
         admin = db.query(Admin).filter(Admin.email == settings.ADMIN_EMAIL).first()

@@ -424,7 +424,10 @@ Breathable Running Sports Shoes,340,699,footwear,https://images.unsplash.com/pho
       toast.success(`🎉 ${res.data.count} products successfully published in 1 click!`)
       if (onSuccess) onSuccess()
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to bulk publish products')
+      const msg = Array.isArray(err.response?.data?.detail)
+        ? err.response.data.detail.map(d => d.msg).join(', ')
+        : (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : 'Failed to bulk publish products')
+      toast.error(msg)
     } finally {
       setPublishing(false)
     }
