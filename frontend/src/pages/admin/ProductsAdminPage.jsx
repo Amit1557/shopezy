@@ -27,11 +27,39 @@ export default function ProductsAdminPage() {
   const [initialBulkData, setInitialBulkData] = useState(null)
   const [editingProduct, setEditingProduct] = useState(null)
 
-  // Listen for 1-Click Bookmarklet importData, bulkImport (window.name) & bulkImportData in URL
+  // Listen for 1-Click Bookmarklet bulkGzip, bulkImport, bulkImportData & importData in URL
   useEffect(() => {
+    const bulkGzip = searchParams.get('bulkGzip')
     const importParam = searchParams.get('importData')
     const bulkParam = searchParams.get('bulkImportData')
     const isBulkWindowName = searchParams.get('bulkImport') === '1'
+
+    // Priority 1: High-Performance Gzip Compressed Payload (Handles 50-100+ products in <1KB URL)
+    if (bulkGzip) {
+      (async () => {
+        try {
+          let base64 = bulkGzip.replace(/-/g, '+').replace(/_/g, '/')
+          while (base64.length % 4) base64 += '='
+          const bin = atob(base64)
+          const bytesIn = new Uint8Array(bin.length)
+          for (let i = 0; i < bin.length; i++) bytesIn[i] = bin.charCodeAt(i)
+          const inStream = new Blob([bytesIn]).stream()
+          const decompressedStream = inStream.pipeThrough(new DecompressionStream('gzip'))
+          const text = await new Response(decompressedStream).text()
+          const parsed = JSON.parse(text)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setInitialBulkData(parsed)
+            setIsBulkImporterOpen(true)
+            const p = new URLSearchParams(searchParams)
+            p.delete('bulkGzip')
+            setSearchParams(p, { replace: true })
+          }
+        } catch (err) {
+          console.error('Failed to decompress bulkGzip data', err)
+        }
+      })()
+      return
+    }
 
     if (isBulkWindowName) {
       try {
