@@ -74,6 +74,71 @@ def make_slug(name: str, db: Session) -> str:
     return slug
 
 
+def sanitize_product_category(name: str, category_id: Optional[int], db: Session) -> int:
+    """
+    Permanent Server-Side Taxonomy Guardrail.
+    Guarantees products are never saved into conflicting categories regardless of client payload.
+    """
+    from ....models.category import Category
+    categories = db.query(Category).all()
+    if not categories:
+        return category_id or 1
+
+    cat_by_id = {c.id: c for c in categories}
+    cat_by_slug = {c.slug: c for c in categories}
+
+    current_cat = cat_by_id.get(category_id) if category_id else None
+    t = (name or "").lower()
+
+    # If category is invalid or missing, try intelligent classification
+    if not current_cat:
+        nlp_res = extract_nlp_categories_and_tags(name, "")
+        s_slug = nlp_res.get("suggested_category")
+        if s_slug and s_slug in cat_by_slug:
+            return cat_by_slug[s_slug].id
+        hk = cat_by_slug.get("home-kitchen")
+        return hk.id if hk else categories[0].id
+
+    # Guardrail 1: Non-electronics trapped in Electronics
+    if current_cat.slug == "electronics":
+        if re.search(r'\b(bedsheet|bed sheet|fitted sheet|pillow|cushion|curtain|blanket|quilt|mattress|towel|mop|cloth|microfiber|microfibre|cleaning cloth|cookware|pan|kadhai|bottle|clock|wall clock|sofa cover|chair cover|bangle stand|shoe rack|organizer|artificial plant|planter|kitchen|chopper)\b', t):
+            hk = cat_by_slug.get("home-kitchen")
+            if hk: return hk.id
+        if re.search(r'\b(scarf|scarves|stole|stoles|necklace|earring|bangle|ring|bracelet|chain|anklet|jewel|jewellery|sunglass|goggles|hair clip|scrunchie)\b', t):
+            ja = cat_by_slug.get("jewellery-accessories")
+            if ja: return ja.id
+        if re.search(r'\b(shoe|shoes|sneaker|sneakers|sandal|sandals|slipper|slippers|chappal|chappals|loafer|heel|boots|footwear)\b', t):
+            bf = cat_by_slug.get("bags-footwear")
+            if bf: return bf.id
+        if re.search(r'\b(saree|sari|kurti|kurta|anarkali|lehenga|salwar|suit|sharara)\b', t):
+            ks = cat_by_slug.get("kurti-saree-lehenga")
+            if ks: return ks.id
+        if re.search(r'\b(dress|gown|skirt|top|tunic|crop top|jeans|jumpsuit)\b', t):
+            ww = cat_by_slug.get("women-western")
+            if ww: return ww.id
+
+    # Guardrail 2: Electronic audio/gadgets trapped in Fashion or Home
+    if current_cat.slug in ["kurti-saree-lehenga", "women-western", "men", "home-kitchen", "lingerie", "beauty-health"]:
+        if re.search(r'\b(speaker|speakers|earphone|earphones|headphone|headphones|earbud|earbuds|airpod|airpods|tws|bluetooth|charger|power bank|soundbar|aux cable|mouse|keyboard|smart watch|smartwatch|portronics|ubon)\b', t) or (re.search(r'\b(mic|microphone)\b', t) and not re.search(r'\bmicrofib', t)):
+            el = cat_by_slug.get("electronics")
+            if el: return el.id
+
+    # Guardrail 3: Scarves, Stoles, Jewellery trapped in Ethnic wear
+    if current_cat.slug == "kurti-saree-lehenga":
+        if re.search(r'\b(scarf|scarves|stole|stoles|necklace|earring|earrings|ring|bracelet|bangle|anklet|jewel|jewellery)\b', t) and not re.search(r'\b(saree|sari|kurti|lehenga|salwar|suit|sharara)\b', t):
+            ja = cat_by_slug.get("jewellery-accessories")
+            if ja: return ja.id
+
+    # Guardrail 4: Watches trapped in other departments
+    if current_cat.slug != "watches":
+        if re.search(r'\b(analog watch|digital watch|wrist watch|chronograph)\b', t):
+            wa = cat_by_slug.get("watches")
+            if wa: return wa.id
+
+    return category_id
+
+
+
 # PUBLIC endpoints
 @router.get("/public", response_model=dict)
 def get_public_products(
@@ -342,13 +407,15 @@ def create_product(
         nlp_res = extract_nlp_categories_and_tags(data.name, data.description or "")
         tags_to_save = nlp_res["tags"]
 
+    category_id = sanitize_product_category(data.name, data.category_id, db)
+
     product = Product(
         name=data.name,
         slug=slug,
         description=data.description,
         specifications=data.specifications,
         tags=tags_to_save,
-        category_id=data.category_id,
+        category_id=category_id,
         purchase_cost=data.purchase_cost,
         selling_price=data.selling_price,
         original_price=data.original_price,
@@ -409,6 +476,9 @@ def update_product(
 
     for k, v in update_dict.items():
         setattr(product, k, v)
+
+    # Permanent Server-Side Taxonomy Guardrail
+    product.category_id = sanitize_product_category(product.name, product.category_id, db)
 
     # Update product images if provided
     if images_list is not None:
@@ -624,6 +694,9 @@ def quick_publish_product(
         if not tags_to_save:
             tags_to_save = parsed_helper.get("tags", [])
 
+    # Permanent Server-Side Taxonomy Guardrail
+    category_id = sanitize_product_category(data.name, category_id, db)
+
     product = Product(
         name=data.name,
         slug=slug,
@@ -780,6 +853,9 @@ def bulk_publish_products(
         if not tags_to_save:
             nlp_res = extract_nlp_categories_and_tags(item.name.strip(), item.description or "")
             tags_to_save = nlp_res["tags"]
+
+        # Permanent Server-Side Taxonomy Guardrail
+        category_id = sanitize_product_category(item.name.strip(), category_id, db)
 
         product = Product(
             name=item.name.strip(),

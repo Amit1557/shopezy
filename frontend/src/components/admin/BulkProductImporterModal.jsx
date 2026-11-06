@@ -1,13 +1,50 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Sparkles, X, Plus, Trash2, Upload, Download, CheckCircle,
-  AlertCircle, TrendingUp, ArrowRight, ExternalLink, Layers, FileText
+  AlertCircle, AlertTriangle, TrendingUp, ArrowRight, ExternalLink, Layers, FileText
 } from 'lucide-react'
 import { productsAdminAPI, categoriesAPI } from '../../services/api'
 import { formatPrice } from '../../utils/helpers'
 import LoadingSpinner from '../ui/LoadingSpinner'
 import { isCleanProductImage } from './MeeshoQuickImporterModal'
 import toast from 'react-hot-toast'
+
+// Permanent Taxonomy Conflict Detector
+export function checkCategoryConflict(name = '', categorySlug = '') {
+  const t = (name || '').toLowerCase()
+  const slug = categorySlug || ''
+
+  // 1. Home & Kitchen items assigned to Electronics
+  if (slug === 'electronics') {
+    if (/\b(bedsheet|bed sheet|fitted sheet|pillow|cushion|curtain|blanket|quilt|mattress|towel|mop|cloth|microfiber|microfibre|cleaning cloth|cookware|pan|kadhai|bottle|clock|wall clock|sofa cover|chair cover|bangle stand|shoe rack|organizer|artificial plant|planter|kitchen|chopper)\b/i.test(t)) {
+      return { hasConflict: true, targetSlug: 'home-kitchen', label: 'Home & Kitchen' }
+    }
+    if (/\b(scarf|scarves|stole|stoles|necklace|earring|bangle|ring|bracelet|chain|anklet|jewel|jewellery)\b/i.test(t)) {
+      return { hasConflict: true, targetSlug: 'jewellery-accessories', label: 'Jewellery & Accessories' }
+    }
+  }
+
+  // 2. Electronics audio / gadgets assigned to Clothing or Home
+  if (['kurti-saree-lehenga', 'women-western', 'men', 'home-kitchen', 'lingerie'].includes(slug)) {
+    if (/\b(speaker|speakers|earphone|earphones|headphone|headphones|earbud|earbuds|airpod|airpods|tws|bluetooth|charger|power bank|soundbar|aux cable|mouse|keyboard|smart watch|smartwatch|portronics|ubon)\b/i.test(t) || (/\b(mic|microphone)\b/i.test(t) && !/\bmicrofib/i.test(t))) {
+      return { hasConflict: true, targetSlug: 'electronics', label: 'Electronics' }
+    }
+  }
+
+  // 3. Scarves / Stoles / Jewellery assigned to Kurti
+  if (slug === 'kurti-saree-lehenga') {
+    if (/\b(scarf|scarves|stole|stoles|necklace|earring|earrings|ring|bracelet|bangle|anklet|jewel|jewellery)\b/i.test(t) && !/\b(saree|sari|kurti|lehenga|salwar|suit|sharara)\b/i.test(t)) {
+      return { hasConflict: true, targetSlug: 'jewellery-accessories', label: 'Jewellery & Accessories' }
+    }
+  }
+
+  // 4. Watches
+  if (slug !== 'watches' && /\b(analog watch|digital watch|wrist watch|chronograph)\b/i.test(t)) {
+    return { hasConflict: true, targetSlug: 'watches', label: 'Watches' }
+  }
+
+  return null
+}
 
 // Intelligent Title & Keyword NLP Category Classifier
 export function detectCategoryFromTitle(title = '', pageCategory = '', categories = []) {
@@ -102,6 +139,57 @@ export default function BulkProductImporterModal({ isOpen, onClose, onSuccess, i
 
   // Products staging list
   const [stagedProducts, setStagedProducts] = useState([])
+  const [batchCategory, setBatchCategory] = useState('')
+
+  // Category summary and conflict detection
+  const categorySummary = useMemo(() => {
+    const counts = {}
+    stagedProducts.forEach(p => {
+      const cat = categories.find(c => String(c.id) === String(p.category_id)) || categories.find(c => c.slug === p.category_slug)
+      const name = cat ? cat.name : 'Unknown'
+      counts[name] = (counts[name] || 0) + 1
+    })
+    return counts
+  }, [stagedProducts, categories])
+
+  const conflictProducts = useMemo(() => {
+    return stagedProducts.filter(p => checkCategoryConflict(p.name, p.category_slug))
+  }, [stagedProducts])
+
+  const handleApplyBatchCategory = () => {
+    if (!batchCategory) {
+      toast.error('Kripya pehle category select karein!')
+      return
+    }
+    const cat = categories.find(c => String(c.id) === String(batchCategory))
+    if (!cat) return
+    setStagedProducts(prev => prev.map(p => ({
+      ...p,
+      category_id: cat.id,
+      category_slug: cat.slug
+    })))
+    toast.success(`Sabhi ${stagedProducts.length} products ki category "${cat.name}" kar di gayi!`)
+  }
+
+  const handleAutoFixAllConflicts = () => {
+    let fixedCount = 0
+    setStagedProducts(prev => prev.map(p => {
+      const conflict = checkCategoryConflict(p.name, p.category_slug)
+      if (conflict) {
+        const cat = categories.find(c => c.slug === conflict.targetSlug)
+        if (cat) {
+          fixedCount++
+          return {
+            ...p,
+            category_id: cat.id,
+            category_slug: cat.slug
+          }
+        }
+      }
+      return p
+    }))
+    toast.success(`⚡ ${fixedCount} products ki category auto-fix kar di gayi!`)
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -549,26 +637,52 @@ Breathable Running Sports Shoes,340,699,footwear,https://images.unsplash.com/pho
                 </button>
               </div>
 
-              {/* Global Markup Tool */}
-              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-purple-200">
-                <span className="text-[11px] font-bold text-gray-700">Global Markup:</span>
-                <div className="relative w-20">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">₹</span>
-                  <input
-                    type="number"
-                    value={globalMarkup}
-                    onChange={(e) => setGlobalMarkup(e.target.value)}
-                    className="w-full text-xs font-black pl-5 pr-1 py-1 border rounded-md"
-                  />
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Global Markup Tool */}
+                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-purple-200">
+                  <span className="text-[11px] font-bold text-gray-700">Global Markup:</span>
+                  <div className="relative w-20">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">₹</span>
+                    <input
+                      type="number"
+                      value={globalMarkup}
+                      onChange={(e) => setGlobalMarkup(e.target.value)}
+                      className="w-full text-xs font-black pl-5 pr-1 py-1 border rounded-md"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={applyGlobalMarkup}
+                    className="btn-secondary text-[10px] py-1 px-2.5 font-bold"
+                    title="Apply this profit markup to all products with cost"
+                  >
+                    Apply All
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={applyGlobalMarkup}
-                  className="btn-secondary text-[10px] py-1 px-2.5 font-bold"
-                  title="Apply this profit markup to all products with cost"
-                >
-                  Apply All
-                </button>
+
+                {/* Batch Category Selector Tool */}
+                <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-purple-200 shadow-xs">
+                  <span className="text-[11px] font-bold text-gray-700">Category for All:</span>
+                  <select
+                    value={batchCategory}
+                    onChange={(e) => setBatchCategory(e.target.value)}
+                    className="text-xs font-semibold py-1 px-2 border rounded-md max-w-[150px] truncate"
+                  >
+                    <option value="">-- Choose Category --</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleApplyBatchCategory}
+                    disabled={!batchCategory}
+                    className="btn-secondary text-[10px] py-1 px-2.5 font-bold whitespace-nowrap disabled:opacity-50"
+                    title="Assign this category to all items in this batch"
+                  >
+                    Apply to All
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -664,7 +778,7 @@ Breathable Running Sports Shoes,340,699,footwear,https://images.unsplash.com/pho
               {/* TAB 2: EDITABLE BATCH TABLE */}
               {tab === 'grid' && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                       <h3 className="text-xs font-black text-gray-900">
                         Products Ready for Publishing ({validCount} Valid)
@@ -676,11 +790,58 @@ Breathable Running Sports Shoes,340,699,footwear,https://images.unsplash.com/pho
                     <button
                       type="button"
                       onClick={addNewRow}
-                      className="btn-secondary text-xs py-1.5 px-3 font-bold inline-flex items-center gap-1"
+                      className="btn-secondary text-xs py-1.5 px-3 font-bold inline-flex items-center gap-1 self-start sm:self-auto"
                     >
                       <Plus className="w-3.5 h-3.5" /> Add Row
                     </button>
                   </div>
+
+                  {/* 📊 Category Breakdown Pills */}
+                  {Object.keys(categorySummary).length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 bg-gray-50 p-2.5 rounded-xl border border-gray-200/80">
+                      <span className="text-[10px] uppercase tracking-wider font-extrabold text-gray-400 mr-1">
+                        Category Breakdown:
+                      </span>
+                      {Object.entries(categorySummary).map(([catName, count]) => (
+                        <span
+                          key={catName}
+                          className="inline-flex items-center gap-1 bg-white text-purple-950 border border-purple-200 text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-2xs"
+                        >
+                          {catName}:
+                          <span className="bg-purple-100 text-purple-800 font-extrabold px-1.5 py-0.2 rounded-full text-[10px]">
+                            {count}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* ⚠️ Category Mismatch Warning Banner */}
+                  {conflictProducts.length > 0 && (
+                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                      <div className="flex items-center gap-2.5 text-amber-950 text-xs font-bold">
+                        <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                          <AlertTriangle className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span>
+                            <strong>{conflictProducts.length} product(s)</strong> ke title ke hisaab se category alag lag rahi hai (jaise Bedsheet in Electronics).
+                          </span>
+                          <p className="text-[10px] text-amber-700 font-normal">
+                            Aap 1-click mein sabhi items ko unki correct category mein move kar sakte hain.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAutoFixAllConflicts}
+                        className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-black px-3.5 py-2 rounded-lg shadow-sm transition shrink-0 flex items-center gap-1.5 active:scale-95"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+                        Auto-Fix All ({conflictProducts.length})
+                      </button>
+                    </div>
+                  )}
 
                   {/* Table */}
                   <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
@@ -735,19 +896,46 @@ Breathable Running Sports Shoes,340,699,footwear,https://images.unsplash.com/pho
 
                                 {/* Category */}
                                 <td className="py-2 px-3">
-                                  <select
-                                    value={p.category_id}
-                                    onChange={(e) => {
-                                      const cat = categories.find(c => String(c.id) === e.target.value)
-                                      updateRow(p.id, 'category_id', e.target.value)
-                                      if (cat) updateRow(p.id, 'category_slug', cat.slug)
-                                    }}
-                                    className="w-full text-xs py-1 px-2 border rounded-md"
-                                  >
-                                    {categories.map(c => (
-                                      <option key={c.id} value={c.id}>{c.name}</option>
-                                    ))}
-                                  </select>
+                                  {(() => {
+                                    const conflict = checkCategoryConflict(p.name, p.category_slug)
+                                    return (
+                                      <div>
+                                        <select
+                                          value={p.category_id}
+                                          onChange={(e) => {
+                                            const cat = categories.find(c => String(c.id) === e.target.value)
+                                            updateRow(p.id, 'category_id', e.target.value)
+                                            if (cat) updateRow(p.id, 'category_slug', cat.slug)
+                                          }}
+                                          className={`w-full text-xs py-1 px-2 border rounded-md transition-colors ${
+                                            conflict ? 'border-amber-400 bg-amber-50/40 text-amber-950 font-bold' : 'border-gray-200'
+                                          }`}
+                                        >
+                                          {categories.map(c => (
+                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                          ))}
+                                        </select>
+                                        {conflict && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const cat = categories.find(c => c.slug === conflict.targetSlug)
+                                              if (cat) {
+                                                updateRow(p.id, 'category_id', cat.id)
+                                                updateRow(p.id, 'category_slug', cat.slug)
+                                                toast.success(`Category changed to "${cat.name}"`)
+                                              }
+                                            }}
+                                            className="mt-1 text-[9px] font-bold text-amber-700 hover:text-amber-900 bg-amber-100/80 hover:bg-amber-200 border border-amber-300 px-1.5 py-0.5 rounded flex items-center gap-1 transition"
+                                            title={`Click to set category to ${conflict.label}`}
+                                          >
+                                            <Sparkles className="w-2.5 h-2.5" />
+                                            Move to {conflict.label}
+                                          </button>
+                                        )}
+                                      </div>
+                                    )
+                                  })()}
                                 </td>
 
                                 {/* Meesho Cost */}
