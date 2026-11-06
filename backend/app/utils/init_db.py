@@ -22,6 +22,19 @@ def init_db():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
+        # Safe migration for tags column if not exists
+        try:
+            from sqlalchemy import text
+            db.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'::jsonb;"))
+            db.commit()
+        except Exception:
+            try:
+                db.rollback()
+                db.execute(text("ALTER TABLE products ADD COLUMN tags TEXT DEFAULT '[]';"))
+                db.commit()
+            except Exception:
+                db.rollback()
+
         # Create default admin
         admin = db.query(Admin).filter(Admin.email == settings.ADMIN_EMAIL).first()
         if not admin:

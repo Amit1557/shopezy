@@ -3,13 +3,14 @@ import { Link, useSearchParams } from 'react-router-dom'
 import {
   Plus, Search, Edit, Trash2, Eye, EyeOff, Star,
   Package, ExternalLink, RefreshCw, AlertCircle, Sparkles,
-  Download, Upload
+  Download, Upload, Layers
 } from 'lucide-react'
 import { productsAdminAPI, categoriesAPI } from '../../services/api'
 import { formatPrice } from '../../utils/helpers'
 import LoadingSpinner from '../../components/ui/LoadingSpinner'
 import Pagination from '../../components/ui/Pagination'
 import MeeshoQuickImporterModal from '../../components/admin/MeeshoQuickImporterModal'
+import BulkProductImporterModal from '../../components/admin/BulkProductImporterModal'
 import ProductQuickEditModal from '../../components/admin/ProductQuickEditModal'
 import toast from 'react-hot-toast'
 
@@ -21,6 +22,7 @@ export default function ProductsAdminPage() {
   const [pages, setPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [isImporterOpen, setIsImporterOpen] = useState(false)
+  const [isBulkImporterOpen, setIsBulkImporterOpen] = useState(false)
   const [initialImportData, setInitialImportData] = useState(null)
   const [editingProduct, setEditingProduct] = useState(null)
 
@@ -209,6 +211,16 @@ export default function ProductsAdminPage() {
             onChange={handleImportRestore}
             className="hidden"
           />
+
+          {/* Bulk Meesho Importer Button */}
+          <button
+            type="button"
+            onClick={() => setIsBulkImporterOpen(true)}
+            className="bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs py-2.5 px-3.5 rounded-xl font-bold inline-flex items-center gap-2 transition-all cursor-pointer active:scale-95 shadow-xs"
+          >
+            <Layers className="w-4 h-4 text-purple-600" />
+            <span>⚡ Bulk Meesho Importer</span>
+          </button>
 
           {/* Single, Clear Primary Add Product Button */}
           <button
@@ -455,6 +467,16 @@ export default function ProductsAdminPage() {
         onSuccess={() => {
           setIsImporterOpen(false)
           setInitialImportData(null)
+          fetchProducts()
+        }}
+      />
+
+      {/* Bulk Meesho Importer Modal */}
+      <BulkProductImporterModal
+        isOpen={isBulkImporterOpen}
+        onClose={() => setIsBulkImporterOpen(false)}
+        onSuccess={() => {
+          setIsBulkImporterOpen(false)
           fetchProducts()
         }}
       />

@@ -8,7 +8,7 @@ const PRICE_PRESETS = [
   { label: '₹800 & Above', min: 800, max: null },
 ]
 
-const GENDER_OPTIONS = ['Men', 'Women', 'Kids', 'Unisex']
+const GENDER_OPTIONS = ['Men', 'Women', 'Kids', 'Girls', 'Boys', 'Unisex']
 
 const APPAREL_SIZES = ['S', 'M', 'L', 'XL', 'XXL', 'Free Size']
 const FOOTWEAR_SIZES = ['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10']
@@ -38,6 +38,53 @@ const DISCOUNT_OPTIONS = [
 ]
 
 // Category-specific subcategories for Meesho search refinement
+const KIDS_TOYS_SUBCATEGORIES = [
+  'Dress Up & Pretend Play',
+  'Kids Baby & Toddler Toys',
+  'Kids Toys',
+  'Soft Toys',
+  'Toy Vehicles',
+  'Toys',
+  'Clay & Slime',
+  'Educational Toys',
+  'Board Games',
+  'Play Tents',
+  'Baby Mattresses',
+]
+
+const HOME_KITCHEN_SUBCATEGORIES = [
+  'Bedsheets',
+  'Mattress Protectors',
+  'Wall Clocks',
+  'Door & Window Curtains',
+  'Cookware & Utensils',
+  'Kitchen Containers',
+  'Fancy Clocks',
+  'Aprons',
+  'Doormats',
+]
+
+const ACCESSORIES_BELTS_SUBCATEGORIES = [
+  'Women Belts',
+  'Men Belts',
+  'Waist Belts',
+  'Handbags & Clutches',
+  'Sling Bags',
+  'Wallets',
+  'Sunglasses & Frames',
+  'Fashion Jewellery',
+]
+
+const WOMEN_WESTERN_SUBCATEGORIES = [
+  'Western Dresses',
+  'Tops & Tunics',
+  'Women Jeans',
+  'Women Belts',
+  'Jumpsuits & Gowns',
+  'Skirts & Shorts',
+  'Crop Tops',
+]
+
 const WATCH_SUBCATEGORIES = [
   'Analog Watches',
   'Chronograph Watches',
@@ -50,11 +97,12 @@ const WATCH_SUBCATEGORIES = [
 ]
 
 const FOOTWEAR_SUBCATEGORIES = [
-  'Sports Shoes',
+  'Flip Flops',
+  'Slippers',
   'Casual Shoes',
-  'Running Shoes',
+  'Sports Shoes',
   'Sneakers',
-  'Formal Shoes',
+  'Running Shoes',
   'Sandals & Floaters',
   'Loafers',
 ]
@@ -68,8 +116,8 @@ const JEANS_SUBCATEGORIES = [
 ]
 
 const KURTI_SAREE_SUBCATEGORIES = [
-  'Anarkali Kurtis',
   'Cotton Kurtis',
+  'Anarkali Kurtis',
   'Rayon Kurtis',
   'Cotton Sarees',
   'Georgette Sarees',
@@ -89,6 +137,8 @@ export default function MeeshoFilterSidebar({
   clearAllFilters,
   onCloseMobile,
 }) {
+  const [catSearch, setCatSearch] = useState('')
+
   // Accordion open/collapse states
   const [openSections, setOpenSections] = useState({
     category: true,
@@ -110,19 +160,21 @@ export default function MeeshoFilterSidebar({
   const context = `${searchQuery} ${currentSlug}`
 
   // Context Detection (smart Meesho filtering)
+  const isKids = context.includes('kid') || context.includes('baby') || context.includes('toy') || context.includes('toddler') || context.includes('stuffed') || context.includes('clay') || context.includes('slime') || context.includes('summer pick')
   const isWatch = context.includes('watch') || context.includes('clock')
   const isElectronics = context.includes('electronic') || context.includes('audio') || context.includes('earbud') || context.includes('headphone') || context.includes('charger') || context.includes('speaker') || context.includes('gadget')
-  const isJewellery = context.includes('jewel') || context.includes('ring') || context.includes('necklace') || context.includes('bangle') || context.includes('earring')
-  const isHomeKitchen = context.includes('home') || context.includes('kitchen') || context.includes('chopper') || context.includes('bedsheet') || context.includes('bottle')
+  const isAccessories = context.includes('belt') || context.includes('jewel') || context.includes('accessori') || context.includes('ring') || context.includes('necklace') || context.includes('bangle') || context.includes('earring') || context.includes('sunglass') || context.includes('wallet')
+  const isHomeKitchen = context.includes('home') || context.includes('kitchen') || context.includes('chopper') || context.includes('bedsheet') || context.includes('bottle') || context.includes('mattress') || context.includes('curtain') || context.includes('cookware')
   const isBeauty = context.includes('beauty') || context.includes('health') || context.includes('makeup') || context.includes('cream') || context.includes('perfume')
 
-  const isFootwear = context.includes('shoe') || context.includes('footwear') || context.includes('sneaker') || context.includes('sandal') || context.includes('slipper') || context.includes('loafer') || context.includes('boot')
+  const isFootwear = context.includes('shoe') || context.includes('footwear') || context.includes('sneaker') || context.includes('sandal') || context.includes('slipper') || context.includes('loafer') || context.includes('boot') || context.includes('flip flop') || context.includes('chappal')
   const isJeans = context.includes('jean') || context.includes('denim')
   const isKurtiSaree = context.includes('kurti') || context.includes('saree') || context.includes('lehenga') || context.includes('ethnic')
-  const isApparel = isJeans || isKurtiSaree || context.includes('shirt') || context.includes('t-shirt') || context.includes('tshirt') || context.includes('top') || context.includes('dress') || context.includes('pant') || context.includes('jacket') || context.includes('western') || context.includes('lingerie') || context.includes('men') || context.includes('women')
+  const isWomenWestern = context.includes('western') || (context.includes('women') && !context.includes('kurti') && !context.includes('saree'))
+  const isApparel = isJeans || isKurtiSaree || isWomenWestern || context.includes('shirt') || context.includes('t-shirt') || context.includes('tshirt') || context.includes('top') || context.includes('dress') || context.includes('pant') || context.includes('jacket') || context.includes('western') || context.includes('lingerie') || context.includes('men')
 
-  // Rule: Watches, electronics, jewellery, kitchen, beauty DO NOT HAVE SIZES!
-  const hasNoSize = isWatch || isElectronics || isJewellery || isHomeKitchen || isBeauty
+  // Rule: Watches, electronics, jewellery, kitchen, beauty, toys DO NOT HAVE APPAREL SIZES!
+  const hasNoSize = isWatch || isElectronics || isAccessories || isHomeKitchen || isBeauty || isKids
   const showSizeFilter = !hasNoSize
 
   const currentMinPrice = searchParams.get('min_price') || ''
@@ -182,14 +234,22 @@ export default function MeeshoFilterSidebar({
 
   // Determine which subcategories to show under Category
   let categoryListToRender = null
-  if (isWatch) {
+  if (isKids) {
+    categoryListToRender = KIDS_TOYS_SUBCATEGORIES
+  } else if (isWatch) {
     categoryListToRender = WATCH_SUBCATEGORIES
   } else if (isFootwear) {
     categoryListToRender = FOOTWEAR_SUBCATEGORIES
-  } else if (isJeans) {
-    categoryListToRender = JEANS_SUBCATEGORIES
+  } else if (isAccessories) {
+    categoryListToRender = ACCESSORIES_BELTS_SUBCATEGORIES
+  } else if (isHomeKitchen) {
+    categoryListToRender = HOME_KITCHEN_SUBCATEGORIES
   } else if (isKurtiSaree) {
     categoryListToRender = KURTI_SAREE_SUBCATEGORIES
+  } else if (isWomenWestern) {
+    categoryListToRender = WOMEN_WESTERN_SUBCATEGORIES
+  } else if (isJeans) {
+    categoryListToRender = JEANS_SUBCATEGORIES
   }
 
   return (
@@ -213,7 +273,7 @@ export default function MeeshoFilterSidebar({
       </div>
 
       <div className="divide-y divide-gray-100 max-h-[calc(100vh-180px)] overflow-y-auto scrollbar-thin">
-        {/* 1. Category / Subcategory Filter */}
+        {/* 1. Category / Subcategory Filter (Meesho Style with Search) */}
         <div className="p-4">
           <button
             type="button"
@@ -225,76 +285,103 @@ export default function MeeshoFilterSidebar({
           </button>
 
           {openSections.category && (
-            <div className="mt-3 space-y-1.5 max-h-52 overflow-y-auto pr-1">
-              {categoryListToRender ? (
-                // Contextual subcategories (e.g. for Watches, Shoes, Jeans)
-                categoryListToRender.map((subcat) => {
-                  const isChecked = currentSubcategory.toLowerCase() === subcat.toLowerCase() ||
-                    searchQuery.toLowerCase().includes(subcat.toLowerCase().replace('watches', 'watch'))
-                  return (
+            <div className="mt-2.5 space-y-2">
+              {/* Meesho in-filter search input */}
+              <div className="relative">
+                <input
+                  type="text"
+                  value={catSearch}
+                  onChange={(e) => setCatSearch(e.target.value)}
+                  placeholder="Search"
+                  className="w-full text-[11px] px-2.5 py-1.5 pl-7 rounded-lg border border-gray-200 bg-gray-50/70 focus:bg-white focus:border-purple-500 outline-none transition-all"
+                />
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">🔍</span>
+                {catSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setCatSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-[10px]"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-1 max-h-52 overflow-y-auto pr-1 scrollbar-thin">
+                {categoryListToRender ? (
+                  // Contextual subcategories (e.g. for Toys, Watches, Shoes, Belts, Kitchen)
+                  categoryListToRender
+                    .filter(subcat => subcat.toLowerCase().includes(catSearch.toLowerCase()))
+                    .map((subcat) => {
+                      const isChecked = currentSubcategory.toLowerCase() === subcat.toLowerCase() ||
+                        searchQuery.toLowerCase().includes(subcat.toLowerCase().replace('watches', 'watch'))
+                      return (
+                        <label
+                          key={subcat}
+                          onClick={() => {
+                            if (isChecked) {
+                              updateParam('subcategory', '')
+                            } else {
+                              updateParam('subcategory', subcat)
+                            }
+                          }}
+                          className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-colors ${
+                            isChecked ? 'bg-purple-50 text-purple-900 font-bold' : 'hover:bg-gray-50 text-gray-700'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {}}
+                            className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4 border-gray-300"
+                          />
+                          <span className="truncate">{subcat}</span>
+                        </label>
+                      )
+                    })
+                ) : (
+                  // General store categories
+                  <>
                     <label
-                      key={subcat}
-                      onClick={() => {
-                        if (isChecked) {
-                          updateParam('subcategory', '')
-                        } else {
-                          updateParam('subcategory', subcat)
-                        }
-                      }}
+                      onClick={() => updateParam('category', '')}
                       className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-colors ${
-                        isChecked ? 'bg-purple-50 text-purple-900 font-bold' : 'hover:bg-gray-50 text-gray-700'
+                        !activeCategorySlug ? 'bg-purple-50 text-purple-900 font-bold' : 'hover:bg-gray-50 text-gray-700'
                       }`}
                     >
                       <input
                         type="checkbox"
-                        checked={isChecked}
+                        checked={!activeCategorySlug}
                         onChange={() => {}}
                         className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4 border-gray-300"
                       />
-                      <span className="truncate">{subcat}</span>
+                      <span className="truncate font-semibold">All Categories</span>
                     </label>
-                  )
-                })
-              ) : (
-                // General store categories
-                <>
-                  <label
-                    onClick={() => updateParam('category', '')}
-                    className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-colors ${
-                      !activeCategorySlug ? 'bg-purple-50 text-purple-900 font-bold' : 'hover:bg-gray-50 text-gray-700'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={!activeCategorySlug}
-                      onChange={() => {}}
-                      className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4 border-gray-300"
-                    />
-                    <span className="truncate">All Categories</span>
-                  </label>
 
-                  {categories.map((cat) => {
-                    const isSelected = activeCategorySlug === cat.slug
-                    return (
-                      <label
-                        key={cat.id}
-                        onClick={() => updateParam('category', isSelected ? '' : cat.slug)}
-                        className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-colors ${
-                          isSelected ? 'bg-purple-50 text-purple-900 font-bold' : 'hover:bg-gray-50 text-gray-700'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => {}}
-                          className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4 border-gray-300"
-                        />
-                        <span className="truncate">{cat.name}</span>
-                      </label>
-                    )
-                  })}
-                </>
-              )}
+                    {categories
+                      .filter(cat => cat.name.toLowerCase().includes(catSearch.toLowerCase()))
+                      .map((cat) => {
+                        const isSelected = activeCategorySlug === cat.slug
+                        return (
+                          <label
+                            key={cat.id}
+                            onClick={() => updateParam('category', isSelected ? '' : cat.slug)}
+                            className={`flex items-center gap-2.5 p-1.5 rounded-lg cursor-pointer transition-colors ${
+                              isSelected ? 'bg-purple-50 text-purple-900 font-bold' : 'hover:bg-gray-50 text-gray-700'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {}}
+                              className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4 border-gray-300"
+                            />
+                            <span className="truncate">{cat.name}</span>
+                          </label>
+                        )
+                      })}
+                  </>
+                )}
+              </div>
             </div>
           )}
         </div>

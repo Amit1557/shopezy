@@ -55,9 +55,13 @@ export default function ProductsPage() {
       try {
         const params = { page, sort, limit: 16 }
 
-        // Combine search terms smoothly without page refresh
-        const searchTerms = [search, subcategory, shape, strap, fabric].filter(Boolean).join(' ')
-        if (searchTerms) params.search = searchTerms
+        // Support direct subcategory query param and search terms
+        if (search) params.search = search
+        if (subcategory) params.subcategory = subcategory
+        const extraTerms = [shape, strap, fabric].filter(Boolean).join(' ')
+        if (extraTerms) {
+          params.search = params.search ? `${params.search} ${extraTerms}` : extraTerms
+        }
 
         if (categoryId) params.category_id = categoryId
         if (activeCategorySlug && activeCategorySlug !== 'popular') params.category_slug = activeCategorySlug

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import or_, and_, func
+from sqlalchemy import or_, and_, func, String
 from typing import List, Optional, Dict, Any
 import os, uuid, re
 from ....database.database import get_db
@@ -18,8 +18,50 @@ from ....schemas.product import (
 )
 from .deps import get_current_admin
 from ....core.config import settings
+from ....utils.meesho_parser import parse_meesho_data, extract_nlp_categories_and_tags
 
 router = APIRouter()
+
+CATEGORY_CROSS_KEYWORDS = {
+    "kids-toys": ["kid", "baby", "toy", "toddler", "infant", "stuffed", "teddy", "plush", "clay", "slime", "tent", "frock", "board game", "doll", "puzzle", "mattress protector", "baby mat", "summer picks", "playhouse"],
+    "kids-fashion": ["kid", "baby", "boys", "girls", "frock", "romper", "tshirt", "dress", "shorts", "wear"],
+    "home-kitchen": ["kitchen", "home", "cookware", "pan", "bottle", "bedsheet", "curtain", "mattress", "clock", "pillow", "blanket", "towel", "container", "decor", "furnishing"],
+    "jewellery-accessories": ["jewel", "necklace", "earring", "bangle", "ring", "belt", "sunglass", "bracelet", "watch", "accessories", "chain", "pendant"],
+    "accessories": ["belt", "belts", "sunglass", "watch", "wallet", "bag", "jewel", "cap", "hat", "muffler", "accessories"],
+    "bags-footwear": ["bag", "handbag", "backpack", "sling", "wallet", "shoe", "sneaker", "sandal", "slipper", "chappal", "flip flop", "footwear", "crocs", "loafer", "heel", "clutch"],
+    "footwear": ["shoe", "sneaker", "sandal", "slipper", "chappal", "flip flop", "footwear", "crocs", "loafer", "heel", "slide"],
+    "kurti-saree-lehenga": ["saree", "sari", "kurti", "kurta", "anarkali", "lehenga", "dupatta", "salwar", "suit", "sharara", "ethnic"],
+    "women-western": ["dress", "western", "top", "tunic", "jumpsuit", "gown", "skirt", "crop top", "jean", "jeans", "trouser", "cargo", "hoodie", "jacket", "belt", "palazzo"],
+    "womens-fashion": ["women", "dress", "saree", "kurti", "top", "gown", "jeans", "skirt", "belt", "handbag", "ladies"],
+    "men": ["men", "shirt", "tshirt", "t-shirt", "polo", "jeans", "trouser", "cargo", "jogger", "hoodie", "jacket", "chinos", "kurta men", "belt"],
+    "mens-fashion": ["men", "shirt", "tshirt", "polo", "jeans", "trouser", "shoes", "sneakers", "watch", "belt"],
+    "watches": ["watch", "smartwatch", "analog", "digital", "chronograph", "wrist watch"],
+    "electronics": ["earphone", "headphone", "earbud", "speaker", "bluetooth", "charger", "tws", "cable", "gadget", "electronics"],
+    "beauty-health": ["beauty", "cream", "perfume", "makeup", "serum", "lipstick", "skincare", "hair oil", "shampoo", "facewash"],
+    "sports-fitness": ["gym", "fitness", "dumbbell", "yoga", "running", "sports", "sneaker", "track pant"]
+}
+
+SYNONYMS_MAP = {
+    "chappal": ["flip flop", "slipper", "sandal", "chappal"],
+    "chappals": ["flip flop", "slipper", "sandal", "chappal"],
+    "sleeper": ["slipper", "flip flop", "chappal"],
+    "sleepers": ["slipper", "flip flop", "chappal"],
+    "slippers": ["slipper", "flip flop", "chappal"],
+    "flipflop": ["flip flop", "slipper", "chappal"],
+    "flipflops": ["flip flop", "slipper", "chappal"],
+    "joota": ["shoe", "sneaker", "footwear"],
+    "joote": ["shoes", "sneakers", "footwear"],
+    "shoes": ["shoe", "sneaker", "footwear"],
+    "shoe": ["shoe", "sneaker", "footwear"],
+    "ghadi": ["watch", "smartwatch"],
+    "watch": ["watch", "smartwatch", "analog"],
+    "belt": ["belt", "waist belt"],
+    "belts": ["belt", "waist belt"],
+    "toy": ["toy", "toys", "plush", "teddy", "game"],
+    "toys": ["toy", "toys", "plush", "teddy", "game"],
+    "kapde": ["cloth", "shirt", "tshirt", "dress", "kurti"],
+    "suit": ["kurti", "salwar", "ethnic", "suit"],
+}
 
 
 def make_slug(name: str, db: Session) -> str:
@@ -39,6 +81,7 @@ def get_public_products(
     limit: int = 20,
     category_id: Optional[int] = None,
     category_slug: Optional[str] = None,
+    subcategory: Optional[str] = None,
     search: Optional[str] = None,
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
@@ -53,15 +96,60 @@ def get_public_products(
 ):
     base_q = db.query(Product).filter(Product.is_active == True)
 
+    # 1. Flexible Category Filtering with Cross-Category Keywords
     if category_id:
         base_q = base_q.filter(Product.category_id == category_id)
     elif category_slug and category_slug != 'popular':
         from ....models.category import Category
         cat = db.query(Category).filter(Category.slug == category_slug).first()
+        
+        cat_conditions = []
         if cat:
-            base_q = base_q.filter(Product.category_id == cat.id)
+            cat_conditions.append(Product.category_id == cat.id)
+            
+        kws = CATEGORY_CROSS_KEYWORDS.get(category_slug, [])
+        for kw in kws:
+            cat_conditions.append(Product.name.ilike(f"%{kw}%"))
+            cat_conditions.append(Product.description.ilike(f"%{kw}%"))
+            cat_conditions.append(func.cast(Product.specifications, String).ilike(f"%{kw}%"))
+            cat_conditions.append(func.cast(Product.tags, String).ilike(f"%{kw}%"))
+            
+        if cat_conditions:
+            base_q = base_q.filter(or_(*cat_conditions))
+
+    # 2. Dynamic Subcategory Filtering (e.g. "Soft Toys", "Women Belts", "Flip Flops", "Analog Watches")
+    if subcategory:
+        sub_terms = [s.strip() for s in re.split(r'[,/]+', subcategory) if s.strip()]
+        sub_conditions = []
+        for st in sub_terms:
+            sub_conditions.append(Product.name.ilike(f"%{st}%"))
+            sub_conditions.append(func.cast(Product.specifications, String).ilike(f"%{st}%"))
+            sub_conditions.append(func.cast(Product.tags, String).ilike(f"%{st}%"))
+        if sub_conditions:
+            base_q = base_q.filter(or_(*sub_conditions))
+
+    # 3. Universal Smart Search (Synonyms + Multi-field Match)
     if search:
-        base_q = base_q.filter(Product.name.ilike(f"%{search}%"))
+        search_clean = search.strip().lower()
+        search_tokens = [w for w in re.split(r'[\s+,]+', search_clean) if len(w) > 1]
+        
+        for token in search_tokens:
+            variants = [token]
+            if token in SYNONYMS_MAP:
+                variants.extend(SYNONYMS_MAP[token])
+            
+            token_conditions = []
+            for v in variants:
+                token_conditions.append(Product.name.ilike(f"%{v}%"))
+                token_conditions.append(Product.description.ilike(f"%{v}%"))
+                token_conditions.append(func.cast(Product.specifications, String).ilike(f"%{v}%"))
+                token_conditions.append(func.cast(Product.tags, String).ilike(f"%{v}%"))
+                token_conditions.append(
+                    Product.variants.any(ProductVariant.value.ilike(f"%{v}%"))
+                )
+            base_q = base_q.filter(or_(*token_conditions))
+
+    # 4. Standard Price, Rating, Discount & Attributes Filter
     if min_price is not None:
         base_q = base_q.filter(Product.selling_price >= min_price)
     if max_price is not None:
@@ -80,6 +168,7 @@ def get_public_products(
         base_q = base_q.filter(
             or_(
                 Product.name.ilike(f"%{color}%"),
+                func.cast(Product.specifications, String).ilike(f"%{color}%"),
                 Product.variants.any(
                     and_(ProductVariant.variant_type == "color", ProductVariant.value.ilike(f"%{color}%"))
                 ),
@@ -90,6 +179,8 @@ def get_public_products(
             or_(
                 Product.name.ilike(f"%{gender}%"),
                 Product.description.ilike(f"%{gender}%"),
+                func.cast(Product.specifications, String).ilike(f"%{gender}%"),
+                func.cast(Product.tags, String).ilike(f"%{gender}%"),
             )
         )
     if featured is not None:
@@ -216,11 +307,17 @@ def create_product(
     admin: Admin = Depends(get_current_admin),
 ):
     slug = make_slug(data.name, db)
+    tags_to_save = data.tags or []
+    if not tags_to_save:
+        nlp_res = extract_nlp_categories_and_tags(data.name, data.description or "")
+        tags_to_save = nlp_res["tags"]
+
     product = Product(
         name=data.name,
         slug=slug,
         description=data.description,
         specifications=data.specifications,
+        tags=tags_to_save,
         category_id=data.category_id,
         purchase_cost=data.purchase_cost,
         selling_price=data.selling_price,
@@ -437,6 +534,7 @@ class QuickPublishRequest(BaseModel):
     images: List[str] = []
     sizes: List[str] = []
     colors: List[str] = []
+    tags: Optional[List[str]] = []
     specifications: Optional[Dict[str, Any]] = None
     is_active: bool = True
     is_featured: bool = False
@@ -461,10 +559,15 @@ def quick_publish_product(
         if cat:
             category_id = cat.id
     if not category_id:
-        first_cat = db.query(Category).filter(Category.is_active == True).first()
-        if first_cat:
-            category_id = first_cat.id
-            cat = first_cat
+        nlp_check = extract_nlp_categories_and_tags(data.name, data.description or "")
+        cat = db.query(Category).filter(Category.slug == nlp_check["suggested_category"]).first()
+        if cat:
+            category_id = cat.id
+        else:
+            first_cat = db.query(Category).filter(Category.is_active == True).first()
+            if first_cat:
+                category_id = first_cat.id
+                cat = first_cat
     else:
         cat = db.query(Category).filter(Category.id == category_id).first()
 
@@ -481,17 +584,22 @@ def quick_publish_product(
 
     slug = make_slug(data.name, db)
 
-    # 3. Create Product & Specs
+    # 3. Create Product & Specs & Tags
     product_specs = data.specifications or {}
-    if not product_specs:
+    tags_to_save = data.tags or []
+    if not product_specs or not tags_to_save:
         parsed_helper = parse_meesho_data(data.name, data.purchase_cost)
-        product_specs = parsed_helper.get("specifications", {})
+        if not product_specs:
+            product_specs = parsed_helper.get("specifications", {})
+        if not tags_to_save:
+            tags_to_save = parsed_helper.get("tags", [])
 
     product = Product(
         name=data.name,
         slug=slug,
         description=data.description or f"Trendy and premium quality {data.name}. Sourced with verified quality checks, comfortable wear and doorstep COD delivery.",
         specifications=product_specs,
+        tags=tags_to_save,
         category_id=category_id,
         purchase_cost=purchase_cost,
         selling_price=selling_price,
@@ -506,8 +614,8 @@ def quick_publish_product(
     db.add(product)
     db.flush()
 
-    # 4. Attach Images
-    img_urls = [u.strip() for u in data.images if u.strip()]
+    # 4. Attach Images (Clean real photos only - reject promo banners, 35% off ads, ribbons)
+    img_urls = [u.strip() for u in data.images if u.strip() and not re.search(r'(?:banner|offer|promo|download|app_download|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off)', u.strip(), re.I)]
     if not img_urls:
         cat_slug = cat.slug if cat else "mens-fashion"
         fallback_img = CATEGORY_FALLBACK_IMAGES.get(cat_slug, "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop")
@@ -631,12 +739,17 @@ def bulk_publish_products(
             discount_pct = round(((original_price - selling_price) / original_price) * 100)
 
         slug = make_slug(item.name.strip(), db)
+        tags_to_save = getattr(item, 'tags', None) or []
+        if not tags_to_save:
+            nlp_res = extract_nlp_categories_and_tags(item.name.strip(), item.description or "")
+            tags_to_save = nlp_res["tags"]
 
         product = Product(
             name=item.name.strip(),
             slug=slug,
             description=item.description or f"Premium quality {item.name.strip()}. Verified quality check with doorstep Cash on Delivery.",
             specifications=item.specifications or {},
+            tags=tags_to_save,
             category_id=category_id,
             purchase_cost=purchase_cost,
             selling_price=selling_price,
@@ -651,7 +764,7 @@ def bulk_publish_products(
         db.add(product)
         db.flush()
 
-        img_urls = [u.strip() for u in item.images if u.strip()]
+        img_urls = [u.strip() for u in item.images if u.strip() and not re.search(r'(?:banner|offer|promo|download|app_download|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off)', u.strip(), re.I)]
         if not img_urls:
             cat_slug = cat.slug if cat else "mens-fashion"
             fallback_img = CATEGORY_FALLBACK_IMAGES.get(cat_slug, "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop")

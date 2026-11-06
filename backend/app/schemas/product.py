@@ -33,6 +33,7 @@ class ProductCreate(BaseModel):
     name: str
     description: Optional[str] = None
     specifications: Optional[dict] = None
+    tags: Optional[List[str]] = []
     category_id: Optional[int] = None
     purchase_cost: float = 0.0
     selling_price: float
@@ -50,6 +51,7 @@ class ProductUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     specifications: Optional[dict] = None
+    tags: Optional[List[str]] = None
     category_id: Optional[int] = None
     purchase_cost: Optional[float] = None
     selling_price: Optional[float] = None
@@ -72,6 +74,7 @@ class ProductPublic(BaseModel):
     slug: str
     description: Optional[str]
     category_id: Optional[int]
+    tags: Optional[List[str]] = []
     selling_price: float
     original_price: Optional[float]
     discount_percentage: float
@@ -127,6 +130,7 @@ class ProductAdmin(BaseModel):
     slug: str
     description: Optional[str]
     specifications: Optional[dict]
+    tags: Optional[List[str]] = []
     category_id: Optional[int]
     purchase_cost: float
     selling_price: float

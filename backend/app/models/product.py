@@ -11,6 +11,7 @@ class Product(Base):
     slug = Column(String(500), unique=True, nullable=False, index=True)
     description = Column(Text, nullable=True)
     specifications = Column(JSON, nullable=True)
+    tags = Column(JSON, nullable=True)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     purchase_cost = Column(Float, default=0.0)  # admin only - never exposed to customer
     selling_price = Column(Float, nullable=False)

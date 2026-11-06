@@ -2,6 +2,12 @@ import re
 from urllib.parse import urlparse
 from typing import Dict, Any, List
 
+# Strict Anti-Banner and Anti-Offer Blacklist to block promo app download ribbons (like "35% OFF on 1st order")
+BANNER_BLACKLIST_REGEX = re.compile(
+    r'(?:banner|offer|promo|download|app_download|app_install|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off|icon|logo|avatar|rating|star|google_play|app_store)',
+    re.IGNORECASE
+)
+
 CATEGORY_FALLBACK_IMAGES = {
     "kurti-saree-lehenga": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80",
     "women-western": "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=800&q=80",
@@ -92,11 +98,221 @@ def map_meesho_category(text: str) -> str:
     if any(k in t for k in ['dress', 'western', 'top', 'tunic', 'jumpsuit', 'gown', 'skirt', 'crop top', 'palazzo', 'plazo']):
         return "women-western"
 
-    # 12. Men Apparel
+    # 12. Belts & Accessories (High priority for women belts, waist belts)
+    if any(k in t for k in ['belt', 'belts', 'waist belt', 'buckle belt']):
+        return "jewellery-accessories"
+
+    # 13. Mattresses & Bedding (High priority for baby mattresses vs home bedding)
+    if any(k in t for k in ['mattress', 'matress', 'bedsheet', 'bed sheet', 'crib', 'protector', 'baby mat']):
+        if any(k in t for k in ['baby', 'kid', 'child', 'infant', 'toddler']):
+            return "kids-toys"
+        return "home-kitchen"
+
+    # 14. Men Apparel
     if any(k in t for k in ['men', 'shirt', 'tshirt', 't-shirt', 'polo', 'jeans', 'trouser', 'cargo', 'jogger', 'hoodie', 'jacket', 'blazer', 'track pant', 'chinos', 'kurta men']):
         return "men"
 
     return "men"
+
+
+def extract_nlp_categories_and_tags(name: str, raw_text: str = "") -> Dict[str, Any]:
+    """
+    NLP Title and Keyword parser that mimics Meesho's intelligent product categorization.
+    Detects composite terms (e.g., 'women' + 'belt' -> 'Women Belts' under 'jewellery-accessories').
+    Returns suggested category, subcategories, tags, and inferred specifications.
+    """
+    text = (name + " " + raw_text).lower()
+    tags = set()
+    subcategories = []
+    suggested_category = map_meesho_category(text)
+    specs = {}
+
+    # 1. Gender Detection
+    if re.search(r'\b(women|woman|ladies|female|girl|girls)\b', text):
+        specs["Gender"] = "Women"
+        tags.update(["women", "women fashion", "ladies"])
+    elif re.search(r'\b(men|man|gents|male|boy|boys)\b', text):
+        specs["Gender"] = "Men"
+        tags.update(["men", "mens fashion", "gents"])
+    elif re.search(r'\b(baby|kid|kids|child|children|infant|toddler)\b', text):
+        specs["Gender"] = "Kids"
+        tags.update(["kids", "children", "baby"])
+    else:
+        specs["Gender"] = "Unisex"
+        tags.add("unisex")
+
+    # 2. Belts (e.g. Women Belt, Leather Belt, Waist Belt)
+    if re.search(r'\b(belt|belts|waist belt|buckle belt)\b', text):
+        if specs.get("Gender") == "Women" or "women" in text or "ladies" in text:
+            suggested_category = "jewellery-accessories"
+            subcategories.extend(["Women Belts", "Belts", "Waist Belts"])
+            tags.update(["women belt", "leather belt", "waist belt", "belt", "belts", "accessories", "women accessories", "ladies belt"])
+            specs["Type"] = "Waist Belt"
+            if "leather" in text or "pu" in text or "faux" in text:
+                specs["Material"] = "Faux Leather / Leatherette"
+        else:
+            suggested_category = "jewellery-accessories"
+            subcategories.extend(["Men Belts", "Belts", "Formal Belts"])
+            tags.update(["belt", "belts", "men belt", "leather belt", "formal belt", "accessories"])
+            specs["Type"] = "Formal Belt"
+
+    # 3. Mattresses & Bedding (Mattress in Home, Baby Mattress in Kids)
+    elif re.search(r'\b(mattress|matress|bedsheet|bed sheet|protector|crib|baby mat|waterproof mat)\b', text):
+        if re.search(r'\b(baby|kid|kids|infant|toddler|crib)\b', text):
+            suggested_category = "kids-toys"
+            subcategories.extend(["Kids Baby & Toddler", "Baby Mattresses", "Mattress Protectors", "Kids Bedding"])
+            tags.update(["baby mattress", "kids mattress", "waterproof mattress", "mattress", "kids", "baby care", "bedsheet", "home-kitchen"])
+            specs["Type"] = "Baby Waterproof Mattress"
+        else:
+            suggested_category = "home-kitchen"
+            subcategories.extend(["Mattress Protectors", "Bedsheets", "Home Furnishing"])
+            tags.update(["mattress", "bedsheet", "mattress protector", "home & kitchen", "furnishing", "bedding"])
+            specs["Type"] = "Mattress Protector"
+
+    # 4. Kids Toys & Summer Picks
+    elif re.search(r'\b(toy|toys|stuffed|teddy|plush|clay|slime|tent|playhouse|pretend play|board game|educational toy|doll|puzzle|action figure)\b', text):
+        suggested_category = "kids-toys"
+        tags.update(["kids toys", "toys", "summer picks", "kids", "games", "baby toys"])
+        if re.search(r'\b(teddy|plush|stuffed|soft toy)\b', text):
+            subcategories.extend(["Soft Toys", "Kids Toys", "Summer Picks"])
+            specs["Type"] = "Plush Soft Toy"
+            tags.add("soft toys")
+        elif re.search(r'\b(clay|slime|colour|color|crayon|neon)\b', text):
+            subcategories.extend(["Clay & Slime", "Educational Toys", "Kids Toys"])
+            specs["Type"] = "Creative Clay & Slime"
+            tags.add("clay & slime")
+        elif re.search(r'\b(tent|playhouse|play tent|kitchen set|pretend)\b', text):
+            subcategories.extend(["Dress Up & Pretend Play", "Kids Toys", "Play Tents"])
+            specs["Type"] = "Kids Play Tent"
+            tags.add("pretend play")
+        elif re.search(r'\b(puzzle|jigsaw|educational|board game|learning)\b', text):
+            subcategories.extend(["Educational Toys", "Board Games", "Kids Toys"])
+            specs["Type"] = "Educational Learning Toy"
+            tags.add("educational toys")
+        else:
+            subcategories.extend(["Kids Baby & Toddler Toys", "Kids Toys", "Toy Vehicles"])
+            specs["Type"] = "Kids Toy"
+
+    # 5. Footwear (Flip Flops, Shoes, Sandals, Slippers)
+    elif re.search(r'\b(flip flop|flip-flop|slipper|chappal|shoe|sneaker|sandal|loafer|crocs|footwear|slides)\b', text):
+        suggested_category = "bags-footwear"
+        tags.update(["footwear", "shoes", "chappal", "slippers", "flip flops", "casual wear"])
+        if re.search(r'\b(flip flop|flip-flop|slipper|chappal|slide|slides)\b', text):
+            subcategories.extend(["Flip Flops", "Slippers", "Sandals & Floaters"])
+            specs["Type"] = "Thong Flip-flops"
+            specs["Sole Material"] = "EVA"
+            tags.update(["flip flops", "thong flip-flops", "eva slippers", "chappal"])
+        elif re.search(r'\b(sneaker|running|sports shoe)\b', text):
+            subcategories.extend(["Sports Shoes", "Sneakers", "Running Shoes"])
+            specs["Type"] = "Sneakers"
+            specs["Sole Material"] = "Airmax / Rubber"
+            tags.update(["sneakers", "running shoes", "sports shoes"])
+        else:
+            subcategories.extend(["Casual Shoes", "Sandals & Floaters", "Footwear"])
+            specs["Type"] = "Casual Footwear"
+
+    # 6. Watches
+    elif re.search(r'\b(watch|smartwatch|analog|digital|chronograph)\b', text):
+        suggested_category = "watches"
+        tags.update(["watches", "watch", "smartwatch", "accessories"])
+        if "smart" in text:
+            subcategories.extend(["Smartwatches", "Digital Watches"])
+            specs["Type"] = "Smartwatch"
+        elif "analog" in text or "leather" in text:
+            subcategories.extend(["Analog Watches", "Men Watches"])
+            specs["Type"] = "Analog Watch"
+        else:
+            subcategories.extend(["Analog Watches", "Smartwatches", "Men Watches"])
+            specs["Type"] = "Wristwatch"
+
+    # 7. Sarees, Kurtis & Indian Ethnic
+    elif re.search(r'\b(saree|sari|kurti|kurta|anarkali|lehenga|dupatta|salwar|suit|sharara)\b', text):
+        if re.search(r'\b(men|boy|gents)\b', text) and any(k in text for k in ['kurta', 'sherwani', 'dhoti']):
+            suggested_category = "men"
+            subcategories.extend(["Men Ethnic Wear", "Kurtas", "Sherwanis"])
+            tags.update(["men kurta", "ethnic wear", "men"])
+        else:
+            suggested_category = "kurti-saree-lehenga"
+            tags.update(["kurti", "saree", "ethnic wear", "women fashion", "anarkali"])
+            if "saree" in text:
+                subcategories.extend(["Cotton Sarees", "Silk Sarees", "Georgette Sarees"])
+                specs["Type"] = "Ethnic Saree"
+            elif "kurti" in text:
+                subcategories.extend(["Cotton Kurtis", "Anarkali Kurtis", "Rayon Kurtis"])
+                specs["Type"] = "Ethnic Kurti"
+            else:
+                subcategories.extend(["Lehenga Cholis", "Ethnic Sets", "Kurtis"])
+                specs["Type"] = "Ethnic Wear"
+
+    # 8. Bags & Wallets
+    elif re.search(r'\b(bag|backpack|handbag|tote|purse|wallet|clutch|sling bag)\b', text):
+        suggested_category = "bags-footwear"
+        subcategories.extend(["Handbags", "Sling Bags", "Backpacks", "Wallets"])
+        tags.update(["bags", "handbag", "sling bag", "backpack", "wallet", "accessories"])
+        specs["Type"] = "Fashion Bag"
+
+    # 9. Home & Kitchen (Clocks, Cookware, Decor, Kitchen)
+    elif re.search(r'\b(clock|wall clock|curtain|bottle|cookware|pan|kadhai|container|decor|kitchen|home)\b', text):
+        suggested_category = "home-kitchen"
+        tags.update(["home & kitchen", "home decor", "kitchenware", "household"])
+        if "clock" in text:
+            subcategories.extend(["Wall Clocks", "Home Decor", "Fancy Clocks"])
+            specs["Type"] = "Wall Clock"
+        elif "curtain" in text:
+            subcategories.extend(["Curtains", "Home Furnishing"])
+            specs["Type"] = "Door & Window Curtains"
+        else:
+            subcategories.extend(["Kitchenware", "Storage & Containers", "Home Essentials"])
+            specs["Type"] = "Kitchen Utility"
+
+    # 10. Electronics & Audio
+    elif re.search(r'\b(earphone|headphone|earbud|airpod|tws|speaker|bluetooth|charger|usb|cable|neckband)\b', text):
+        suggested_category = "electronics"
+        subcategories.extend(["Bluetooth Earbuds", "Wireless Headphones", "Speakers", "Mobile Accessories"])
+        tags.update(["electronics", "audio", "earbuds", "tws", "gadgets"])
+        specs["Type"] = "Audio Gadget"
+
+    # 11. Western Wear (Jeans, Tops, T-shirts, Shirts, Dresses)
+    elif re.search(r'\b(jean|jeans|top|tshirt|t-shirt|shirt|dress|skirt|gown|trouser|cargo|jogger|hoodie|jacket)\b', text):
+        if specs.get("Gender") == "Women" or "women" in text or "ladies" in text:
+            suggested_category = "women-western"
+            tags.update(["women western", "western wear", "tops", "dresses", "jeans"])
+            if "dress" in text or "gown" in text:
+                subcategories.extend(["Western Dresses", "Gowns", "Maxi Dresses"])
+                specs["Type"] = "Western Dress"
+            elif "jean" in text or "cargo" in text or "pant" in text:
+                subcategories.extend(["Jeans", "Cargos", "Trousers"])
+                specs["Type"] = "Women Jeans"
+            else:
+                subcategories.extend(["Tops & Tunics", "Crop Tops", "T-shirts"])
+                specs["Type"] = "Casual Top"
+        else:
+            suggested_category = "men"
+            tags.update(["men fashion", "men clothing", "shirts", "t-shirts", "jeans"])
+            if "shirt" in text:
+                subcategories.extend(["Casual Shirts", "Formal Shirts"])
+                specs["Type"] = "Men Shirt"
+            elif "tshirt" in text or "t-shirt" in text:
+                subcategories.extend(["Round Neck T-shirts", "Polo T-shirts"])
+                specs["Type"] = "Men T-shirt"
+            elif "jean" in text or "cargo" in text or "jogger" in text:
+                subcategories.extend(["Men Jeans", "Cargos", "Joggers"])
+                specs["Type"] = "Men Jeans"
+            else:
+                subcategories.extend(["Men Apparel", "Casual Wear"])
+                specs["Type"] = "Men Wear"
+
+    # Individual words from title as general search tags
+    words = [w.strip() for w in re.split(r'[\s,\-_()]+', name.lower()) if len(w) > 2 and not w.isdigit()]
+    for w in words[:12]:
+        tags.add(w)
+
+    return {
+        "suggested_category": suggested_category,
+        "subcategories": list(dict.fromkeys(subcategories)),
+        "tags": list(dict.fromkeys(tags)),
+        "specs": specs
+    }
 
 
 def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent: float = 60.0) -> Dict[str, Any]:
@@ -116,6 +332,8 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
         "meesho_link": "",
         "sizes": [],
         "colors": [],
+        "tags": [],
+        "subcategories": [],
         "specifications": {},
         "images": []
     }
@@ -141,6 +359,9 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
     found_images = re.findall(image_regex, raw_input, re.IGNORECASE)
     for img in found_images:
         clean_img = img.rstrip('.,;)"\'')
+        # Block all promotional offer banners, app download ads, and junk icons
+        if BANNER_BLACKLIST_REGEX.search(clean_img):
+            continue
         if clean_img not in result["images"] and "meesho.com/p/" not in clean_img:
             result["images"].append(clean_img)
 
@@ -195,9 +416,21 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
         else:
             result["name"] = "Trendy Meesho Sourced Product"
 
-    # Category Mapping: Use explicit category first, or map product title + input
-    target_category_source = (explicit_category + " " + result["name"] + " " + raw_input).strip()
-    result["category_slug"] = map_meesho_category(target_category_source)
+    # Category Mapping & NLP Multi-Tag Auto Extraction
+    nlp_data = extract_nlp_categories_and_tags(result["name"], explicit_category + " " + raw_input)
+    result["tags"] = nlp_data["tags"]
+    result["subcategories"] = nlp_data["subcategories"]
+    
+    if explicit_category:
+        result["category_slug"] = map_meesho_category(explicit_category + " " + result["name"])
+    else:
+        result["category_slug"] = nlp_data["suggested_category"]
+
+    if nlp_data["subcategories"] and "Subcategory" not in result["specifications"]:
+        result["specifications"]["Subcategory"] = nlp_data["subcategories"][0]
+    for k, v in nlp_data["specs"].items():
+        if k not in result["specifications"]:
+            result["specifications"][k] = v
 
     # Specifications extraction
     spec_patterns = [

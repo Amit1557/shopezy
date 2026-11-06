@@ -145,7 +145,12 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
       }
       if (initialData.meesho_link) setMeeshoLink(initialData.meesho_link)
       if (initialData.images && initialData.images.length > 0) {
-        setImages(initialData.images)
+        const cleanInitial = initialData.images.filter(img => {
+          if (!img || !img.startsWith('http')) return false
+          if (/banner|offer|promo|download|app_download|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off/i.test(img)) return false
+          return true
+        })
+        setImages(cleanInitial)
       }
       if (initialData.sizes && initialData.sizes.length > 0 && !(initialData.sizes.length === 1 && initialData.sizes[0] === 'Free Size')) {
         setSizes(initialData.sizes)
@@ -271,9 +276,13 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
         }
       }
 
-      // Auto-attach photos
+      // Auto-attach photos (Strict anti-banner filter - blocks promo ribbons & 35% off app ads)
       if (data.images && data.images.length > 0) {
-        const cleanImgs = data.images.filter(img => img && img.startsWith('http') && !img.includes('meesho.com/p/'))
+        const cleanImgs = data.images.filter(img => {
+          if (!img || !img.startsWith('http') || img.includes('meesho.com/p/')) return false
+          if (/banner|offer|promo|download|app_download|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off/i.test(img)) return false
+          return true
+        })
         setImages(cleanImgs)
       }
 
@@ -460,8 +469,8 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
     }
   }
 
-  // Super-smart 1-Click Bookmarklet: extracts exact price, Meesho breadcrumb category, sizes & photos
-  const bookmarkletCode = `javascript:(function(){try{var t=document.querySelector('h1')?.innerText||document.title.replace(/\\s*\\|.*$/,'').trim();var p=0;var cat='';var jd=null;document.querySelectorAll('script[type="application/ld+json"]').forEach(function(s){try{var j=JSON.parse(s.innerText);if(j['@type']==='Product'||(Array.isArray(j)&&j[0]&&j[0]['@type']==='Product')){jd=Array.isArray(j)?j[0]:j;}}catch(e){}});if(jd){if(jd.name)t=jd.name.trim();if(jd.category)cat=jd.category;if(jd.offers){p=parseFloat(jd.offers.price||jd.offers.lowPrice||0);}}if(!p){var metaP=document.querySelector('meta[property="product:price:amount"]')?.content;if(metaP)p=parseFloat(metaP);}if(!p){var h1=document.querySelector('h1');var cont=h1?(h1.closest('div')||h1.parentElement):document.body;var pm=(cont?cont.innerText:'').match(/₹\\s*([0-9]+(?:\\.[0-9]+)?)/);if(pm)p=parseFloat(pm[1]);}if(!p){var allPm=document.body.innerText.match(/₹\\s*([0-9]{2,5})/g);if(allPm&&allPm.length>0){var cleanNums=allPm.map(function(s){return parseFloat(s.replace(/[^0-9]/g,''));}).filter(function(n){return n>=49&&n<=25000;});if(cleanNums.length>0)p=Math.min.apply(null,cleanNums);}}if(!cat){var bcEls=Array.from(document.querySelectorAll('div[class*="Breadcrumb"] a,nav a,ol li,span[class*="Breadcrumb"]'));var bcTexts=bcEls.map(function(e){return e.innerText.trim();}).filter(function(x){return x&&!/home/i.test(x)&&x.length<30;});if(bcTexts.length>0)cat=bcTexts.join(' > ');}var imgs=[];if(jd&&jd.image){var jImgs=Array.isArray(jd.image)?jd.image:[jd.image];jImgs.forEach(function(u){if(u&&typeof u==='string'&&imgs.indexOf(u)===-1)imgs.push(u);});}document.querySelectorAll('img[src*="images.meesho.com"]').forEach(function(el){var s=el.src;if(s&&!s.includes('avatar')&&!s.includes('icon')&&imgs.indexOf(s)===-1){var c=s.replace(/_[0-9]+\\.(jpg|webp|jpeg)/,'.jpg');if(imgs.indexOf(c)===-1)imgs.push(c);}});var sizes=[];var sm=document.body.innerText.match(/\\b(IND-\\d+|UK-\\d+|XS|S|M|L|XL|XXL|3XL|Free Size)\\b/gi);if(sm){sm.forEach(function(s){var u=s.toUpperCase();if(sizes.indexOf(u)===-1&&sizes.length<8)sizes.push(u);});}var d={name:t,purchase_cost:p,category:cat,meesho_link:window.location.href,images:imgs.slice(0,6),sizes:sizes.length?sizes:['Free Size']};window.open('${window.location.origin}/admin/products?importData='+encodeURIComponent(JSON.stringify(d)),'_blank');}catch(e){alert('Error: '+e.message);}})();`
+  // Super-smart 1-Click Bookmarklet: extracts exact price, Meesho breadcrumb category, sizes & clean photos (No promo banners)
+  const bookmarkletCode = `javascript:(function(){try{var t=document.querySelector('h1')?.innerText||document.title.replace(/\\s*\\|.*$/,'').trim();var p=0;var cat='';var jd=null;document.querySelectorAll('script[type="application/ld+json"]').forEach(function(s){try{var j=JSON.parse(s.innerText);if(j['@type']==='Product'||(Array.isArray(j)&&j[0]&&j[0]['@type']==='Product')){jd=Array.isArray(j)?j[0]:j;}}catch(e){}});if(jd){if(jd.name)t=jd.name.trim();if(jd.category)cat=jd.category;if(jd.offers){p=parseFloat(jd.offers.price||jd.offers.lowPrice||0);}}if(!p){var metaP=document.querySelector('meta[property="product:price:amount"]')?.content;if(metaP)p=parseFloat(metaP);}if(!p){var h1=document.querySelector('h1');var cont=h1?(h1.closest('div')||h1.parentElement):document.body;var pm=(cont?cont.innerText:'').match(/₹\\s*([0-9]+(?:\\.[0-9]+)?)/);if(pm)p=parseFloat(pm[1]);}if(!p){var allPm=document.body.innerText.match(/₹\\s*([0-9]{2,5})/g);if(allPm&&allPm.length>0){var cleanNums=allPm.map(function(s){return parseFloat(s.replace(/[^0-9]/g,''));}).filter(function(n){return n>=49&&n<=25000;});if(cleanNums.length>0)p=Math.min.apply(null,cleanNums);}}if(!cat){var bcEls=Array.from(document.querySelectorAll('div[class*="Breadcrumb"] a,nav a,ol li,span[class*="Breadcrumb"]'));var bcTexts=bcEls.map(function(e){return e.innerText.trim();}).filter(function(x){return x&&!/home/i.test(x)&&x.length<30;});if(bcTexts.length>0)cat=bcTexts.join(' > ');}var isBanner=function(src,el){if(!src||typeof src!=='string')return true;if(/(banner|offer|promo|download|app_download|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off|icon|logo|avatar|rating|star|google_play|app_store)/i.test(src))return true;if(el&&el.naturalHeight&&el.naturalWidth&&(el.naturalWidth/el.naturalHeight>1.8||el.naturalHeight<120))return true;return false;};var imgs=[];if(jd&&jd.image){var jImgs=Array.isArray(jd.image)?jd.image:[jd.image];jImgs.forEach(function(u){if(u&&typeof u==='string'&&!isBanner(u)&&imgs.indexOf(u)===-1)imgs.push(u);});}var galEls=document.querySelectorAll('div[class*="ProductDesktopImage"] img,div[class*="ProductGallery"] img,div[class*="ImageWrapper"] img,[data-testid="product-image"] img');if(galEls.length>0){galEls.forEach(function(el){var s=el.src;if(s&&!isBanner(s,el)){var c=s.replace(/_[0-9]+\\.(jpg|webp|jpeg)/,'.jpg');if(imgs.indexOf(c)===-1)imgs.push(c);}});}if(imgs.length===0){document.querySelectorAll('img[src*="images.meesho.com"]').forEach(function(el){var s=el.src;if(s&&!isBanner(s,el)){var c=s.replace(/_[0-9]+\\.(jpg|webp|jpeg)/,'.jpg');if(imgs.indexOf(c)===-1)imgs.push(c);}});}var sizes=[];var sm=document.body.innerText.match(/\\b(IND-\\d+|UK-\\d+|XS|S|M|L|XL|XXL|3XL|Free Size)\\b/gi);if(sm){sm.forEach(function(s){var u=s.toUpperCase();if(sizes.indexOf(u)===-1&&sizes.length<8)sizes.push(u);});}var d={name:t,purchase_cost:p,category:cat,meesho_link:window.location.href,images:imgs.slice(0,6),sizes:sizes.length?sizes:['Free Size']};window.open('${window.location.origin}/admin/products?importData='+encodeURIComponent(JSON.stringify(d)),'_blank');}catch(e){alert('Error: '+e.message);}})();`
 
   const showcaseOptions = CATEGORY_SHOWCASE_PHOTOS[categorySlug] || CATEGORY_SHOWCASE_PHOTOS['bags-footwear'] || []
 
