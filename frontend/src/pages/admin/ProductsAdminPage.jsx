@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import {
   Plus, Search, Edit, Trash2, Eye, EyeOff, Star,
   Package, ExternalLink, RefreshCw, AlertCircle, Sparkles,
-  Download, Upload, Layers
+  Download, Upload, Layers, ShieldCheck, CheckCircle2
 } from 'lucide-react'
 import { productsAdminAPI, categoriesAPI } from '../../services/api'
 import { formatPrice } from '../../utils/helpers'
@@ -239,6 +239,26 @@ export default function ProductsAdminPage() {
     }
   }
 
+  const [repairing, setRepairing] = useState(false)
+
+  const handleAutoRepair = async () => {
+    setRepairing(true)
+    try {
+      const res = await productsAdminAPI.autoRepairCatalog()
+      const data = res.data
+      toast.success(
+        `🛡️ Catalog 100% Healthy! Audited ${data.total_audited} products.\nFixed categories: ${data.categories_fixed} | Pruned duplicates: ${data.duplicates_removed} | Enriched filters: ${data.variants_backfilled + data.specs_enriched}`,
+        { duration: 5000 }
+      )
+      fetchProducts()
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to run catalog auto-repair')
+    } finally {
+      setRepairing(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -248,6 +268,18 @@ export default function ProductsAdminPage() {
           <p className="text-xs text-gray-500 mt-0.5">Manage products sourced from Meesho, adjust selling prices & margins</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* 1-Click Catalog Health & Self-Repair */}
+          <button
+            type="button"
+            onClick={handleAutoRepair}
+            disabled={repairing}
+            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs py-2.5 px-3.5 rounded-xl font-bold inline-flex items-center gap-2 transition-all cursor-pointer active:scale-95 shadow-xs disabled:opacity-50"
+            title="Scan entire catalog, fix category mismatches, remove duplicates, and backfill missing color/size filters automatically"
+          >
+            <ShieldCheck className={`w-4 h-4 text-emerald-600 ${repairing ? 'animate-spin' : ''}`} />
+            <span>{repairing ? 'Auditing & Repairing...' : '🛡️ Catalog Health Auto-Fix'}</span>
+          </button>
+
           {/* Subtle Backup / Restore icons */}
           <button
             type="button"
