@@ -100,6 +100,7 @@ export const productsAdminAPI = {
   bulkPublish: (data) => api.post('/products/bulk-publish', data),
   bulkParseMeesho: (data) => api.post('/products/bulk-parse-meesho', data),
   autoRepairCatalog: () => api.post('/products/admin/auto-repair-catalog'),
+  syncMeeshoAvailability: () => api.post('/products/admin/sync-meesho-availability'),
   backupAll: () => api.get('/products/admin/backup-all'),
   restoreAll: (data) => api.post('/products/admin/restore-all', data),
 }

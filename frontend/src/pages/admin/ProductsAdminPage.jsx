@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   Plus, Search, Edit, Trash2, Eye, EyeOff, Star,
@@ -108,15 +108,18 @@ export default function ProductsAdminPage() {
     }
   }, [searchParams])
 
-  const page = parseInt(searchParams.get('page') || '1')
   const search = searchParams.get('search') || ''
   const categoryId = searchParams.get('category_id') || ''
   const [searchInput, setSearchInput] = useState(search)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const loadMoreRef = useRef(null)
 
-  const fetchProducts = async (isInitial = false) => {
+  const fetchProducts = useCallback(async (isInitial = false) => {
     if (isInitial || products.length === 0) setLoading(true)
+    setCurrentPage(1)
     try {
-      const params = { page, limit: 12 }
+      const params = { page: 1, limit: 12 }
       if (search) params.search = search
       if (categoryId) params.category_id = categoryId
       const [prodRes, catRes] = await Promise.all([
@@ -133,17 +136,64 @@ export default function ProductsAdminPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [search, categoryId])
 
   useEffect(() => {
-    fetchProducts(products.length === 0)
-  }, [searchParams])
+    fetchProducts(true)
+  }, [fetchProducts])
+
+  // Infinite Scroll: Load next batch of products seamlessly
+  const handleLoadMore = useCallback(async () => {
+    if (loading || loadingMore || currentPage >= pages) return
+    const nextPage = currentPage + 1
+    setLoadingMore(true)
+    try {
+      const params = { page: nextPage, limit: 12 }
+      if (search) params.search = search
+      if (categoryId) params.category_id = categoryId
+      const res = await productsAdminAPI.getAll(params)
+      const incoming = res.data.products || []
+      setProducts(prev => {
+        const seen = new Set(prev.map(p => p.id))
+        const unique = incoming.filter(p => !seen.has(p.id))
+        return [...prev, ...unique]
+      })
+      setCurrentPage(nextPage)
+      setPages(res.data.pages || 1)
+      setTotal(res.data.total || 0)
+    } catch (err) {
+      console.error('Error loading more products:', err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [loading, loadingMore, currentPage, pages, search, categoryId])
+
+  // Auto-trigger load more as admin scrolls towards bottom of table
+  useEffect(() => {
+    if (loading || loadingMore || currentPage >= pages) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          handleLoadMore()
+        }
+      },
+      { threshold: 0.1, rootMargin: '300px' }
+    )
+
+    const el = loadMoreRef.current
+    if (el) observer.observe(el)
+
+    return () => {
+      if (el) observer.unobserve(el)
+    }
+  }, [handleLoadMore, loading, loadingMore, currentPage, pages])
 
   const updateParam = (key, val) => {
     const p = new URLSearchParams(searchParams)
     if (val) p.set(key, val)
     else p.delete(key)
-    p.delete('page')
+    if (key !== 'page') p.delete('page')
     setSearchParams(p)
   }
 
@@ -250,12 +300,32 @@ export default function ProductsAdminPage() {
         `🛡️ Catalog 100% Healthy! Audited ${data.total_audited} products.\nFixed categories: ${data.categories_fixed} | Pruned duplicates: ${data.duplicates_removed} | Enriched filters: ${data.variants_backfilled + data.specs_enriched}`,
         { duration: 5000 }
       )
-      fetchProducts()
+      fetchProducts(true)
     } catch (err) {
       console.error(err)
       toast.error('Failed to run catalog auto-repair')
     } finally {
       setRepairing(false)
+    }
+  }
+
+  const [syncingStock, setSyncingStock] = useState(false)
+
+  const handleSyncStock = async () => {
+    setSyncingStock(true)
+    try {
+      const res = await productsAdminAPI.syncMeeshoAvailability()
+      const data = res.data
+      toast.success(
+        `🔄 Meesho Stock Synced!\nChecked: ${data.total_checked} | In Stock: ${data.in_stock} | Out of Stock (Hidden): ${data.out_of_stock_hidden}`,
+        { duration: 5000 }
+      )
+      fetchProducts(true)
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to sync Meesho stock')
+    } finally {
+      setSyncingStock(false)
     }
   }
 
@@ -278,6 +348,18 @@ export default function ProductsAdminPage() {
           >
             <ShieldCheck className={`w-4 h-4 text-emerald-600 ${repairing ? 'animate-spin' : ''}`} />
             <span>{repairing ? 'Auditing & Repairing...' : '🛡️ Catalog Health Auto-Fix'}</span>
+          </button>
+
+          {/* Automated Meesho Stock & Availability Sync */}
+          <button
+            type="button"
+            onClick={handleSyncStock}
+            disabled={syncingStock}
+            className="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs py-2.5 px-3.5 rounded-xl font-bold inline-flex items-center gap-2 transition-all cursor-pointer active:scale-95 shadow-xs disabled:opacity-50"
+            title="Scan Meesho product availability: Automatically hides out-of-stock or removed items from store (Runs auto every 3 days)"
+          >
+            <RefreshCw className={`w-4 h-4 text-amber-600 ${syncingStock ? 'animate-spin' : ''}`} />
+            <span>{syncingStock ? 'Checking Stock...' : '📦 Sync Meesho Stock'}</span>
           </button>
 
           {/* Subtle Backup / Restore icons */}
@@ -493,6 +575,11 @@ export default function ProductsAdminPage() {
                           {p.is_active ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                           {p.is_active ? 'Active' : 'Inactive'}
                         </button>
+                        {p.specifications?.meesho_stock_status === 'out_of_stock' && (
+                          <span className="text-[9px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 font-bold block mt-1 whitespace-nowrap">
+                            ⚠️ Out of Stock (Meesho)
+                          </span>
+                        )}
                       </td>
 
                       {/* Featured */}
@@ -540,7 +627,48 @@ export default function ProductsAdminPage() {
         )}
       </div>
 
-      <Pagination page={page} pages={pages} onPageChange={p => updateParam('page', p)} />
+      {/* Meesho-Style Infinite Scroll & Dynamic Load More */}
+      {products.length > 0 && (
+        <div className="py-6 flex flex-col items-center justify-center gap-3">
+          {/* Progress Counter */}
+          <div className="flex items-center gap-2 text-xs font-bold text-gray-500 bg-gray-50 px-4 py-1.5 rounded-full border border-gray-200">
+            <span>Showing {products.length} of {total} Products</span>
+          </div>
+
+          {/* Sentry element observed by IntersectionObserver */}
+          <div ref={loadMoreRef} className="h-4 w-full flex items-center justify-center">
+            {loadingMore && (
+              <div className="flex items-center gap-2 text-xs text-purple-700 font-bold animate-pulse">
+                <LoadingSpinner size="sm" />
+                <span>Loading more products...</span>
+              </div>
+            )}
+          </div>
+
+          {/* Manual Load More button */}
+          {currentPage < pages && !loadingMore && (
+            <button
+              onClick={handleLoadMore}
+              className="px-5 py-2.5 bg-white border border-gray-200 hover:border-purple-300 hover:bg-purple-50 text-gray-700 hover:text-purple-700 font-bold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
+            >
+              ↓ Load More Products ({products.length} of {total})
+            </button>
+          )}
+
+          {/* Reached End */}
+          {currentPage >= pages && total > 0 && (
+            <div className="flex items-center gap-3 text-xs text-gray-400">
+              <span>🎉 All {total} products loaded!</span>
+              <button
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="text-purple-600 font-bold hover:underline cursor-pointer"
+              >
+                Back to Top ↑
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Quick Edit Modal (Price, Photos, Sizes, Details) */}
       <ProductQuickEditModal

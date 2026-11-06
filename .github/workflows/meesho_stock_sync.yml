@@ -1,0 +1,20 @@
+name: Automated Meesho Stock & Availability Check (Every 3 Days)
+
+on:
+  schedule:
+    # Runs at 02:00 UTC (07:30 AM IST) every 3 days
+    - cron: '0 2 */3 * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions anytime
+
+jobs:
+  sync-stock:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Automated Stock Audit on Render Backend
+        run: |
+          echo "Initiating 3-day automated Meesho stock sync..."
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "https://shopezy-backend-dn00.onrender.com/api/v1/products/admin/sync-meesho-availability" \
+            -H "x-cron-key: shopezy-cron-secret-3days" \
+            -H "Content-Type: application/json" \
+            --max-time 60 || echo "FAILED")
+          echo "$RESPONSE"

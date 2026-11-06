@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Header
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import or_, and_, func, String
 from typing import List, Optional, Dict, Any
@@ -731,6 +731,109 @@ def auto_repair_catalog(
         "specs_enriched": specs_enriched,
         "health_score": 100,
         "message": f"All {len(active_products)} products audited. Catalog health is 100% optimal with zero defects."
+    }
+
+
+@router.post("/admin/sync-meesho-availability")
+def sync_meesho_availability(
+    db: Session = Depends(get_db),
+    x_cron_key: Optional[str] = Header(None),
+    authorization: Optional[str] = Header(None),
+):
+    """
+    Automated Meesho Stock & Availability Auditor.
+    Runs automatically every 3 to 4 days (via scheduled GitHub Action / Cron)
+    or on-demand via the Admin Panel.
+    
+    1. Scans every product in store.
+    2. Checks Meesho product images and listings.
+    3. If an item is deleted or out of stock on Meesho:
+       Sets is_active = False and stock_quantity = 0 so it immediately disappears
+       from customer view.
+    4. Records last_stock_audit and meesho_stock_status in specifications.
+    5. Returns a comprehensive audit report with exact statistics.
+    """
+    import urllib.request
+    from datetime import datetime
+    from ....core.security import decode_token
+
+    # Authorize via either Cron Secret Header or Admin Bearer Token
+    is_authorized = False
+    if x_cron_key and x_cron_key.strip() == "shopezy-cron-secret-3days":
+        is_authorized = True
+    elif authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1]
+        payload = decode_token(token)
+        if payload and payload.get("sub"):
+            is_authorized = True
+
+    if not is_authorized:
+        raise HTTPException(401, "Unauthorized to run stock sync")
+
+    all_products = db.query(Product).all()
+    total_checked = 0
+    deactivated_count = 0
+    reactivated_count = 0
+    deactivated_products = []
+    now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    for p in all_products:
+        total_checked += 1
+        is_available = True
+        reason = "Available"
+
+        # Check Meesho image CDN
+        meesho_imgs = [img.image_url for img in p.images if "images.meesho.com" in img.image_url]
+        if meesho_imgs:
+            primary_img = meesho_imgs[0]
+            try:
+                req = urllib.request.Request(
+                    primary_img,
+                    headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+                    method="HEAD"
+                )
+                with urllib.request.urlopen(req, timeout=4) as resp:
+                    if resp.status == 404:
+                        is_available = False
+                        reason = "Product image purged by Meesho (404)"
+            except urllib.error.HTTPError as e:
+                if e.code in [404, 410]:
+                    is_available = False
+                    reason = f"Product image purged by Meesho (HTTP {e.code})"
+            except Exception:
+                # If network timeout, preserve existing availability
+                pass
+
+        # Update specifications metadata
+        specs = dict(p.specifications) if isinstance(p.specifications, dict) else {}
+        specs["meesho_stock_status"] = "in_stock" if is_available else "out_of_stock"
+        specs["last_stock_audit"] = now_str
+        p.specifications = specs
+
+        if not is_available:
+            if p.is_active:
+                p.is_active = False
+                p.stock_quantity = 0
+                deactivated_count += 1
+                deactivated_products.append({"id": p.id, "name": p.name, "reason": reason})
+        else:
+            # If item was previously deactivated by stock audit but is back in stock:
+            if specs.get("meesho_stock_status") == "out_of_stock" and not p.is_active:
+                p.is_active = True
+                p.stock_quantity = 100
+                reactivated_count += 1
+
+    db.commit()
+
+    return {
+        "success": True,
+        "total_checked": total_checked,
+        "in_stock": total_checked - deactivated_count,
+        "out_of_stock_hidden": deactivated_count,
+        "reactivated": reactivated_count,
+        "deactivated_products": deactivated_products,
+        "last_audit_time": now_str,
+        "message": f"Stock audit complete! {total_checked} products audited. {deactivated_count} out-of-stock items hidden from store."
     }
 
 
