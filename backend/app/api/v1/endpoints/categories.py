@@ -48,6 +48,42 @@ def create_category(
     return cat
 
 
+@router.post("/admin/realign-meesho-categories")
+def realign_meesho_categories_endpoint(
+    x_cron_key: Optional[str] = Header(None),
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
+):
+    # Allow either secret cron key or valid admin token
+    authorized = False
+    if x_cron_key and x_cron_key.strip() == "shopezy-cron-secret-3days":
+        authorized = True
+    elif authorization:
+        try:
+            from .deps import get_current_admin
+            token = authorization.replace("Bearer ", "").strip()
+            from ....core.security import decode_token
+            payload = decode_token(token)
+            if payload and payload.get("sub"):
+                authorized = True
+        except Exception:
+            pass
+
+    if not authorized:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    from ...utils.init_db import init_db
+    init_db()
+
+    # Query and return fresh active categories
+    active_cats = db.query(Category).filter(Category.is_active == True).order_by(Category.sort_order.asc()).all()
+    return {
+        "success": True,
+        "message": "Successfully realigned categories and fixed catalog hierarchy to match Meesho Front Page.",
+        "active_categories": [{"id": c.id, "name": c.name, "slug": c.slug, "sort_order": c.sort_order} for c in active_cats]
+    }
+
+
 @router.put("/{cat_id}", response_model=CategoryOut)
 def update_category(
     cat_id: int,
@@ -77,42 +113,4 @@ def delete_category(
     db.delete(cat)
     db.commit()
     return {"message": "Category deleted"}
-
-
-@router.post("/admin/realign-meesho-categories")
-def realign_meesho_categories_endpoint(
-    x_cron_key: Optional[str] = Header(None),
-    authorization: Optional[str] = Header(None),
-    db: Session = Depends(get_db),
-):
-    # Allow either secret cron key or valid admin token
-    authorized = False
-    if x_cron_key and x_cron_key.strip() == "shopezy-cron-secret-3days":
-        authorized = True
-    elif authorization:
-        try:
-            from .deps import get_current_admin
-            from fastapi.security import HTTPAuthorizationCredentials
-            # If valid admin bearer token
-            token = authorization.replace("Bearer ", "").strip()
-            from ....core.security import decode_token
-            payload = decode_token(token)
-            if payload and payload.get("sub"):
-                authorized = True
-        except Exception:
-            pass
-
-    if not authorized:
-        raise HTTPException(status_code=403, detail="Unauthorized")
-
-    from ...utils.init_db import init_db
-    init_db()
-
-    # Query and return fresh active categories
-    active_cats = db.query(Category).filter(Category.is_active == True).order_by(Category.sort_order.asc()).all()
-    return {
-        "success": True,
-        "message": "Successfully realigned categories and fixed catalog hierarchy to match Meesho Front Page.",
-        "active_categories": [{"id": c.id, "name": c.name, "slug": c.slug, "sort_order": c.sort_order} for c in active_cats]
-    }
 
