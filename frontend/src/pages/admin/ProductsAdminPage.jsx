@@ -34,7 +34,28 @@ export default function ProductsAdminPage() {
     const bulkParam = searchParams.get('bulkImportData')
     const isBulkWindowName = searchParams.get('bulkImport') === '1'
 
-    // Priority 1: High-Performance Gzip Compressed Payload (Handles 50-100+ products in <1KB URL)
+    // Priority 1: Instant & Safe window.name transfer (No URL length limits, 100% reliable)
+    if (isBulkWindowName) {
+      try {
+        const rawName = window.name
+        if (rawName && rawName.startsWith('[')) {
+          const parsed = JSON.parse(rawName)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setInitialBulkData(parsed)
+            setIsBulkImporterOpen(true)
+            window.name = '' // Clear window name after reading
+            const p = new URLSearchParams(window.location.search)
+            p.delete('bulkImport')
+            setSearchParams(p, { replace: true })
+            return
+          }
+        }
+      } catch (err) {
+        console.error('Failed to parse window.name bulk data', err)
+      }
+    }
+
+    // Priority 2: Gzip Compressed Payload with Guaranteed URL Cleanup
     if (bulkGzip) {
       (async () => {
         try {
@@ -50,35 +71,18 @@ export default function ProductsAdminPage() {
           if (Array.isArray(parsed) && parsed.length > 0) {
             setInitialBulkData(parsed)
             setIsBulkImporterOpen(true)
-            const p = new URLSearchParams(searchParams)
-            p.delete('bulkGzip')
-            setSearchParams(p, { replace: true })
           }
         } catch (err) {
           console.error('Failed to decompress bulkGzip data', err)
+          // Always open importer modal so user can paste directly if needed
+          setIsBulkImporterOpen(true)
+        } finally {
+          const p = new URLSearchParams(window.location.search)
+          p.delete('bulkGzip')
+          setSearchParams(p, { replace: true })
         }
       })()
       return
-    }
-
-    if (isBulkWindowName) {
-      try {
-        const rawName = window.name
-        if (rawName && rawName.startsWith('[')) {
-          const parsed = JSON.parse(rawName)
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setInitialBulkData(parsed)
-            setIsBulkImporterOpen(true)
-            window.name = '' // Clear window name after reading
-            const p = new URLSearchParams(searchParams)
-            p.delete('bulkImport')
-            setSearchParams(p, { replace: true })
-            return
-          }
-        }
-      } catch (err) {
-        console.error('Failed to parse window.name bulk data', err)
-      }
     }
 
     if (bulkParam) {

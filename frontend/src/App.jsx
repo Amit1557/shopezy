@@ -22,7 +22,7 @@ const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage'))
 const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
 const OrdersPage = lazy(() => import('./pages/admin/OrdersPage'))
 const OrderDetailPage = lazy(() => import('./pages/admin/OrderDetailPage'))
-const ProductsAdminPage = lazy(() => import('./pages/admin/ProductsAdminPage'))
+import ProductsAdminPage from './pages/admin/ProductsAdminPage'
 const ProductFormPage = lazy(() => import('./pages/admin/ProductFormPage'))
 const CategoriesPage = lazy(() => import('./pages/admin/CategoriesPage'))
 const CustomersPage = lazy(() => import('./pages/admin/CustomersPage'))
