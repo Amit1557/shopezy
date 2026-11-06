@@ -6,6 +6,7 @@ import {
 import { productsAdminAPI, categoriesAPI } from '../../services/api'
 import { formatPrice } from '../../utils/helpers'
 import LoadingSpinner from '../ui/LoadingSpinner'
+import { isCleanProductImage } from './MeeshoQuickImporterModal'
 import toast from 'react-hot-toast'
 
 export default function BulkProductImporterModal({ isOpen, onClose, onSuccess }) {
@@ -93,7 +94,7 @@ export default function BulkProductImporterModal({ isOpen, onClose, onSuccess })
           purchase_cost: cost ? String(cost) : '',
           selling_price: String(sell),
           original_price: String(orig),
-          images: p.images || [],
+          images: (p.images || []).filter(isCleanProductImage),
           imageUrlInput: '',
           sizes: p.sizes?.length > 0 ? p.sizes : ['S', 'M', 'L', 'XL'],
           meesho_link: p.meesho_link || ''
@@ -260,7 +261,7 @@ Breathable Running Sports Shoes,340,699,footwear,https://images.unsplash.com/pho
           purchase_cost: parseFloat(p.purchase_cost) || 0.0,
           selling_price: parseFloat(p.selling_price),
           original_price: parseFloat(p.original_price) || (parseFloat(p.selling_price) + 200),
-          images: p.images,
+          images: (p.images || []).filter(isCleanProductImage),
           sizes: p.sizes,
           colors: [],
           is_active: true,

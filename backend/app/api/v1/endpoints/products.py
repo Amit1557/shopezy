@@ -18,7 +18,7 @@ from ....schemas.product import (
 )
 from .deps import get_current_admin
 from ....core.config import settings
-from ....utils.meesho_parser import parse_meesho_data, extract_nlp_categories_and_tags
+from ....utils.meesho_parser import parse_meesho_data, extract_nlp_categories_and_tags, is_valid_product_image
 
 router = APIRouter()
 
@@ -615,7 +615,7 @@ def quick_publish_product(
     db.flush()
 
     # 4. Attach Images (Clean real photos only - reject promo banners, 35% off ads, ribbons)
-    img_urls = [u.strip() for u in data.images if u.strip() and not re.search(r'(?:banner|offer|promo|download|app_download|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off)', u.strip(), re.I)]
+    img_urls = [u.strip() for u in data.images if is_valid_product_image(u)]
     if not img_urls:
         cat_slug = cat.slug if cat else "mens-fashion"
         fallback_img = CATEGORY_FALLBACK_IMAGES.get(cat_slug, "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop")
@@ -764,7 +764,7 @@ def bulk_publish_products(
         db.add(product)
         db.flush()
 
-        img_urls = [u.strip() for u in item.images if u.strip() and not re.search(r'(?:banner|offer|promo|download|app_download|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off)', u.strip(), re.I)]
+        img_urls = [u.strip() for u in item.images if is_valid_product_image(u)]
         if not img_urls:
             cat_slug = cat.slug if cat else "mens-fashion"
             fallback_img = CATEGORY_FALLBACK_IMAGES.get(cat_slug, "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&auto=format&fit=crop")

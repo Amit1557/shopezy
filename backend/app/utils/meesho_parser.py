@@ -4,9 +4,28 @@ from typing import Dict, Any, List
 
 # Strict Anti-Banner and Anti-Offer Blacklist to block promo app download ribbons (like "35% OFF on 1st order")
 BANNER_BLACKLIST_REGEX = re.compile(
-    r'(?:banner|offer|promo|download|app_download|app_install|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off|icon|logo|avatar|rating|star|google_play|app_store)',
+    r'(?:banner|offer|promo|download|app_download|app_install|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off|icon|logo|avatar|rating|star|google_play|app_store|marketing|growth|pow|widgets|ribbon|first_order)',
     re.IGNORECASE
 )
+
+def is_valid_product_image(url: str) -> bool:
+    """
+    Validates that an image URL is a real product photo and NOT a marketing banner,
+    35% OFF discount ribbon, app download ad, or generic UI icon.
+    """
+    if not url or not isinstance(url, str):
+        return False
+    u = url.strip()
+    if not u.startswith("http"):
+        return False
+    if "meesho.com/p/" in u:
+        return False
+    # If the image is hosted on Meesho CDN, it MUST be a product photo in /products/
+    if "images.meesho.com" in u and "/products/" not in u:
+        return False
+    if BANNER_BLACKLIST_REGEX.search(u):
+        return False
+    return True
 
 CATEGORY_FALLBACK_IMAGES = {
     "kurti-saree-lehenga": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80",
@@ -109,10 +128,13 @@ def map_meesho_category(text: str) -> str:
         return "home-kitchen"
 
     # 14. Men Apparel
-    if any(k in t for k in ['men', 'shirt', 'tshirt', 't-shirt', 'polo', 'jeans', 'trouser', 'cargo', 'jogger', 'hoodie', 'jacket', 'blazer', 'track pant', 'chinos', 'kurta men']):
+    if re.search(r'\b(men|man|gents|male)\b', t) or any(k in t for k in ['shirt', 'tshirt', 't-shirt', 'polo', 'jeans', 'trouser', 'cargo', 'jogger', 'hoodie', 'jacket', 'blazer', 'track pant', 'chinos', 'kurta men']):
         return "men"
 
-    return "men"
+    if is_female:
+        return "women-western"
+
+    return "jewellery-accessories"
 
 
 def extract_nlp_categories_and_tags(name: str, raw_text: str = "") -> Dict[str, Any]:
@@ -360,9 +382,9 @@ def parse_meesho_data(raw_input: str, meesho_cost: float = None, margin_percent:
     for img in found_images:
         clean_img = img.rstrip('.,;)"\'')
         # Block all promotional offer banners, app download ads, and junk icons
-        if BANNER_BLACKLIST_REGEX.search(clean_img):
+        if not is_valid_product_image(clean_img):
             continue
-        if clean_img not in result["images"] and "meesho.com/p/" not in clean_img:
+        if clean_img not in result["images"]:
             result["images"].append(clean_img)
 
     # 2. Extract structured fields from shared Meesho text

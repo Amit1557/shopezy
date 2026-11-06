@@ -65,27 +65,67 @@ const CATEGORY_SHOWCASE_PHOTOS = {
   ]
 }
 
+export const isCleanProductImage = (url) => {
+  if (!url || typeof url !== 'string') return false
+  const u = url.trim()
+  if (!u.startsWith('http')) return false
+  if (u.includes('meesho.com/p/')) return false
+  // If the image is on Meesho CDN, it MUST be an authentic product photo inside /products/
+  if (u.includes('images.meesho.com') && !u.includes('/products/')) return false
+  // Strict regex to reject marketing ribbons, 35% off app ads, coupons, banners, etc.
+  if (/banner|offer|promo|download|app_download|app_install|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off|icon|logo|avatar|rating|star|google_play|app_store|marketing|growth|pow|widgets|ribbon|first_order/i.test(u)) {
+    return false
+  }
+  return true
+}
+
 export function mapCategoryToSlug(text) {
-  if (!text) return 'men'
+  if (!text) return 'jewellery-accessories'
   const t = text.toLowerCase()
+
+  // 1. Ethnic Wear (Kurti, Saree, Lehenga)
   if (/saree|sari|kurti|kurta set|anarkali|lehenga|ethnic|dupatta|salwar|suit material|sharara|gharara/i.test(t)) {
     if (/\b(men|boys?|gents)\b/i.test(t) && /kurta|sherwani|dhoti/i.test(t)) return 'men'
     return 'kurti-saree-lehenga'
   }
-  if (/shoe|sneaker|sandal|slipper|footwear|boot|loafer|crocs|heel|flat|bag|backpack|handbag|tote|purse|wallet|chappal/i.test(t)) return 'bags-footwear'
+
+  // 2. Footwear & Bags
+  if (/shoe|sneaker|sandal|slipper|footwear|boot|loafer|crocs|heel|flat|bag|backpack|handbag|tote|purse|wallet|chappal|flip flop/i.test(t)) return 'bags-footwear'
+
+  // 3. Belts & Fashion Accessories (High Priority for Belts)
+  if (/belt|belts|waist belt|leather belt|buckle|jewel|necklace|earring|bangle|ring|bracelet|chain|sunglass|jhumka/i.test(t)) return 'jewellery-accessories'
+
+  // 4. Lingerie & Sleepwear
   if (/bra|panty|panties|lingerie|nighty|sleepwear|babydoll|boxer|brief/i.test(t)) return 'lingerie'
+
+  // 5. Watches
   if (/watch|smartwatch/i.test(t)) return 'watches'
+
+  // 6. Electronics & Audio
   if (/earphone|headphone|earbud|airpod|speaker|electronic|charger|bluetooth|tws|neckband/i.test(t)) return 'electronics'
-  if (/jewel|necklace|earring|bangle|ring|bracelet|chain|sunglass|jhumka/i.test(t)) return 'jewellery-accessories'
+
+  // 7. Kids & Toys (including baby mattress)
   if (/kid|baby|toy|infant|toddler|romper|frock|children|child/i.test(t) || (/\b(boys?|girls?)\b/i.test(t) && /wear|cloth|frock|dress|set|suit|tshirt|shirt|shorts/i.test(t))) return 'kids-toys'
-  if (/kitchen|home|cookware|bottle|bedsheet|curtain|storage|lunch box|kadhai|pan/i.test(t)) return 'home-kitchen'
+
+  // 8. Home & Kitchen (bedsheet, mattress, cookware)
+  if (/kitchen|home|cookware|bottle|bedsheet|mattress|curtain|storage|lunch box|kadhai|pan/i.test(t)) return 'home-kitchen'
+
+  // 9. Beauty & Health
   if (/beauty|makeup|cream|perfume|skincare|serum|lipstick|hair oil|eyeliner|kajal/i.test(t)) return 'beauty-health'
+
+  // 10. Sports & Fitness
   if (/gym|dumbbell|fitness|yoga|exercise/i.test(t)) return 'sports-fitness'
+
+  // 11. Women Western Wear
   const isFemale = /\b(women|woman|ladies|girls?|female)\b/i.test(t)
   if (isFemale && /dress|western|top|tunic|jumpsuit|gown|skirt|crop top|shirt|tshirt|t-shirt|jean|jeans|trouser|cargo|jogger|palazzo|plazo|shorts|hoodie|jacket/i.test(t)) return 'women-western'
   if (/dress|western|top|gown|skirt|crop top|palazzo|plazo/i.test(t)) return 'women-western'
-  if (/men|shirt|tshirt|t-shirt|polo|jean|trouser|cargo|jogger|hoodie|jacket/i.test(t)) return 'men'
-  return 'men'
+  if (isFemale) return 'women-western'
+
+  // 12. Men Apparel (must use \b word boundary so 'women' never matches 'men'!)
+  if (/\b(men|man|gents|male)\b/i.test(t) || /shirt|tshirt|t-shirt|polo|jean|trouser|cargo|jogger|hoodie|jacket/i.test(t)) return 'men'
+
+  return 'jewellery-accessories'
 }
 
 export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, initialData }) {
@@ -145,11 +185,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
       }
       if (initialData.meesho_link) setMeeshoLink(initialData.meesho_link)
       if (initialData.images && initialData.images.length > 0) {
-        const cleanInitial = initialData.images.filter(img => {
-          if (!img || !img.startsWith('http')) return false
-          if (/banner|offer|promo|download|app_download|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off/i.test(img)) return false
-          return true
-        })
+        const cleanInitial = initialData.images.filter(isCleanProductImage)
         setImages(cleanInitial)
       }
       if (initialData.sizes && initialData.sizes.length > 0 && !(initialData.sizes.length === 1 && initialData.sizes[0] === 'Free Size')) {
@@ -278,11 +314,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
 
       // Auto-attach photos (Strict anti-banner filter - blocks promo ribbons & 35% off app ads)
       if (data.images && data.images.length > 0) {
-        const cleanImgs = data.images.filter(img => {
-          if (!img || !img.startsWith('http') || img.includes('meesho.com/p/')) return false
-          if (/banner|offer|promo|download|app_download|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off/i.test(img)) return false
-          return true
-        })
+        const cleanImgs = data.images.filter(isCleanProductImage)
         setImages(cleanImgs)
       }
 
@@ -377,8 +409,8 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
   const handleAddImageUrl = () => {
     if (!imageUrlInput.trim()) return
     const url = imageUrlInput.trim()
-    if (url.includes('meesho.com/p/')) {
-      toast.error('This is a webpage link, not a photo URL. Right click the photo on Meesho and choose "Copy image" instead!')
+    if (!isCleanProductImage(url)) {
+      toast.error('This link looks like an advertisement, offer banner or webpage, not a valid product photo!')
       return
     }
     if (!images.includes(url)) {
@@ -447,7 +479,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
         category_slug: categorySlug,
         description: description || undefined,
         meesho_link: meeshoLink || undefined,
-        images: images.filter(img => img && img.startsWith('http') && !img.includes('meesho.com/p/')),
+        images: images.filter(isCleanProductImage),
         sizes: sizes.length > 0 ? sizes : ['Free Size'],
         colors: [],
         specifications: Object.keys(specifications).length > 0 ? specifications : undefined,
@@ -470,7 +502,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
   }
 
   // Super-smart 1-Click Bookmarklet: extracts exact price, Meesho breadcrumb category, sizes & clean photos (No promo banners)
-  const bookmarkletCode = `javascript:(function(){try{var t=document.querySelector('h1')?.innerText||document.title.replace(/\\s*\\|.*$/,'').trim();var p=0;var cat='';var jd=null;document.querySelectorAll('script[type="application/ld+json"]').forEach(function(s){try{var j=JSON.parse(s.innerText);if(j['@type']==='Product'||(Array.isArray(j)&&j[0]&&j[0]['@type']==='Product')){jd=Array.isArray(j)?j[0]:j;}}catch(e){}});if(jd){if(jd.name)t=jd.name.trim();if(jd.category)cat=jd.category;if(jd.offers){p=parseFloat(jd.offers.price||jd.offers.lowPrice||0);}}if(!p){var metaP=document.querySelector('meta[property="product:price:amount"]')?.content;if(metaP)p=parseFloat(metaP);}if(!p){var h1=document.querySelector('h1');var cont=h1?(h1.closest('div')||h1.parentElement):document.body;var pm=(cont?cont.innerText:'').match(/₹\\s*([0-9]+(?:\\.[0-9]+)?)/);if(pm)p=parseFloat(pm[1]);}if(!p){var allPm=document.body.innerText.match(/₹\\s*([0-9]{2,5})/g);if(allPm&&allPm.length>0){var cleanNums=allPm.map(function(s){return parseFloat(s.replace(/[^0-9]/g,''));}).filter(function(n){return n>=49&&n<=25000;});if(cleanNums.length>0)p=Math.min.apply(null,cleanNums);}}if(!cat){var bcEls=Array.from(document.querySelectorAll('div[class*="Breadcrumb"] a,nav a,ol li,span[class*="Breadcrumb"]'));var bcTexts=bcEls.map(function(e){return e.innerText.trim();}).filter(function(x){return x&&!/home/i.test(x)&&x.length<30;});if(bcTexts.length>0)cat=bcTexts.join(' > ');}var isBanner=function(src,el){if(!src||typeof src!=='string')return true;if(/(banner|offer|promo|download|app_download|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off|icon|logo|avatar|rating|star|google_play|app_store)/i.test(src))return true;if(el&&el.naturalHeight&&el.naturalWidth&&(el.naturalWidth/el.naturalHeight>1.8||el.naturalHeight<120))return true;return false;};var imgs=[];if(jd&&jd.image){var jImgs=Array.isArray(jd.image)?jd.image:[jd.image];jImgs.forEach(function(u){if(u&&typeof u==='string'&&!isBanner(u)&&imgs.indexOf(u)===-1)imgs.push(u);});}var galEls=document.querySelectorAll('div[class*="ProductDesktopImage"] img,div[class*="ProductGallery"] img,div[class*="ImageWrapper"] img,[data-testid="product-image"] img');if(galEls.length>0){galEls.forEach(function(el){var s=el.src;if(s&&!isBanner(s,el)){var c=s.replace(/_[0-9]+\\.(jpg|webp|jpeg)/,'.jpg');if(imgs.indexOf(c)===-1)imgs.push(c);}});}if(imgs.length===0){document.querySelectorAll('img[src*="images.meesho.com"]').forEach(function(el){var s=el.src;if(s&&!isBanner(s,el)){var c=s.replace(/_[0-9]+\\.(jpg|webp|jpeg)/,'.jpg');if(imgs.indexOf(c)===-1)imgs.push(c);}});}var sizes=[];var sm=document.body.innerText.match(/\\b(IND-\\d+|UK-\\d+|XS|S|M|L|XL|XXL|3XL|Free Size)\\b/gi);if(sm){sm.forEach(function(s){var u=s.toUpperCase();if(sizes.indexOf(u)===-1&&sizes.length<8)sizes.push(u);});}var d={name:t,purchase_cost:p,category:cat,meesho_link:window.location.href,images:imgs.slice(0,6),sizes:sizes.length?sizes:['Free Size']};window.open('${window.location.origin}/admin/products?importData='+encodeURIComponent(JSON.stringify(d)),'_blank');}catch(e){alert('Error: '+e.message);}})();`
+  const bookmarkletCode = `javascript:(function(){try{var t=document.querySelector('h1')?.innerText||document.title.replace(/\\s*\\|.*$/,'').trim();var p=0;var cat='';var jd=null;document.querySelectorAll('script[type="application/ld+json"]').forEach(function(s){try{var j=JSON.parse(s.innerText);if(j['@type']==='Product'||(Array.isArray(j)&&j[0]&&j[0]['@type']==='Product')){jd=Array.isArray(j)?j[0]:j;}}catch(e){}});if(jd){if(jd.name)t=jd.name.trim();if(jd.category)cat=jd.category;if(jd.offers){p=parseFloat(jd.offers.price||jd.offers.lowPrice||0);}}if(!p){var metaP=document.querySelector('meta[property="product:price:amount"]')?.content;if(metaP)p=parseFloat(metaP);}if(!p){var h1=document.querySelector('h1');var cont=h1?(h1.closest('div')||h1.parentElement):document.body;var pm=(cont?cont.innerText:'').match(/₹\\s*([0-9]+(?:\\.[0-9]+)?)/);if(pm)p=parseFloat(pm[1]);}if(!p){var allPm=document.body.innerText.match(/₹\\s*([0-9]{2,5})/g);if(allPm&&allPm.length>0){var cleanNums=allPm.map(function(s){return parseFloat(s.replace(/[^0-9]/g,''));}).filter(function(n){return n>=49&&n<=25000;});if(cleanNums.length>0)p=Math.min.apply(null,cleanNums);}}if(!cat){var bcEls=Array.from(document.querySelectorAll('div[class*="Breadcrumb"] a,nav a,ol li,span[class*="Breadcrumb"]'));var bcTexts=bcEls.map(function(e){return e.innerText.trim();}).filter(function(x){return x&&!/home/i.test(x)&&x.length<30;});if(bcTexts.length>0)cat=bcTexts.join(' > ');}var isProductImg=function(src){if(!src||typeof src!=='string'||!src.startsWith('http'))return false;if(src.indexOf('meesho.com/p/')!==-1)return false;if(src.indexOf('images.meesho.com')!==-1&&src.indexOf('/products/')===-1)return false;if(/(banner|offer|promo|download|app_download|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off|icon|logo|avatar|rating|star|google_play|app_store|marketing|growth|pow|widgets|ribbon)/i.test(src))return false;return true;};var imgs=[];if(jd&&jd.image){var jImgs=Array.isArray(jd.image)?jd.image:[jd.image];jImgs.forEach(function(u){if(isProductImg(u)&&imgs.indexOf(u)===-1)imgs.push(u);});}var galEls=document.querySelectorAll('div[class*="ProductDesktopImage"] img,div[class*="ProductGallery"] img,div[class*="ProductImageSlider"] img,[data-testid="product-image"] img');if(galEls.length>0){galEls.forEach(function(el){var s=el.src;if(isProductImg(s)){var c=s.replace(/_[0-9]+\\.(jpg|webp|jpeg)/,'.jpg');if(imgs.indexOf(c)===-1)imgs.push(c);}});}if(imgs.length===0){document.querySelectorAll('img[src*="images.meesho.com/images/products/"]').forEach(function(el){var s=el.src;if(isProductImg(s)){var c=s.replace(/_[0-9]+\\.(jpg|webp|jpeg)/,'.jpg');if(imgs.indexOf(c)===-1)imgs.push(c);}});}var sizes=[];var sm=document.body.innerText.match(/\\b(IND-\\d+|UK-\\d+|XS|S|M|L|XL|XXL|3XL|Free Size)\\b/gi);if(sm){sm.forEach(function(s){var u=s.toUpperCase();if(sizes.indexOf(u)===-1&&sizes.length<8)sizes.push(u);});}var d={name:t,purchase_cost:p,category:cat,meesho_link:window.location.href,images:imgs.slice(0,6),sizes:sizes.length?sizes:['Free Size']};window.open('${window.location.origin}/admin/products?importData='+encodeURIComponent(JSON.stringify(d)),'_blank');}catch(e){alert('Error: '+e.message);}})();`
 
   const showcaseOptions = CATEGORY_SHOWCASE_PHOTOS[categorySlug] || CATEGORY_SHOWCASE_PHOTOS['bags-footwear'] || []
 
