@@ -51,11 +51,12 @@ export default function ProductsPage() {
 
   const buildParams = useCallback((pageToFetch) => {
     const params = { page: pageToFetch, sort, limit: 16 }
-    if (search) params.search = search
-    if (subcategory) params.subcategory = subcategory
-    const extraTerms = [shape, strap, fabric].filter(Boolean).join(' ')
-    if (extraTerms) {
-      params.search = params.search ? `${params.search} ${extraTerms}` : extraTerms
+    const searchTerms = [search, subcategory, shape, strap, fabric].filter(Boolean).join(' ')
+    if (searchTerms) {
+      params.search = searchTerms
+    }
+    if (subcategory) {
+      params.subcategory = subcategory
     }
     if (categoryId) params.category_id = categoryId
     if (activeCategorySlug && activeCategorySlug !== 'popular') params.category_slug = activeCategorySlug
