@@ -24,12 +24,28 @@ export default function ProductsAdminPage() {
   const [isImporterOpen, setIsImporterOpen] = useState(false)
   const [isBulkImporterOpen, setIsBulkImporterOpen] = useState(false)
   const [initialImportData, setInitialImportData] = useState(null)
+  const [initialBulkData, setInitialBulkData] = useState(null)
   const [editingProduct, setEditingProduct] = useState(null)
 
-  // Listen for 1-Click Bookmarklet importData in URL
+  // Listen for 1-Click Bookmarklet importData & bulkImportData in URL
   useEffect(() => {
     const importParam = searchParams.get('importData')
-    if (importParam) {
+    const bulkParam = searchParams.get('bulkImportData')
+
+    if (bulkParam) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(bulkParam))
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setInitialBulkData(parsed)
+          setIsBulkImporterOpen(true)
+          const p = new URLSearchParams(searchParams)
+          p.delete('bulkImportData')
+          setSearchParams(p, { replace: true })
+        }
+      } catch (err) {
+        console.error('Failed to parse bulk import data', err)
+      }
+    } else if (importParam) {
       try {
         const parsed = JSON.parse(decodeURIComponent(importParam))
         setInitialImportData(parsed)
@@ -474,9 +490,14 @@ export default function ProductsAdminPage() {
       {/* Bulk Meesho Importer Modal */}
       <BulkProductImporterModal
         isOpen={isBulkImporterOpen}
-        onClose={() => setIsBulkImporterOpen(false)}
+        initialBulkData={initialBulkData}
+        onClose={() => {
+          setIsBulkImporterOpen(false)
+          setInitialBulkData(null)
+        }}
         onSuccess={() => {
           setIsBulkImporterOpen(false)
+          setInitialBulkData(null)
           fetchProducts()
         }}
       />

@@ -9,7 +9,7 @@ import LoadingSpinner from '../ui/LoadingSpinner'
 import { isCleanProductImage } from './MeeshoQuickImporterModal'
 import toast from 'react-hot-toast'
 
-export default function BulkProductImporterModal({ isOpen, onClose, onSuccess }) {
+export default function BulkProductImporterModal({ isOpen, onClose, onSuccess, initialBulkData }) {
   const [categories, setCategories] = useState([])
   const [tab, setTab] = useState('paste') // 'paste', 'grid', 'csv'
   const [parsing, setParsing] = useState(false)
@@ -26,8 +26,8 @@ export default function BulkProductImporterModal({ isOpen, onClose, onSuccess })
   useEffect(() => {
     if (isOpen) {
       categoriesAPI.getAll(false).then(res => setCategories(res.data || [])).catch(() => {})
-      // Initialize with 2 empty rows if empty
-      if (stagedProducts.length === 0) {
+      // Initialize with 2 empty rows if empty and no initialBulkData
+      if (stagedProducts.length === 0 && (!initialBulkData || initialBulkData.length === 0)) {
         setStagedProducts([
           createEmptyRow(1),
           createEmptyRow(2)
@@ -35,6 +35,54 @@ export default function BulkProductImporterModal({ isOpen, onClose, onSuccess })
       }
     }
   }, [isOpen])
+
+  // Handle incoming bulk data from 1-Click Page Grabber Bookmarklet
+  useEffect(() => {
+    if (isOpen && initialBulkData && initialBulkData.length > 0) {
+      const markup = parseFloat(globalMarkup) || 250
+      const formatted = initialBulkData.map((p, idx) => {
+        const cost = parseFloat(p.purchase_cost || p.cost || p.price) || 0
+        const sell = cost > 0 ? cost + markup : 499
+        const orig = Math.round(sell * 1.5)
+        
+        let catId = categories[0]?.id || 1
+        const catSlug = p.category_slug || (p.category ? p.category.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'women-western')
+        if (categories.length > 0) {
+          const match = categories.find(c => c.slug === catSlug) || categories[0]
+          if (match) catId = match.id
+        }
+
+        // Smart sizes based on category/title
+        let itemSizes = p.sizes && p.sizes.length > 0 ? p.sizes : ['Free Size']
+        const lowerName = (p.name || '').toLowerCase()
+        if (/shoe|sneaker|footwear|sandal|flip flop/i.test(lowerName)) {
+          itemSizes = ['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10']
+        } else if (/jean|cargo|jogger|pant/i.test(lowerName)) {
+          itemSizes = ['30', '32', '34', '36']
+        } else if (/shirt|kurti|dress|tshirt|top/i.test(lowerName)) {
+          itemSizes = ['S', 'M', 'L', 'XL', 'XXL']
+        }
+
+        return {
+          id: Date.now() + idx,
+          name: p.name || `Meesho Product ${idx + 1}`,
+          category_slug: catSlug,
+          category_id: catId,
+          purchase_cost: cost ? String(cost) : '',
+          selling_price: String(sell),
+          original_price: String(orig),
+          images: (p.images || (p.image ? [p.image] : [])).filter(isCleanProductImage),
+          imageUrlInput: '',
+          sizes: itemSizes,
+          meesho_link: p.meesho_link || p.url || '',
+          colors: p.colors || []
+        }
+      })
+      setStagedProducts(formatted)
+      setTab('grid')
+      toast.success(`🎉 ${formatted.length} Products grabbed from Meesho! Review & click Publish All below.`)
+    }
+  }, [isOpen, initialBulkData, categories])
 
   if (!isOpen) return null
 
@@ -51,6 +99,18 @@ export default function BulkProductImporterModal({ isOpen, onClose, onSuccess })
       imageUrlInput: '',
       sizes: ['S', 'M', 'L', 'XL'],
       meesho_link: ''
+    }
+  }
+
+  const handlePasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText()
+      if (text) {
+        setMultiRawText(prev => prev ? `${prev}\n---\n${text}` : text)
+        toast.success('Pasted text from clipboard!')
+      }
+    } catch {
+      toast.error('Could not access clipboard. Please press Ctrl+V.')
     }
   }
 
@@ -288,6 +348,9 @@ Breathable Running Sports Shoes,340,699,footwear,https://images.unsplash.com/pho
   const totalSell = stagedProducts.reduce((sum, p) => sum + (parseFloat(p.selling_price) || 0), 0)
   const totalExpectedProfit = totalSell - totalCost
 
+  // 1-Click Page Bulk Grabber Bookmarklet: Grabs all 20-40 product cards on ANY Meesho listing page simultaneously
+  const bulkBookmarkletCode = `javascript:(function(){try{var cards=Array.from(document.querySelectorAll('a[href*="/p/"]'));if(!cards||cards.length===0){cards=Array.from(document.querySelectorAll('div[class*="ProductCard"],div[class*="Card"]')).filter(function(c){return c.querySelector('img')&&c.innerText.includes('₹');});}if(!cards||cards.length===0){alert('Koi Meesho products nahi mile is page par! Kripya kisi collection ya category page (jaise Scarves, Summer Picks, Kurtis, Footwear) par chalayein.');return;}var pageCat=document.querySelector('h1')?.innerText||document.title.split('|')[0].trim()||'Meesho Collection';var items=[];var seenUrls={};cards.forEach(function(card,idx){var linkEl=card.tagName==='A'?card:card.querySelector('a[href*="/p/"]');var href=linkEl?linkEl.href:window.location.href;if(seenUrls[href])return;seenUrls[href]=true;var name='';if(href&&href.includes('/p/')){var mPath=href.split('/p/')[0].split('/').pop();if(mPath&&mPath.length>3){name=mPath.replace(/[-_]+/g,' ').replace(/\\b\\w/g,function(l){return l.toUpperCase();}).trim();}}if(!name){var pEls=card.querySelectorAll('p,h4,h5,span');for(var i=0;i<pEls.length;i++){var t=pEls[i].innerText.trim();if(t.length>5&&!t.includes('₹')&&!t.includes('Reviews')&&!t.includes('Ratings')&&!t.includes('% off')){name=t;break;}}}if(!name)name=pageCat+' Item '+(idx+1);var price=0;var pm=card.innerText.match(/₹\\s*([0-9]+(?:,[0-9]+)?)/);if(pm){price=parseFloat(pm[1].replace(/,/g,''));}if(!price){var allNums=(card.innerText.match(/[0-9]{2,5}/g)||[]).map(Number).filter(function(n){return n>=49&&n<=10000;});if(allNums.length>0)price=allNums[0];}var imgEl=card.querySelector('img[src*="images.meesho.com/images/products/"]')||card.querySelector('img');var imgSrc=imgEl?(imgEl.src||imgEl.getAttribute('data-src')||''):'';if(imgSrc){imgSrc=imgSrc.replace(/_[0-9]+\\.(jpg|webp|jpeg)/i,'.jpg');}if(imgSrc&&imgSrc.includes('/products/')){items.push({name:name,purchase_cost:price||199,meesho_link:href,category:pageCat,images:[imgSrc]});}});if(items.length===0){alert('Is page se product photos extract nahi ho paayi. Kripya page ko thoda scroll karein aur fir click karein!');return;}var d=encodeURIComponent(JSON.stringify(items.slice(0,35)));var targetUrl='${window.location.origin}/admin/products?bulkImportData='+d;window.open(targetUrl,'_blank');}catch(err){alert('Error: '+err.message);}})();`
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-fade-in">
       <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-purple-100 my-auto">
@@ -404,7 +467,41 @@ Breathable Running Sports Shoes,340,699,footwear,https://images.unsplash.com/pho
             </div>
 
             {/* Modal Body Content */}
-            <div className="p-6 overflow-y-auto flex-1">
+            <div className="p-6 overflow-y-auto flex-1 space-y-4">
+              
+              {/* ⚡ 1-Click Meesho Page Bulk Grabber Banner */}
+              <div className="bg-gradient-to-r from-purple-50 via-pink-50 to-purple-50 border border-purple-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-700 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Layers className="w-5 h-5 text-yellow-300" />
+                  </div>
+                  <div className="text-left">
+                    <span className="text-xs font-black text-purple-950 flex items-center gap-1.5">
+                      ⚡ 1-Click Meesho Page Bulk Grabber Bookmarklet
+                      <span className="text-[10px] bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-bold">Recommended</span>
+                    </span>
+                    <p className="text-[11px] text-gray-600 mt-0.5">
+                      Drag this button to your Bookmarks Bar (Ctrl+Shift+B). On any Meesho page (Scarves, Summer Picks, Kurtis), click it once to grab all 20-35 products at once!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <a
+                    href={bulkBookmarkletCode}
+                    onClick={(e) => {
+                      if (e.button === 0) {
+                        toast('📌 Is button ko apne Chrome/Edge Bookmarks bar (Ctrl+Shift+B) me drag & drop karein!', { icon: '💡' })
+                      }
+                    }}
+                    className="bg-purple-700 hover:bg-purple-800 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-md cursor-grab active:cursor-grabbing flex items-center gap-1.5 transition-transform hover:scale-105 active:scale-95"
+                    title="Drag this button to your Bookmarks Bar (Ctrl+Shift+B)"
+                  >
+                    <Sparkles className="w-4 h-4 text-yellow-300" />
+                    <span>⚡ Bulk Grab Meesho Page</span>
+                  </a>
+                </div>
+              </div>
               
               {/* TAB 1: PASTE MULTI-LINKS */}
               {tab === 'paste' && (
@@ -420,9 +517,18 @@ Breathable Running Sports Shoes,340,699,footwear,https://images.unsplash.com/pho
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-gray-700 block mb-1">
-                      Paste Meesho URLs or Descriptions:
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-gray-700 block">
+                        Paste Meesho URLs or Descriptions:
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handlePasteFromClipboard}
+                        className="text-[11px] text-purple-700 hover:text-purple-900 font-bold hover:underline cursor-pointer"
+                      >
+                        📋 Paste from Clipboard
+                      </button>
+                    </div>
                     <textarea
                       rows={8}
                       value={multiRawText}
