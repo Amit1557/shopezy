@@ -52,32 +52,32 @@ export function detectCategoryFromTitle(title = '', pageCategory = '', categorie
   const p = (pageCategory || '').toLowerCase()
   let targetSlug = ''
 
-  // 1. Electronics & Audio Gadgets (Strict word boundaries, NO accidental bare "mic" or "stand")
-  if (/\b(speaker|speakers|earphone|earphones|headphone|headphones|earbud|earbuds|airpod|airpods|tws|bluetooth|charger|usb|cable|adapter|neckband|power bank|soundbar|aux cable|mouse|keyboard|gadget|smart watch|smartwatch)\b/i.test(t) || /\b(mobile stand|laptop stand|phone stand|tablet stand|mobile holder|phone holder|tripod|selfie stick)\b/i.test(t) || (/\b(mic|microphone)\b/i.test(t) && !/\bmicrofib/i.test(t))) {
+  // 1. Footwear / Shoes / Slippers / Flats / Heels (High Priority)
+  if (/\b(shoe|shoes|sneaker|sneakers|loafer|loafers|sandal|sandals|flip flop|flip flops|slipper|slippers|chappal|chappals|crocs|slides|slide|heel|heels|flat|flats|boots|footwear|bellies|mojari|jutti|kolhapuri|wedge|wedges)\b/i.test(t) || /\b(footwear|shoes|sandals|slippers|flats|heels)\b/i.test(p)) {
+    targetSlug = categories.some(c => c.slug === 'footwear') ? 'footwear' : 'bags-footwear'
+  }
+  // 2. Electronics & Audio Gadgets (Strict word boundaries, NO accidental bare "mic" or "stand")
+  else if (/\b(speaker|speakers|earphone|earphones|headphone|headphones|earbud|earbuds|airpod|airpods|tws|bluetooth|charger|usb|cable|adapter|neckband|power bank|soundbar|aux cable|mouse|keyboard|gadget|smart watch|smartwatch)\b/i.test(t) || /\b(mobile stand|laptop stand|phone stand|tablet stand|mobile holder|phone holder|tripod|selfie stick)\b/i.test(t) || (/\b(mic|microphone)\b/i.test(t) && !/\bmicrofib/i.test(t))) {
     targetSlug = 'electronics'
   }
-  // 2. Home & Kitchen (Bedsheet, Cushion, Curtain, Clock, Cleaning Cloth, Mop, Plants, Cookware, etc.)
+  // 3. Home & Kitchen / Home Decor (Bedsheet, Cushion, Curtain, Clock, Cleaning Cloth, Mop, Plants, Cookware, etc.)
   else if (/\b(bedsheet|bed sheet|fitted sheet|pillow|cushion|curtain|blanket|quilt|dohar|comforter|mattress|towel|mop|cloth|microfiber|microfibre|cleaning cloth|cookware|pan|kadhai|bottle|clock|wall clock|sofa cover|chair cover|bangle stand|shoe rack|organizer|artificial plant|planter|kitchen|storage container|lunch box|decor|home decor|furnishing)\b/i.test(t)) {
     targetSlug = 'home-kitchen'
   }
-  // 3. Watches (Analog / Formal)
+  // 4. Watches (Analog / Digital / Smartwatch)
   else if (/\b(watch|analog watch|digital watch|wrist watch|chronograph)\b/i.test(t)) {
     targetSlug = 'watches'
   }
-  // 4. Footwear / Shoes / Slippers
-  else if (/\b(shoe|shoes|sneaker|sneakers|loafer|loafers|sandal|sandals|flip flop|flip flops|slipper|slippers|chappal|chappals|crocs|slides|heel|heels|boots|footwear)\b/i.test(t)) {
-    targetSlug = 'bags-footwear'
-  }
   // 5. Bags & Wallets
   else if (/\b(bag|bags|handbag|handbags|backpack|backpacks|tote|purse|wallet|wallets|clutch|sling bag|luggage|duffle)\b/i.test(t)) {
-    targetSlug = 'bags-footwear'
+    targetSlug = categories.some(c => c.slug === 'jewellery-accessories') ? 'jewellery-accessories' : 'bags-footwear'
   }
   // 6. Jewellery & Accessories
   else if (/\b(jewel|jewellery|jewelry|necklace|earring|earrings|ring|rings|bangle|bangles|bracelet|bracelets|pendant|chain|anklet|mangalsutra|belt|belts|sunglasses|goggles|hair clip|scrunchie|rubber band|scarf|scarves|stole|stoles|dupatta)\b/i.test(t)) {
     targetSlug = 'jewellery-accessories'
   }
-  // 7. Beauty & Health
-  else if (/\b(lipstick|eyeliner|kajal|foundation|makeup|cream|lotion|serum|perfume|deo|shampoo|skincare|hair oil|trimmer|shaver)\b/i.test(t)) {
+  // 7. Beauty & Health / Personal Care
+  else if (/\b(lipstick|eyeliner|kajal|foundation|makeup|cream|lotion|serum|perfume|deo|shampoo|skincare|hair oil|trimmer|shaver|facewash)\b/i.test(t)) {
     targetSlug = 'beauty-health'
   }
   // 8. Kids & Toys
@@ -86,20 +86,24 @@ export function detectCategoryFromTitle(title = '', pageCategory = '', categorie
   }
   // 9. Indian Ethnic (Kurti, Saree, Lehenga)
   else if (/\b(saree|sari|sarees|kurti|kurtis|kurta|anarkali|lehenga|salwar|sharara|ethnic set|sherwani)\b/i.test(t)) {
-    targetSlug = (/\b(men|boy|gents)\b/i.test(t)) ? 'men' : 'kurti-saree-lehenga'
+    targetSlug = (/\b(men|boy|gents)\b/i.test(t) && !/\b(women|woman|ladies|girl|girls)\b/i.test(t)) ? 'men' : 'kurti-saree-lehenga'
   }
   // 10. Men's Clothing
-  else if (/\b(men|man|gents|boy|boys)\b/i.test(t) && /\b(shirt|shirts|tshirt|t-shirt|pant|pants|trouser|trousers|jean|jeans|cargo|jogger|joggers|blazer|jacket|hoodie|boxer|underwear)\b/i.test(t)) {
+  else if (/\b(men|man|gents|boy|boys)\b/i.test(t) && !/\b(women|woman|ladies|girl|girls|female)\b/i.test(t) && /\b(shirt|shirts|tshirt|t-shirt|pant|pants|trouser|trousers|jean|jeans|cargo|jogger|joggers|blazer|jacket|hoodie|boxer|underwear)\b/i.test(t)) {
     targetSlug = 'men'
   }
   // 11. Women Western Clothing
-  else if (/\b(top|tops|crop top|tunic|dress|dresses|gown|gowns|skirt|skirts|jeans|jumpsuit|shrug|trousers|legging|leggings|jeggings|jacket|hoodie)\b/i.test(t)) {
+  else if (/\b(top|tops|crop top|tunic|dress|dresses|gown|gowns|skirt|skirts|jeans|jumpsuit|shrug|trousers|legging|leggings|jeggings|jacket|hoodie)\b/i.test(t) || /\b(women|woman|ladies|girl|girls|female)\b/i.test(t)) {
     targetSlug = 'women-western'
   }
   // 12. Fallback to Meesho Page Category if matched
   else if (p) {
+    if (/\bfootwear\b/i.test(p) || /\b(shoes|sandals|slippers|flats|heels)\b/i.test(p)) {
+      const fw = categories.find(c => c.slug === 'footwear' || c.slug === 'bags-footwear')
+      if (fw) return fw
+    }
     const pcSlug = p.replace(/[^a-z0-9]+/g, '-')
-    const match = categories.find(c => c.slug === pcSlug || c.slug.includes(pcSlug) || pcSlug.includes(c.slug))
+    const match = categories.find(c => c.slug === pcSlug)
     if (match) return match
   }
 
@@ -110,6 +114,10 @@ export function detectCategoryFromTitle(title = '', pageCategory = '', categorie
   }
 
   // Smart page-context default
+  if (/footwear|shoe|sandal|slipper/i.test(p)) {
+    const fw = categories.find(c => c.slug === 'footwear' || c.slug === 'bags-footwear')
+    if (fw) return fw
+  }
   if (/home|kitchen/i.test(p)) {
     const hk = categories.find(c => c.slug === 'home-kitchen')
     if (hk) return hk
@@ -229,8 +237,12 @@ export default function BulkProductImporterModal({ isOpen, onClose, onSuccess, i
         const catId = detectedCat?.id || (categories[0]?.id || 1)
         const catSlug = detectedCat?.slug || 'electronics'
 
-        // Smart sizes based on category/title: Non-clothing items (speakers, earphones, watches, stands) NEVER get S/M/L
+        // Smart sizes based on category/title: Non-clothing items (speakers, earphones, watches, stands, footwear) NEVER get S/M/L
         const lowerName = (p.name || '').toLowerCase()
+        const isFootwear = /shoe|sneaker|footwear|sandal|flip flop|loafer|chappal|flat|flats|heel|heels|wedge|wedges|crocs|slide|slides|mojari|jutti|bellies|boots/i.test(lowerName) ||
+                           catSlug === 'footwear' ||
+                           catSlug === 'bags-footwear'
+
         const isNonClothing = /speaker|earphone|headphone|earbud|airpod|charger|usb|cable|stand|holder|tripod|watch|smartwatch|bottle|clock|curtain|bag|wallet|toy|toys|cream|makeup|perfume/i.test(lowerName) ||
                               catSlug === 'electronics' ||
                               catSlug === 'watches' ||
@@ -238,10 +250,14 @@ export default function BulkProductImporterModal({ isOpen, onClose, onSuccess, i
                               catSlug === 'beauty-health'
 
         let itemSizes = ['Free Size']
-        if (isNonClothing) {
+        if (isFootwear) {
+          if (/women|girl|ladies|flat|heel|wedge|bellies|mojari/i.test(lowerName)) {
+            itemSizes = ['IND-4', 'IND-5', 'IND-6', 'IND-7', 'IND-8']
+          } else {
+            itemSizes = ['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10']
+          }
+        } else if (isNonClothing) {
           itemSizes = ['Free Size']
-        } else if (/shoe|sneaker|footwear|sandal|flip flop|loafer|chappal/i.test(lowerName) || catSlug === 'bags-footwear') {
-          itemSizes = ['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10']
         } else if (/jean|cargo|jogger|pant|trouser/i.test(lowerName)) {
           itemSizes = ['30', '32', '34', '36']
         } else if (/shirt|kurti|dress|tshirt|top|hoodie|jacket|kurta/i.test(lowerName) || catSlug === 'kurti-saree-lehenga' || catSlug === 'women-western' || catSlug === 'men') {

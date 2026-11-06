@@ -18,3 +18,4 @@ jobs:
             -H "Content-Type: application/json" \
             --max-time 60 || echo "FAILED")
           echo "$RESPONSE"
+

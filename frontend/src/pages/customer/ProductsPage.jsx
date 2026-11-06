@@ -51,7 +51,7 @@ export default function ProductsPage() {
 
   const buildParams = useCallback((pageToFetch) => {
     const params = { page: pageToFetch, sort, limit: 16 }
-    const searchTerms = [search, subcategory, shape, strap, fabric].filter(Boolean).join(' ')
+    const searchTerms = [search, shape, strap, fabric].filter(Boolean).join(' ')
     if (searchTerms) {
       params.search = searchTerms
     }

@@ -143,6 +143,18 @@ def sanitize_product_category(name: str, category_id: Optional[int], db: Session
             wa = cat_by_slug.get("watches")
             if wa: return wa.id
 
+    # Guardrail 5: Footwear (Shoes, Flats, Heels, Sandals, Slippers) trapped in Men or other clothing
+    if current_cat.slug not in ["footwear", "bags-footwear"]:
+        if re.search(r'\b(shoe|shoes|sneaker|sneakers|sandal|sandals|slipper|slippers|chappal|chappals|flat|flats|heel|heels|wedge|wedges|crocs|slides|slide|loafer|loafers|boots|footwear|bellies|mojari|jutti|kolhapuri)\b', t):
+            fw = cat_by_slug.get("footwear") or cat_by_slug.get("bags-footwear")
+            if fw: return fw.id
+
+    # Guardrail 6: Women / Girls items trapped in Men
+    if current_cat.slug == "men":
+        if re.search(r'\b(women|woman|ladies|girls?|female)\b', t) and not re.search(r'\b(men|man|gents|boys?|male)\b', t):
+            ww = cat_by_slug.get("women-western")
+            if ww: return ww.id
+
     return category_id
 
 
@@ -175,48 +187,85 @@ def get_public_products(
         cat = None
         if category_id:
             cat = db.query(Category).filter(Category.id == category_id).first()
+    # 1. Strict Category Filter with Aliases (Guarantees no accidental cross-department leak)
+    if category_id or category_slug:
+        cat = None
+        if category_id:
+            cat = db.query(Category).filter(Category.id == category_id).first()
         elif category_slug:
             cat = db.query(Category).filter(Category.slug == category_slug).first()
         
         slug_to_use = cat.slug if cat else (category_slug or "")
         
-        cat_conditions = []
-        if cat:
-            cat_conditions.append(Product.category_id == cat.id)
+        cat_alias_map = {
+            "ethnic-wear": ["kurti-saree-lehenga", "ethnic-wear", "womens-fashion"],
+            "kurti-saree-lehenga": ["kurti-saree-lehenga", "ethnic-wear", "womens-fashion"],
+            "women-western": ["women-western", "western-dresses"],
+            "western-dresses": ["women-western", "western-dresses"],
+            "men": ["men", "mens-fashion", "menswear"],
+            "menswear": ["men", "mens-fashion", "menswear"],
+            "mens-fashion": ["men", "mens-fashion", "menswear"],
+            "footwear": ["footwear", "bags-footwear"],
+            "bags-footwear": ["footwear", "bags-footwear"],
+            "home-decor": ["home-kitchen", "home-decor"],
+            "home-kitchen": ["home-kitchen", "home-decor"],
+            "beauty": ["beauty-health", "beauty-lifestyle", "beauty"],
+            "beauty-health": ["beauty-health", "beauty-lifestyle", "beauty"],
+            "accessories": ["jewellery-accessories", "accessories"],
+            "jewellery-accessories": ["jewellery-accessories", "accessories"],
+            "electronics": ["electronics"],
+            "kids-toys": ["kids-toys", "kids-fashion"],
+            "watches": ["watches"],
+            "sports-fitness": ["sports-fitness"],
+            "lingerie": ["lingerie"],
+        }
+        
+        relevant_slugs = cat_alias_map.get(slug_to_use, [slug_to_use])
+        matching_cats = db.query(Category.id).filter(Category.slug.in_(relevant_slugs)).all()
+        matching_ids = [c[0] for c in matching_cats]
+        if cat and cat.id not in matching_ids:
+            matching_ids.append(cat.id)
             
-        kws = CATEGORY_CROSS_KEYWORDS.get(slug_to_use, [])
-        for kw in kws:
-            cat_conditions.append(Product.name.ilike(f"%{kw}%"))
-            cat_conditions.append(Product.description.ilike(f"%{kw}%"))
-            cat_conditions.append(func.cast(Product.specifications, String).ilike(f"%{kw}%"))
-            cat_conditions.append(func.cast(Product.tags, String).ilike(f"%{kw}%"))
-            
-        if cat_conditions:
-            base_q = base_q.filter(or_(*cat_conditions))
+        if matching_ids:
+            base_q = base_q.filter(Product.category_id.in_(matching_ids))
 
-    # 2. Meesho-Style Dynamic Subcategory Filtering (Phrase & Word-level Matching)
+    # 2. Authentic Meesho Subcategory Filtering
     if subcategory:
         sub_raw = subcategory.strip().lower()
-        sub_conditions = [
-            Product.name.ilike(f"%{sub_raw}%"),
-            func.cast(Product.specifications, String).ilike(f"%{sub_raw}%"),
-            func.cast(Product.tags, String).ilike(f"%{sub_raw}%")
-        ]
-        
-        # Word-level matching (e.g. "Women Belts" -> all words "women" & "belt" match in product)
-        clean_words = [w.rstrip('s') for w in re.split(r'[\s&/,]+', sub_raw) if len(w) > 2]
-        if clean_words:
-            word_ands = []
-            for w in clean_words:
-                word_ands.append(or_(
-                    Product.name.ilike(f"%{w}%"),
-                    Product.description.ilike(f"%{w}%"),
-                    func.cast(Product.specifications, String).ilike(f"%{w}%"),
-                    func.cast(Product.tags, String).ilike(f"%{w}%")
-                ))
-            sub_conditions.append(and_(*word_ands))
+        if not sub_raw.startswith("all ") and sub_raw not in ["all", "all products", "all categories"]:
+            # Specific keyword extraction to avoid over-matching generic words like "wall" or "men"
+            raw_tokens = [w.rstrip('s') for w in re.split(r'[\s&/,\-]+', sub_raw) if len(w) > 2]
             
-        base_q = base_q.filter(or_(*sub_conditions))
+            # Identify core product nouns
+            KEY_NOUNS = {
+                "clock", "bedsheet", "curtain", "cushion", "quilt", "blanket", "cookware",
+                "container", "doormat", "plant", "flat", "heel", "wedge", "belli", "jutti",
+                "sneaker", "sandal", "slipper", "chappal", "loafer", "shoe", "tshirt", "t-shirt",
+                "shirt", "jean", "trouser", "jogger", "kurta", "jacket", "kurti", "saree",
+                "lehenga", "dupatta", "blouse", "anarkali", "lipstick", "kajal", "cream",
+                "serum", "perfume", "shampoo", "earring", "necklace", "bangle", "bracelet",
+                "handbag", "wallet", "belt", "sunglass", "earphone", "earbud", "speaker",
+                "charger", "power bank", "smartwatch", "toy", "puzzle", "car", "doll", "watch",
+                "frock", "bra", "panty", "apron", "mop"
+            }
+            core_nouns = [w for w in raw_tokens if w in KEY_NOUNS]
+            
+            sub_conditions = [
+                Product.name.ilike(f"%{sub_raw}%"),
+                func.cast(Product.specifications, String).ilike(f"%{sub_raw}%"),
+                func.cast(Product.tags, String).ilike(f"%{sub_raw}%")
+            ]
+            
+            # If specific nouns identified (e.g. "clock" in "Wall Clocks", or "flat" in "Women Flats"),
+            # filter strictly by those nouns so hooks or unrelated items are not included
+            match_words = core_nouns if core_nouns else [w for w in raw_tokens if w not in ["men", "women", "kids", "girls", "boys", "sets", "cloth", "wear"]]
+            for w in match_words:
+                sub_conditions.append(Product.name.ilike(f"%{w}%"))
+                sub_conditions.append(Product.description.ilike(f"%{w}%"))
+                sub_conditions.append(func.cast(Product.specifications, String).ilike(f"%{w}%"))
+                sub_conditions.append(func.cast(Product.tags, String).ilike(f"%{w}%"))
+                
+            base_q = base_q.filter(or_(*sub_conditions))
 
     # 3. Universal Smart Search (Synonyms + Multi-field Match)
     if search:
@@ -692,13 +741,19 @@ def auto_repair_catalog(
 
         # D. Product Variants Backfill (Guarantee Color & Size rows)
         existing_variant_types = {v.variant_type for v in p.variants}
+        is_fw = bool(re.search(r'\b(shoe|shoes|sneaker|sneakers|sandal|sandals|slipper|slippers|chappal|chappals|flat|flats|heel|heels|crocs|slides|mojari|jutti|footwear)\b', p_name_lower))
         if "size" not in existing_variant_types:
-            db.add(ProductVariant(
-                product_id=p.id,
-                variant_type="size",
-                value="Free Size",
-                is_available=True
-            ))
+            if is_fw:
+                sizes_to_add = ["IND-4", "IND-5", "IND-6", "IND-7", "IND-8"] if re.search(r'\b(women|girl|ladies|flat|heel|wedge)\b', p_name_lower) else ["IND-6", "IND-7", "IND-8", "IND-9", "IND-10"]
+                for sz in sizes_to_add:
+                    db.add(ProductVariant(product_id=p.id, variant_type="size", value=sz, is_available=True))
+            else:
+                db.add(ProductVariant(
+                    product_id=p.id,
+                    variant_type="size",
+                    value="Free Size",
+                    is_available=True
+                ))
             variants_backfilled += 1
 
         if "color" not in existing_variant_types:

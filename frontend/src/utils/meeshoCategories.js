@@ -15,7 +15,7 @@ export const MEESHO_CATEGORIES = [
     ]
   },
   {
-    name: 'Kurti, Saree & Lehenga',
+    name: 'Ethnic Wear',
     slug: 'kurti-saree-lehenga',
     subsections: [
       {
@@ -37,123 +37,97 @@ export const MEESHO_CATEGORIES = [
     ]
   },
   {
-    name: 'Women Western',
+    name: 'Western Dresses',
     slug: 'women-western',
     subsections: [
       {
         title: 'Topwear',
-        items: ['Tops & Tunics', 'Dresses', 'T-Shirts', 'Shirts', 'Jumpsuits']
+        items: ['Tops & Tunics', 'Western Dresses', 'T-Shirts & Polos', 'Shirts', 'Jumpsuits & Gowns', 'Crop Tops']
       },
       {
         title: 'Bottomwear',
         items: ['Jeans & Jeggings', 'Trousers & Pants', 'Palazzos', 'Skirts & Shorts']
       },
       {
-        title: 'Sleepwear & Loungewear',
-        items: ['Nightsuits', 'Nightdresses', 'Bathrobes']
+        title: 'Winter & Shrugs',
+        items: ['Shrugs & Jackets', 'Hoodies', 'Sweatshirts']
       }
     ]
   },
   {
-    name: 'Lingerie',
-    slug: 'lingerie',
-    subsections: [
-      {
-        title: 'Bras',
-        items: ['Padded Bras', 'T-Shirt Bras', 'Sports Bras', 'Everyday Bras']
-      },
-      {
-        title: 'Briefs & Panties',
-        items: ['Cotton Panties', 'Seamless Panties', 'Brief Packs']
-      },
-      {
-        title: 'Shapewear',
-        items: ['Body Shaper', 'Tummy Tucker', 'Saree Shapewear']
-      }
-    ]
-  },
-  {
-    name: 'Men',
+    name: 'Menswear',
     slug: 'men',
     subsections: [
       {
         title: 'Top Wear',
-        items: ['T-Shirts', 'Casual Shirts', 'Formal Shirts', 'Polo T-Shirts', 'Sweatshirts']
+        items: ['T-Shirts & Polos', 'Casual Shirts', 'Formal Shirts', 'Polo T-Shirts', 'Sweatshirts', 'Jackets']
       },
       {
         title: 'Bottom Wear',
-        items: ['Jeans', 'Casual Trousers', 'Formal Trousers', 'Track Pants', 'Cargo Pants']
+        items: ['Jeans & Denim', 'Casual Trousers', 'Formal Trousers', 'Track Pants & Joggers', 'Shorts & 3/4ths']
       },
       {
         title: 'Ethnic Wear',
-        items: ['Kurtas & Sets', 'Nehru Jackets', 'Dhoti Kurta']
-      },
-      {
-        title: 'Innerwear',
-        items: ['Vests', 'Briefs & Trunks', 'Boxers']
+        items: ['Kurtas & Sets', 'Nehru Jackets', 'Sherwanis']
       }
     ]
   },
   {
-    name: 'Kids & Toys',
-    slug: 'kids-toys',
+    name: 'Footwear',
+    slug: 'footwear',
     subsections: [
       {
-        title: 'Kids Clothing',
-        items: ['Girls Clothing', 'Boys Clothing', 'Babies Clothing', 'Clothing Sets', 'Frocks & Dresses', 'T-Shirt & Polos']
+        title: 'Women Footwear',
+        items: ['Women Flats', 'Women Heels & Wedges', 'Bellies & Juttis', 'Casual Shoes', 'Flip Flops & Slippers']
       },
       {
-        title: 'Kids Toys',
-        items: ['Toys & Games', 'Summer Picks', 'Best Sellers', 'Baby Gears', 'Educational Toys']
+        title: 'Men Footwear',
+        items: ['Men Sports Shoes & Sneakers', 'Men Casual Shoes', 'Formal Shoes', 'Sandals & Floaters', 'Loafers', 'Flip Flops & Slippers']
       },
       {
-        title: 'Kids Accessories',
-        items: ['Bags & Backpacks', 'Watches & Hairbands', 'Party Items']
-      },
-      {
-        title: 'Baby Care',
-        items: ['Baby Bedding & Accessories', 'Newborn Care', 'Diapers', 'Baby Mosquito Nets', 'Baby Dry Sheets']
+        title: 'Kids Footwear',
+        items: ['Kids Casual Shoes', 'School Shoes', 'Kids Sandals']
       }
     ]
   },
   {
-    name: 'Home & Kitchen',
+    name: 'Home Decor',
     slug: 'home-kitchen',
     subsections: [
       {
-        title: 'Kitchen & Dining',
-        items: ['Kitchen Tools', 'Cookware & Bakeware', 'Storage & Containers', 'Bottles & Flasks']
-      },
-      {
         title: 'Furnishing',
-        items: ['Bedsheets', 'Curtains', 'Cushions & Pillows', 'Blankets & Quilts']
+        items: ['Bedsheets & Pillow Covers', 'Curtains & Sheers', 'Cushion Covers', 'Blankets & Quilts', 'Mattress Protectors']
       },
       {
         title: 'Home Decor',
-        items: ['Clocks', 'Wall Stickers', 'Showpieces', 'Pooja Essentials']
+        items: ['Wall Clocks & Hangings', 'Wall Stickers', 'Showpieces', 'Artificial Plants & Flowers', 'Doormats & Rugs']
+      },
+      {
+        title: 'Kitchen & Dining',
+        items: ['Cookware & Kitchen Tools', 'Containers & Organizers', 'Bottles & Flasks']
       }
     ]
   },
   {
-    name: 'Beauty & Health',
+    name: 'Beauty',
     slug: 'beauty-health',
     subsections: [
       {
         title: 'Makeup',
-        items: ['Face Makeup', 'Eye Makeup', 'Lips & Lipsticks', 'Nails']
+        items: ['Lipsticks & Lip Gloss', 'Kajal, Eyeliner & Mascara', 'Face Makeup & Foundation', 'Nails & Nail Art']
       },
       {
         title: 'Skincare',
-        items: ['Moisturizers', 'Face Wash', 'Serums', 'Sunscreen']
+        items: ['Face Creams & Serums', 'Face Wash & Cleansers', 'Sunscreen & Lotions']
       },
       {
         title: 'Haircare & Perfumes',
-        items: ['Shampoo & Conditioner', 'Hair Oils', 'Perfumes & Deos']
+        items: ['Shampoo & Conditioners', 'Hair Oils & Serums', 'Perfumes & Deodorants']
       }
     ]
   },
   {
-    name: 'Jewellery & Accessories',
+    name: 'Accessories',
     slug: 'jewellery-accessories',
     subsections: [
       {
@@ -161,26 +135,12 @@ export const MEESHO_CATEGORIES = [
         items: ['Jewellery Sets', 'Earrings & Studs', 'Mangalsutras', 'Bangles & Bracelets', 'Necklaces & Chains']
       },
       {
-        title: 'Accessories',
-        items: ['Handbags', 'Sling Bags', 'Wallets', 'Sunglasses', 'Belts']
-      }
-    ]
-  },
-  {
-    name: 'Bags & Footwear',
-    slug: 'bags-footwear',
-    subsections: [
-      {
-        title: 'Men Footwear',
-        items: ['Sports Shoes', 'Casual Shoes', 'Formal Shoes', 'Sandals & Floaters', 'Loafers']
+        title: 'Bags & Wallets',
+        items: ['Handbags & Clutches', 'Sling Bags & Totes', 'Wallets & Pouches', 'Backpacks']
       },
       {
-        title: 'Women Footwear',
-        items: ['Flats', 'Heels & Sandals', 'Casual Shoes', 'Boots', 'Juttis & Mojaris']
-      },
-      {
-        title: 'Bags & Luggage',
-        items: ['Backpacks', 'Handbags', 'Wallets & Clutches', 'Trolley Bags']
+        title: 'Fashion Accessories',
+        items: ['Belts & Buckles', 'Sunglasses & Frames', 'Hair Accessories']
       }
     ]
   },
@@ -190,15 +150,33 @@ export const MEESHO_CATEGORIES = [
     subsections: [
       {
         title: 'Audio',
-        items: ['Bluetooth Earphones', 'True Wireless Earbuds', 'Bluetooth Speakers', 'Headphones']
+        items: ['Bluetooth Earphones & Neckbands', 'TWS Earbuds & Airpods', 'Bluetooth Speakers', 'Headphones']
       },
       {
         title: 'Mobile Accessories',
-        items: ['Mobile Covers', 'Cables & Chargers', 'Screen Protectors', 'Power Banks']
+        items: ['Mobile Chargers & Cables', 'Power Banks', 'Mobile Holders & Stands']
       },
       {
         title: 'Smart Gadgets',
-        items: ['Smartwatches', 'Fitness Bands', 'Ring Lights']
+        items: ['Smartwatches & Fitness Bands']
+      }
+    ]
+  },
+  {
+    name: 'Kids & Toys',
+    slug: 'kids-toys',
+    subsections: [
+      {
+        title: 'Kids Toys',
+        items: ['Soft Toys & Plushies', 'Educational & Learning Toys', 'Remote Control Cars & Vehicles', 'Board Games & Puzzles', 'Summer Picks']
+      },
+      {
+        title: 'Kids Clothing',
+        items: ['Boys Clothing Sets', 'Girls Dresses & Frocks', 'Baby Clothing']
+      },
+      {
+        title: 'Baby Care',
+        items: ['Baby Mattresses & Pillows', 'Baby Diapers & Essentials', 'Baby Bedding']
       }
     ]
   },
@@ -208,7 +186,7 @@ export const MEESHO_CATEGORIES = [
     subsections: [
       {
         title: 'Watches',
-        items: ['Men Watches', 'Women Watches', 'Couple Watches', 'Sports Watches', 'Smartwatches']
+        items: ['Men Analog Watches', 'Men Sports Watches', 'Men Digital Watches', 'Women Analog Watches', 'Women Magnetic / Strap Watches', 'Couple Watch Sets', 'Smartwatches']
       }
     ]
   },
@@ -223,4 +201,3 @@ export const MEESHO_CATEGORIES = [
     ]
   }
 ]
-

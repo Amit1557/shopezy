@@ -113,8 +113,9 @@ export default function HomePage() {
 
   const buildParams = useCallback((pageToFetch) => {
     const params = { page: pageToFetch, sort, limit: 16 }
-    const searchTerms = [search, subcategory, shape, strap, fabric].filter(Boolean).join(' ')
+    const searchTerms = [search, shape, strap, fabric].filter(Boolean).join(' ')
     if (searchTerms) params.search = searchTerms
+    if (subcategory) params.subcategory = subcategory
 
     if (categoryId) params.category_id = categoryId
     if (activeCategorySlug && activeCategorySlug !== 'popular') params.category_slug = activeCategorySlug

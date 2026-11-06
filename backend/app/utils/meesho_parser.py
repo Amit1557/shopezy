@@ -74,61 +74,65 @@ def map_meesho_category(text: str) -> str:
             return "men"
         return "kurti-saree-lehenga"
 
-    # 2. Footwear, Shoes, Slippers & Bags (Always priority over generic gender words)
-    if any(k in t for k in ['shoe', 'sneaker', 'sandal', 'slipper', 'chappal', 'boot', 'footwear', 'loafer', 'crocs', 'heel', 'flat', 'mojari', 'flip flop', 'bag', 'backpack', 'handbag', 'tote', 'duffle', 'luggage', 'sling bag', 'clutch', 'wallet']):
-        return "bags-footwear"
+    # 2. Footwear, Shoes, Slippers & Flats (Always priority over generic gender words)
+    if any(k in t for k in ['shoe', 'sneaker', 'sandal', 'slipper', 'chappal', 'boot', 'boots', 'footwear', 'loafer', 'loafers', 'crocs', 'heel', 'heels', 'flat', 'flats', 'mojari', 'jutti', 'bellies', 'wedge', 'wedges', 'flip flop', 'slides', 'slide']):
+        return "footwear"
 
-    # 3. Lingerie, Sleepwear & Innerwear
+    # 3. Bags, Wallets & Luggage
+    if any(k in t for k in ['bag', 'backpack', 'handbag', 'tote', 'duffle', 'luggage', 'sling bag', 'clutch', 'wallet']):
+        return "jewellery-accessories"
+
+    # 4. Lingerie, Sleepwear & Innerwear
     if any(k in t for k in ['bra', 'panty', 'panties', 'lingerie', 'nighty', 'nightwear', 'sleepwear', 'babydoll', 'boxer', 'brief', 'camisole']):
         return "lingerie"
 
-    # 4. Watches & Smartwatches
+    # 5. Watches & Smartwatches
     if any(k in t for k in ['watch', 'smartwatch', 'analog watch', 'digital watch', 'chronograph']):
         return "watches"
 
-    # 5. Electronics & Audio
+    # 6. Electronics & Audio
     if any(k in t for k in ['earphone', 'headphone', 'earbud', 'airpod', 'tws', 'bluetooth', 'speaker', 'charger', 'usb cable', 'mobile cover', 'mobile case', 'power bank', 'tempered glass', 'neckband']):
         return "electronics"
 
-    # 6. Jewellery & Fashion Accessories
+    # 7. Jewellery & Fashion Accessories
     if any(k in t for k in ['jewel', 'necklace', 'earring', 'bangle', 'ring', 'pendant', 'chain', 'mangalsutra', 'bracelet', 'anklet', 'payal', 'jhumka', 'sunglass', 'goggles', 'hair accessory']):
         return "jewellery-accessories"
 
-    # 7. Kids, Toddlers & Toys (Detects boys, girls, frock, toy, baby)
+    # 8. Kids, Toddlers & Toys (Detects boys, girls, frock, toy, baby)
     if any(k in t for k in ['kid', 'baby', 'toy', 'infant', 'toddler', 'doll', 'diaper', 'romper', 'frock', 'children', 'child']) or (re.search(r'\b(boys?|girls?)\b', t) and any(k in t for k in ['wear', 'cloth', 'frock', 'dress', 'set', 'suit', 'tshirt', 'shirt', 'shorts'])):
         return "kids-toys"
 
-    # 8. Home & Kitchen
-    if any(k in t for k in ['kitchen', 'home', 'bottle', 'chopper', 'bedsheet', 'curtain', 'cookware', 'utensil', 'pillow', 'blanket', 'storage', 'mop', 'lunch box', 'flask', 'towel', 'pan', 'kadhai', 'container']):
+    # 9. Home & Kitchen / Home Decor
+    if any(k in t for k in ['kitchen', 'home', 'bottle', 'chopper', 'bedsheet', 'curtain', 'cookware', 'utensil', 'pillow', 'blanket', 'storage', 'mop', 'lunch box', 'flask', 'towel', 'pan', 'kadhai', 'container', 'clock', 'plant']):
         return "home-kitchen"
 
-    # 9. Beauty, Skincare & Grooming
+    # 10. Beauty, Skincare & Grooming
     if any(k in t for k in ['beauty', 'cream', 'perfume', 'deodorant', 'makeup', 'serum', 'lotion', 'lipstick', 'skincare', 'hair oil', 'shampoo', 'facewash', 'eyeliner', 'nail polish', 'kajal', 'foundation', 'eyeshadow']):
         return "beauty-health"
 
-    # 10. Sports & Fitness
+    # 11. Sports & Fitness
     if any(k in t for k in ['gym', 'dumbbell', 'yoga mat', 'fitness', 'exercise', 'resistance band', 'shaker bottle', 'sports equipment']):
         return "sports-fitness"
 
-    # 11. Women Western Wear (T-shirts, Jeans, Tops, Dresses for Women/Girls/Ladies)
+    # 12. Women Western Wear (T-shirts, Jeans, Tops, Dresses for Women/Girls/Ladies)
     is_female = bool(re.search(r'\b(women|woman|ladies|girls?|female)\b', t))
     if is_female and any(k in t for k in ['dress', 'western', 'top', 'tunic', 'jumpsuit', 'gown', 'skirt', 'crop top', 'shirt', 'tshirt', 't-shirt', 'jean', 'jeans', 'trouser', 'cargo', 'jogger', 'palazzo', 'plazo', 'shorts', 'hoodie', 'jacket', 'blazer']):
         return "women-western"
     if any(k in t for k in ['dress', 'western', 'top', 'tunic', 'jumpsuit', 'gown', 'skirt', 'crop top', 'palazzo', 'plazo']):
         return "women-western"
 
-    # 12. Belts & Accessories (High priority for women belts, waist belts)
+    # 13. Belts & Accessories (High priority for women belts, waist belts)
     if any(k in t for k in ['belt', 'belts', 'waist belt', 'buckle belt']):
         return "jewellery-accessories"
 
-    # 13. Mattresses & Bedding (High priority for baby mattresses vs home bedding)
+    # 14. Mattresses & Bedding (High priority for baby mattresses vs home bedding)
     if any(k in t for k in ['mattress', 'matress', 'bedsheet', 'bed sheet', 'crib', 'protector', 'baby mat']):
         if any(k in t for k in ['baby', 'kid', 'child', 'infant', 'toddler']):
             return "kids-toys"
         return "home-kitchen"
 
-    # 14. Men Apparel
-    if re.search(r'\b(men|man|gents|male)\b', t) or any(k in t for k in ['shirt', 'tshirt', 't-shirt', 'polo', 'jeans', 'trouser', 'cargo', 'jogger', 'hoodie', 'jacket', 'blazer', 'track pant', 'chinos', 'kurta men']):
+    # 15. Men Apparel (Explicitly verify NOT women/ladies)
+    if (re.search(r'\b(men|man|gents|male)\b', t) and not is_female) or any(k in t for k in ['polo', 'cargo', 'jogger', 'kurta men']):
         return "men"
 
     if is_female:

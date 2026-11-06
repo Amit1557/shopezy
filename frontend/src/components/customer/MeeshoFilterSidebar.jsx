@@ -11,7 +11,7 @@ const PRICE_PRESETS = [
 const GENDER_OPTIONS = ['Men', 'Women', 'Kids', 'Girls', 'Boys', 'Unisex']
 
 const APPAREL_SIZES = ['S', 'M', 'L', 'XL', 'XXL', 'Free Size']
-const FOOTWEAR_SIZES = ['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10']
+const FOOTWEAR_SIZES = ['IND-4', 'IND-5', 'IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10']
 
 const POPULAR_COLORS = [
   { name: 'Black', hex: '#000000' },
@@ -37,91 +37,129 @@ const DISCOUNT_OPTIONS = [
   { label: '50% and above', value: '50' },
 ]
 
-// Category-specific subcategories for Meesho search refinement
-const KIDS_TOYS_SUBCATEGORIES = [
-  'Dress Up & Pretend Play',
-  'Kids Baby & Toddler Toys',
-  'Kids Toys',
-  'Soft Toys',
-  'Toy Vehicles',
-  'Toys',
-  'Clay & Slime',
-  'Educational Toys',
-  'Board Games',
-  'Play Tents',
-  'Baby Mattresses',
+// Authentic Meesho Category Subcategory Taxonomies
+const ETHNIC_WEAR_SUBCATEGORIES = [
+  'All Ethnic Wear',
+  'Kurtis & Kurta Sets',
+  'Sarees',
+  'Lehengas & Sets',
+  'Ethnic Bottoms & Palazzos',
+  'Dupattas & Shawls',
+  'Blouses & Petticoats',
+  'Anarkali Suits',
+  'Gowns & Shararas',
 ]
 
-const HOME_KITCHEN_SUBCATEGORIES = [
-  'Bedsheets',
-  'Mattress Protectors',
-  'Wall Clocks',
-  'Door & Window Curtains',
-  'Cookware & Utensils',
-  'Kitchen Containers',
-  'Fancy Clocks',
-  'Aprons',
-  'Doormats',
-]
-
-const ACCESSORIES_BELTS_SUBCATEGORIES = [
-  'Women Belts',
-  'Men Belts',
-  'Waist Belts',
-  'Handbags & Clutches',
-  'Sling Bags',
-  'Wallets',
-  'Sunglasses & Frames',
-  'Fashion Jewellery',
-]
-
-const WOMEN_WESTERN_SUBCATEGORIES = [
+const WESTERN_DRESSES_SUBCATEGORIES = [
+  'All Western Dresses',
   'Western Dresses',
   'Tops & Tunics',
-  'Women Jeans',
-  'Women Belts',
-  'Jumpsuits & Gowns',
+  'T-Shirts & Polos',
+  'Jeans & Jeggings',
+  'Trousers & Pants',
+  'Jumpsuits & Dungarees',
   'Skirts & Shorts',
+  'Shrugs & Jackets',
   'Crop Tops',
 ]
 
-const WATCH_SUBCATEGORIES = [
-  'Analog Watches',
-  'Chronograph Watches',
-  'Digital Watches',
-  'Kids Watches',
-  'Men Analog Watches',
-  'Men Sports Watches',
-  'Men Watches',
-  'Smartwatches',
+const MENSWEAR_SUBCATEGORIES = [
+  'All Menswear',
+  'T-Shirts & Polos',
+  'Casual Shirts',
+  'Formal Shirts',
+  'Jeans & Denim',
+  'Trousers & Chinos',
+  'Track Pants & Joggers',
+  'Shorts & 3/4ths',
+  'Ethnic Kurtas & Sets',
+  'Jackets & Sweatshirts',
 ]
 
 const FOOTWEAR_SUBCATEGORIES = [
-  'Flip Flops',
-  'Slippers',
-  'Casual Shoes',
-  'Sports Shoes',
-  'Sneakers',
-  'Running Shoes',
+  'All Footwear',
+  'Women Flats',
+  'Women Heels & Wedges',
+  'Bellies & Juttis',
+  'Men Casual Shoes',
+  'Men Sports Shoes & Sneakers',
+  'Flip Flops & Slippers',
   'Sandals & Floaters',
-  'Loafers',
+  'Loafers & Formal Shoes',
+  'Kids Footwear',
 ]
 
-const JEANS_SUBCATEGORIES = [
-  'Jeans',
-  'Men Jeans',
-  'Slim Fit Jeans',
-  'Straight Fit Jeans',
-  'Washed Denim',
+const HOME_DECOR_SUBCATEGORIES = [
+  'All Home Decor',
+  'Bedsheets & Pillow Covers',
+  'Curtains & Sheers',
+  'Wall Clocks & Hangings',
+  'Cushion Covers',
+  'Blankets & Quilts',
+  'Cookware & Kitchen Tools',
+  'Containers & Organizers',
+  'Doormats & Rugs',
+  'Artificial Plants & Flowers',
 ]
 
-const KURTI_SAREE_SUBCATEGORIES = [
-  'Cotton Kurtis',
-  'Anarkali Kurtis',
-  'Rayon Kurtis',
-  'Cotton Sarees',
-  'Georgette Sarees',
-  'Silk Sarees',
+const BEAUTY_SUBCATEGORIES = [
+  'All Beauty',
+  'Lipsticks & Lip Gloss',
+  'Kajal, Eyeliner & Mascara',
+  'Face Creams & Serums',
+  'Perfumes & Deodorants',
+  'Face Wash & Cleansers',
+  'Shampoo & Conditioners',
+  'Foundation & Compact',
+  'Hair Oils & Serums',
+]
+
+const ACCESSORIES_SUBCATEGORIES = [
+  'All Accessories',
+  'Jewellery Sets',
+  'Earrings & Studs',
+  'Necklaces & Chains',
+  'Bangles & Bracelets',
+  'Handbags & Clutches',
+  'Sling Bags & Totes',
+  'Wallets & Pouches',
+  'Belts & Buckles',
+  'Sunglasses & Frames',
+]
+
+const ELECTRONICS_SUBCATEGORIES = [
+  'All Electronics',
+  'Bluetooth Earphones & Neckbands',
+  'TWS Earbuds & Airpods',
+  'Smartwatches & Fitness Bands',
+  'Bluetooth Speakers',
+  'Mobile Chargers & Cables',
+  'Power Banks',
+  'Mobile Holders & Stands',
+  'Headphones',
+]
+
+const KIDS_TOYS_SUBCATEGORIES = [
+  'All Kids & Toys',
+  'Boys Clothing Sets',
+  'Girls Dresses & Frocks',
+  'Soft Toys & Plushies',
+  'Educational & Learning Toys',
+  'Remote Control Cars & Vehicles',
+  'Board Games & Puzzles',
+  'Baby Care & Essentials',
+  'Baby Mattresses & Pillows',
+]
+
+const WATCH_SUBCATEGORIES = [
+  'All Watches',
+  'Men Analog Watches',
+  'Men Sports Watches',
+  'Men Digital Watches',
+  'Women Analog Watches',
+  'Women Magnetic / Strap Watches',
+  'Couple Watch Sets',
+  'Smartwatches',
 ]
 
 const WATCH_DIAL_SHAPES = ['Round', 'Square', 'Rectangle']
@@ -157,25 +195,21 @@ export default function MeeshoFilterSidebar({
   // URL query params
   const searchQuery = (searchParams.get('search') || '').toLowerCase()
   const currentSlug = (activeCategorySlug || '').toLowerCase()
-  const context = `${searchQuery} ${currentSlug}`
 
-  // Context Detection (smart Meesho filtering)
-  const isKids = context.includes('kid') || context.includes('baby') || context.includes('toy') || context.includes('toddler') || context.includes('stuffed') || context.includes('clay') || context.includes('slime') || context.includes('summer pick')
-  const isWatch = context.includes('watch') || context.includes('clock')
-  const isElectronics = context.includes('electronic') || context.includes('audio') || context.includes('earbud') || context.includes('headphone') || context.includes('charger') || context.includes('speaker') || context.includes('gadget')
-  const isAccessories = context.includes('belt') || context.includes('jewel') || context.includes('accessori') || context.includes('ring') || context.includes('necklace') || context.includes('bangle') || context.includes('earring') || context.includes('sunglass') || context.includes('wallet')
-  const isHomeKitchen = context.includes('home') || context.includes('kitchen') || context.includes('chopper') || context.includes('bedsheet') || context.includes('bottle') || context.includes('mattress') || context.includes('curtain') || context.includes('cookware')
-  const isBeauty = context.includes('beauty') || context.includes('health') || context.includes('makeup') || context.includes('cream') || context.includes('perfume')
+  // Strict Meesho Front-Page Category Context Detection
+  const isFootwear = currentSlug === 'footwear' || currentSlug === 'bags-footwear' || (!currentSlug && /footwear|shoe|sneaker|sandal|slipper|chappal|flat|heel|wedge|loafer|slide|flip flop/i.test(searchQuery))
+  const isEthnicWear = currentSlug === 'kurti-saree-lehenga' || currentSlug === 'ethnic-wear' || (!currentSlug && /kurti|saree|lehenga|anarkali|ethnic|dupatta/i.test(searchQuery))
+  const isWomenWestern = currentSlug === 'women-western' || currentSlug === 'western-dresses' || (!currentSlug && /western|dress|gown|skirt|top|tunic|crop top|jumpsuit/i.test(searchQuery))
+  const isMenswear = currentSlug === 'men' || currentSlug === 'menswear' || currentSlug === 'mens-fashion' || (!currentSlug && /\b(men|shirt|t-shirt|tshirt|trouser|polo|jogger|chinos)\b/i.test(searchQuery) && !/women|ladies|girl/i.test(searchQuery))
+  const isHomeKitchen = currentSlug === 'home-kitchen' || currentSlug === 'home-decor' || (!currentSlug && /home|kitchen|bedsheet|curtain|clock|cookware|pillow|towel/i.test(searchQuery))
+  const isBeauty = currentSlug === 'beauty-health' || currentSlug === 'beauty' || currentSlug === 'beauty-lifestyle' || (!currentSlug && /beauty|makeup|lipstick|cream|serum|perfume|shampoo/i.test(searchQuery))
+  const isAccessories = currentSlug === 'jewellery-accessories' || currentSlug === 'accessories' || (!currentSlug && /jewel|necklace|earring|bangle|ring|handbag|wallet|belt|sunglass/i.test(searchQuery))
+  const isElectronics = currentSlug === 'electronics' || (!currentSlug && /electronic|audio|earphone|headphone|earbud|airpod|speaker|charger|power bank/i.test(searchQuery))
+  const isKids = currentSlug === 'kids-toys' || currentSlug === 'kids-fashion' || (!currentSlug && /kid|baby|toy|doll|puzzle|toddler/i.test(searchQuery))
+  const isWatch = currentSlug === 'watches' || (!currentSlug && /\b(watch|smartwatch|watches)\b/i.test(searchQuery))
 
-  const isFootwear = context.includes('shoe') || context.includes('footwear') || context.includes('sneaker') || context.includes('sandal') || context.includes('slipper') || context.includes('loafer') || context.includes('boot') || context.includes('flip flop') || context.includes('chappal')
-  const isJeans = context.includes('jean') || context.includes('denim')
-  const isKurtiSaree = context.includes('kurti') || context.includes('saree') || context.includes('lehenga') || context.includes('ethnic')
-  const isWomenWestern = context.includes('western') || (context.includes('women') && !context.includes('kurti') && !context.includes('saree'))
-  const isApparel = isJeans || isKurtiSaree || isWomenWestern || context.includes('shirt') || context.includes('t-shirt') || context.includes('tshirt') || context.includes('top') || context.includes('dress') || context.includes('pant') || context.includes('jacket') || context.includes('western') || context.includes('lingerie') || context.includes('men')
-
-  // Rule: Watches, electronics, jewellery, kitchen, beauty, toys DO NOT HAVE APPAREL SIZES!
-  const hasNoSize = isWatch || isElectronics || isAccessories || isHomeKitchen || isBeauty || isKids
-  const showSizeFilter = !hasNoSize
+  const isApparel = isEthnicWear || isWomenWestern || isMenswear
+  const showSizeFilter = isFootwear || isApparel
 
   const currentMinPrice = searchParams.get('min_price') || ''
   const currentMaxPrice = searchParams.get('max_price') || ''
@@ -234,22 +268,26 @@ export default function MeeshoFilterSidebar({
 
   // Determine which subcategories to show under Category
   let categoryListToRender = null
-  if (isKids) {
+  if (isFootwear) {
+    categoryListToRender = FOOTWEAR_SUBCATEGORIES
+  } else if (isEthnicWear) {
+    categoryListToRender = ETHNIC_WEAR_SUBCATEGORIES
+  } else if (isWomenWestern) {
+    categoryListToRender = WESTERN_DRESSES_SUBCATEGORIES
+  } else if (isMenswear) {
+    categoryListToRender = MENSWEAR_SUBCATEGORIES
+  } else if (isHomeKitchen) {
+    categoryListToRender = HOME_DECOR_SUBCATEGORIES
+  } else if (isBeauty) {
+    categoryListToRender = BEAUTY_SUBCATEGORIES
+  } else if (isAccessories) {
+    categoryListToRender = ACCESSORIES_SUBCATEGORIES
+  } else if (isElectronics) {
+    categoryListToRender = ELECTRONICS_SUBCATEGORIES
+  } else if (isKids) {
     categoryListToRender = KIDS_TOYS_SUBCATEGORIES
   } else if (isWatch) {
     categoryListToRender = WATCH_SUBCATEGORIES
-  } else if (isFootwear) {
-    categoryListToRender = FOOTWEAR_SUBCATEGORIES
-  } else if (isAccessories) {
-    categoryListToRender = ACCESSORIES_BELTS_SUBCATEGORIES
-  } else if (isHomeKitchen) {
-    categoryListToRender = HOME_KITCHEN_SUBCATEGORIES
-  } else if (isKurtiSaree) {
-    categoryListToRender = KURTI_SAREE_SUBCATEGORIES
-  } else if (isWomenWestern) {
-    categoryListToRender = WOMEN_WESTERN_SUBCATEGORIES
-  } else if (isJeans) {
-    categoryListToRender = JEANS_SUBCATEGORIES
   }
 
   return (
