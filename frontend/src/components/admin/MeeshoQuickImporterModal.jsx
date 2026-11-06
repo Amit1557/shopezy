@@ -151,6 +151,8 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
   const [imageUrlInput, setImageUrlInput] = useState('')
   const [sizes, setSizes] = useState(['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10'])
   const [newSize, setNewSize] = useState('')
+  const [colors, setColors] = useState([])
+  const [newColor, setNewColor] = useState('')
   const [description, setDescription] = useState('')
   const [specifications, setSpecifications] = useState({})
   const [uploading, setUploading] = useState(false)
@@ -204,6 +206,21 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
       }
       if (initialData.description) setDescription(initialData.description)
       if (initialData.specifications) setSpecifications(initialData.specifications)
+
+      // Auto-detect colors from initial data
+      if (initialData.colors && initialData.colors.length > 0) {
+        setColors(initialData.colors)
+      } else {
+        const foundColors = []
+        const titleMatch = (initialData.name || '').match(/\b(Black|Blue|Navy|White|Red|Green|Grey|Gray|Yellow|Pink|Maroon|Brown|Beige|Orange|Purple|Olive|Tan|Multicolor)\b/gi)
+        if (titleMatch) {
+          titleMatch.forEach(c => {
+            const cap = c.charAt(0).toUpperCase() + c.slice(1).toLowerCase()
+            if (!foundColors.includes(cap)) foundColors.push(cap)
+          })
+        }
+        if (foundColors.length > 0) setColors(foundColors)
+      }
 
       // Auto-match category from Meesho
       const rawCatText = initialData.category || initialData.category_slug || initialData.name || ''
@@ -268,6 +285,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
     setImages([])
     setImageUrlInput('')
     setSizes(['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10'])
+    setColors([])
     setDescription('')
   }
 
@@ -310,6 +328,21 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
         } else if (/shirt|kurti|dress|t-shirt|top/i.test(lowerName)) {
           setSizes(['S', 'M', 'L', 'XL', 'XXL'])
         }
+      }
+
+      // Auto-set intelligent colors
+      if (data.colors && data.colors.length > 0) {
+        setColors(data.colors)
+      } else {
+        const foundColors = []
+        const titleMatch = (data.name || rawText).match(/\b(Black|Blue|Navy|White|Red|Green|Grey|Gray|Yellow|Pink|Maroon|Brown|Beige|Orange|Purple|Olive|Tan|Multicolor)\b/gi)
+        if (titleMatch) {
+          titleMatch.forEach(c => {
+            const cap = c.charAt(0).toUpperCase() + c.slice(1).toLowerCase()
+            if (!foundColors.includes(cap)) foundColors.push(cap)
+          })
+        }
+        if (foundColors.length > 0) setColors(foundColors)
       }
 
       // Auto-attach photos (Strict anti-banner filter - blocks promo ribbons & 35% off app ads)
@@ -451,6 +484,25 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
     setNewSize('')
   }
 
+  // Color toggle
+  const toggleColor = (clr) => {
+    if (colors.includes(clr)) {
+      setColors(colors.filter(c => c !== clr))
+    } else {
+      setColors([...colors, clr])
+    }
+  }
+
+  const addCustomColor = (e) => {
+    e.preventDefault()
+    if (!newColor.trim()) return
+    const formatted = newColor.trim().charAt(0).toUpperCase() + newColor.trim().slice(1)
+    if (!colors.includes(formatted)) {
+      setColors([...colors, formatted])
+    }
+    setNewColor('')
+  }
+
   // Calculate profit
   const costNum = parseFloat(purchaseCost) || 0
   const sellNum = parseFloat(sellingPrice) || 0
@@ -481,7 +533,7 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
         meesho_link: meeshoLink || undefined,
         images: images.filter(isCleanProductImage),
         sizes: sizes.length > 0 ? sizes : ['Free Size'],
-        colors: [],
+        colors: colors,
         specifications: Object.keys(specifications).length > 0 ? specifications : undefined,
         is_active: true,
         is_featured: false,
@@ -965,6 +1017,51 @@ export default function MeeshoQuickImporterModal({ isOpen, onClose, onSuccess, i
                       onChange={(e) => setNewSize(e.target.value)}
                       placeholder="+ Custom Size"
                       className="text-xs py-1 px-2 border rounded-md w-24"
+                    />
+                  </form>
+                </div>
+              </div>
+
+              {/* AVAILABLE COLORS (Meesho Multiple Color Variants) */}
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-1">
+                  <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                    <span>🎨 Available Colors / Variants</span>
+                    <span className="text-[10px] text-gray-400 font-normal">(Customer can choose colour on website)</span>
+                  </label>
+                  {colors.length > 0 && (
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold">
+                      {colors.length} color{colors.length !== 1 ? 's' : ''} selected
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  {['Black', 'White', 'Navy Blue', 'Blue', 'Red', 'Green', 'Pink', 'Grey', 'Brown', 'Beige', 'Yellow', 'Olive', 'Tan', 'Multicolor'].map((clr) => {
+                    const active = colors.includes(clr)
+                    return (
+                      <button
+                        key={clr}
+                        type="button"
+                        onClick={() => toggleColor(clr)}
+                        className={`text-xs px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                          active
+                            ? 'bg-purple-600 text-white shadow-sm ring-1 ring-purple-600'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {active && '✓ '}
+                        {clr}
+                      </button>
+                    )
+                  })}
+                  <form onSubmit={addCustomColor} className="inline-flex gap-1 items-center">
+                    <input
+                      type="text"
+                      value={newColor}
+                      onChange={(e) => setNewColor(e.target.value)}
+                      placeholder="+ Add Color"
+                      className="text-xs py-1 px-2 border rounded-md w-24 bg-white"
                     />
                   </form>
                 </div>

@@ -24,6 +24,8 @@ export default function ProductQuickEditModal({ isOpen, product, onClose, onUpda
   const [imageUrlInput, setImageUrlInput] = useState('')
   const [sizes, setSizes] = useState([])
   const [newSize, setNewSize] = useState('')
+  const [colors, setColors] = useState([])
+  const [newColor, setNewColor] = useState('')
   const [isActive, setIsActive] = useState(true)
   const [codAvailable, setCodAvailable] = useState(true)
 
@@ -55,6 +57,19 @@ export default function ProductQuickEditModal({ isOpen, product, onClose, onUpda
         .filter(v => v.variant_type === 'size')
         .map(v => v.value)
       setSizes(sizeVars.length > 0 ? sizeVars : ['Free Size'])
+
+      // Colors: extract from variants or fallback
+      const colorVars = (product.variants || [])
+        .filter(v => v.variant_type === 'color')
+        .map(v => v.value)
+      if (colorVars.length > 0) {
+        setColors(colorVars)
+      } else {
+        const specColor = product.specifications?.Color || product.specifications?.color
+        const titleMatch = (product.name || '').match(/\b(Black|Blue|Navy|Navy Blue|White|Red|Green|Grey|Gray|Yellow|Pink|Maroon|Brown|Beige|Orange|Purple|Olive|Tan)\b/gi)
+        const detected = specColor ? [specColor] : (titleMatch ? [titleMatch[0]] : [])
+        setColors(detected)
+      }
     }
   }, [product, isOpen])
 
@@ -179,6 +194,25 @@ export default function ProductQuickEditModal({ isOpen, product, onClose, onUpda
     setNewSize('')
   }
 
+  // Color helpers
+  const toggleColor = (clr) => {
+    if (colors.includes(clr)) {
+      setColors(colors.filter(c => c !== clr))
+    } else {
+      setColors([...colors, clr])
+    }
+  }
+
+  const handleAddCustomColor = (e) => {
+    e.preventDefault()
+    if (!newColor.trim()) return
+    const formatted = newColor.trim().charAt(0).toUpperCase() + newColor.trim().slice(1)
+    if (!colors.includes(formatted)) {
+      setColors([...colors, formatted])
+    }
+    setNewColor('')
+  }
+
   const applySizePreset = (type) => {
     if (type === 'shoes') setSizes(['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10'])
     else if (type === 'clothing') setSizes(['S', 'M', 'L', 'XL', 'XXL'])
@@ -211,7 +245,8 @@ export default function ProductQuickEditModal({ isOpen, product, onClose, onUpda
         is_active: isActive,
         cod_available: codAvailable,
         images: images,
-        sizes: sizes.length > 0 ? sizes : ['Free Size']
+        sizes: sizes.length > 0 ? sizes : ['Free Size'],
+        colors: colors
       }
 
       await productsAdminAPI.update(product.id, payload)
@@ -498,6 +533,56 @@ export default function ProductQuickEditModal({ isOpen, product, onClose, onUpda
                 <button
                   type="button"
                   onClick={handleAddCustomSize}
+                  className="btn-secondary text-[11px] py-1 px-2 font-bold"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* AVAILABLE COLORS (Multiple Colors Support) */}
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-1">
+              <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                <span>🎨 Available Colors / Variants</span>
+                <span className="text-[10px] text-gray-400 font-normal">(Customer can select color on store)</span>
+              </label>
+              {colors.length > 0 && (
+                <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold">
+                  {colors.length} color{colors.length !== 1 ? 's' : ''} active
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 items-center">
+              {['Black', 'White', 'Navy Blue', 'Blue', 'Red', 'Green', 'Pink', 'Grey', 'Brown', 'Beige', 'Yellow', 'Olive', 'Tan', 'Multicolor'].map(clr => {
+                const active = colors.includes(clr)
+                return (
+                  <button
+                    key={clr}
+                    type="button"
+                    onClick={() => toggleColor(clr)}
+                    className={`text-xs px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                      active ? 'bg-purple-700 text-white shadow-sm ring-1 ring-purple-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {active && '✓ '}
+                    {clr}
+                  </button>
+                )
+              })}
+              <div className="inline-flex gap-1 items-center">
+                <input
+                  type="text"
+                  value={newColor}
+                  onChange={e => setNewColor(e.target.value)}
+                  placeholder="+ Add Color"
+                  className="text-xs py-1 px-2 border rounded-md w-24 bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCustomColor}
                   className="btn-secondary text-[11px] py-1 px-2 font-bold"
                 >
                   Add
