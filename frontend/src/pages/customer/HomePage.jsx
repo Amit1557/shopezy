@@ -8,6 +8,7 @@ import { categoriesAPI, productsPublicAPI } from '../../services/api'
 import ProductCard from '../../components/customer/ProductCard'
 import CategoryCard from '../../components/customer/CategoryCard'
 import MeeshoFilterSidebar from '../../components/customer/MeeshoFilterSidebar'
+import MeeshoOriginalBrands from '../../components/customer/MeeshoOriginalBrands'
 import EmptyState from '../../components/ui/EmptyState'
 
 const BANNERS = [
@@ -214,6 +215,16 @@ export default function HomePage() {
     setSearchParams({}, { replace: true })
   }
 
+  const handleSelectOriginalBrand = (catSlug, subcat) => {
+    const p = new URLSearchParams(searchParams)
+    if (catSlug) p.set('category', catSlug)
+    else p.delete('category')
+    if (subcat && !subcat.startsWith('All ')) p.set('subcategory', subcat)
+    else p.delete('subcategory')
+    p.delete('page')
+    setSearchParams(p, { replace: true })
+  }
+
   const activeFiltersCount = [
     activeCategorySlug,
     minPrice,
@@ -343,6 +354,11 @@ export default function HomePage() {
           </section>
         </div>
       )}
+
+      {/* 3.5. Authentic Meesho Original Brands & Verified Brands Ribbon */}
+      <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6">
+        <MeeshoOriginalBrands onSelectFilter={handleSelectOriginalBrand} />
+      </div>
 
       {/* 4. MAIN FEED: EXACT MEESHO LAYOUT (Photo 2) - Filter on Left, Products on Right */}
       <div id="products-feed" className="max-w-[1600px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
