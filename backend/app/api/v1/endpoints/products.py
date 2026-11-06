@@ -96,18 +96,22 @@ def get_public_products(
 ):
     base_q = db.query(Product).filter(Product.is_active == True)
 
-    # 1. Flexible Category Filtering with Cross-Category Keywords
-    if category_id:
-        base_q = base_q.filter(Product.category_id == category_id)
-    elif category_slug and category_slug != 'popular':
+    # 1. Flexible Category Filtering with Cross-Category Discovery
+    if category_id or (category_slug and category_slug != 'popular'):
         from ....models.category import Category
-        cat = db.query(Category).filter(Category.slug == category_slug).first()
+        cat = None
+        if category_id:
+            cat = db.query(Category).filter(Category.id == category_id).first()
+        elif category_slug:
+            cat = db.query(Category).filter(Category.slug == category_slug).first()
+        
+        slug_to_use = cat.slug if cat else (category_slug or "")
         
         cat_conditions = []
         if cat:
             cat_conditions.append(Product.category_id == cat.id)
             
-        kws = CATEGORY_CROSS_KEYWORDS.get(category_slug, [])
+        kws = CATEGORY_CROSS_KEYWORDS.get(slug_to_use, [])
         for kw in kws:
             cat_conditions.append(Product.name.ilike(f"%{kw}%"))
             cat_conditions.append(Product.description.ilike(f"%{kw}%"))
@@ -117,16 +121,29 @@ def get_public_products(
         if cat_conditions:
             base_q = base_q.filter(or_(*cat_conditions))
 
-    # 2. Dynamic Subcategory Filtering (e.g. "Soft Toys", "Women Belts", "Flip Flops", "Analog Watches")
+    # 2. Meesho-Style Dynamic Subcategory Filtering (Phrase & Word-level Matching)
     if subcategory:
-        sub_terms = [s.strip() for s in re.split(r'[,/]+', subcategory) if s.strip()]
-        sub_conditions = []
-        for st in sub_terms:
-            sub_conditions.append(Product.name.ilike(f"%{st}%"))
-            sub_conditions.append(func.cast(Product.specifications, String).ilike(f"%{st}%"))
-            sub_conditions.append(func.cast(Product.tags, String).ilike(f"%{st}%"))
-        if sub_conditions:
-            base_q = base_q.filter(or_(*sub_conditions))
+        sub_raw = subcategory.strip().lower()
+        sub_conditions = [
+            Product.name.ilike(f"%{sub_raw}%"),
+            func.cast(Product.specifications, String).ilike(f"%{sub_raw}%"),
+            func.cast(Product.tags, String).ilike(f"%{sub_raw}%")
+        ]
+        
+        # Word-level matching (e.g. "Women Belts" -> all words "women" & "belt" match in product)
+        clean_words = [w.rstrip('s') for w in re.split(r'[\s&/,]+', sub_raw) if len(w) > 2]
+        if clean_words:
+            word_ands = []
+            for w in clean_words:
+                word_ands.append(or_(
+                    Product.name.ilike(f"%{w}%"),
+                    Product.description.ilike(f"%{w}%"),
+                    func.cast(Product.specifications, String).ilike(f"%{w}%"),
+                    func.cast(Product.tags, String).ilike(f"%{w}%")
+                ))
+            sub_conditions.append(and_(*word_ands))
+            
+        base_q = base_q.filter(or_(*sub_conditions))
 
     # 3. Universal Smart Search (Synonyms + Multi-field Match)
     if search:
@@ -169,20 +186,33 @@ def get_public_products(
             or_(
                 Product.name.ilike(f"%{color}%"),
                 func.cast(Product.specifications, String).ilike(f"%{color}%"),
+                func.cast(Product.tags, String).ilike(f"%{color}%"),
                 Product.variants.any(
                     and_(ProductVariant.variant_type == "color", ProductVariant.value.ilike(f"%{color}%"))
                 ),
             )
         )
     if gender:
-        base_q = base_q.filter(
-            or_(
-                Product.name.ilike(f"%{gender}%"),
-                Product.description.ilike(f"%{gender}%"),
-                func.cast(Product.specifications, String).ilike(f"%{gender}%"),
-                func.cast(Product.tags, String).ilike(f"%{gender}%"),
-            )
-        )
+        g_clean = gender.strip().lower()
+        g_synonyms = [g_clean]
+        if g_clean in ['girl', 'girls']:
+            g_synonyms.extend(['girl', 'girls', 'female', 'women', 'daughter'])
+        elif g_clean in ['boy', 'boys']:
+            g_synonyms.extend(['boy', 'boys', 'male', 'men', 'son'])
+        elif g_clean in ['women', 'woman', 'ladies']:
+            g_synonyms.extend(['women', 'woman', 'ladies', 'female', 'girl'])
+        elif g_clean in ['men', 'man', 'gents']:
+            g_synonyms.extend(['men', 'man', 'gents', 'male', 'boy'])
+        elif g_clean in ['kids', 'kid']:
+            g_synonyms.extend(['kid', 'kids', 'baby', 'child', 'children', 'toddler', 'infant'])
+            
+        g_conds = []
+        for g_syn in g_synonyms:
+            g_conds.append(Product.name.ilike(f"%{g_syn}%"))
+            g_conds.append(Product.description.ilike(f"%{g_syn}%"))
+            g_conds.append(func.cast(Product.specifications, String).ilike(f"%{g_syn}%"))
+            g_conds.append(func.cast(Product.tags, String).ilike(f"%{g_syn}%"))
+        base_q = base_q.filter(or_(*g_conds))
     if featured is not None:
         base_q = base_q.filter(Product.is_featured == featured)
 
