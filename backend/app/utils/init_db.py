@@ -138,6 +138,21 @@ def init_db():
                 for prod in misplaced_scarves:
                     prod.category_id = jewel_id
 
+            # 4. Deduplicate products: If same product title appears multiple times, remove extra duplicates
+            all_prods = db.query(Product).order_by(Product.id.asc()).all()
+            seen_titles = {}
+            duplicates_removed = 0
+            for prod in all_prods:
+                clean_title = prod.name.strip().lower()
+                if clean_title in seen_titles:
+                    db.delete(prod)
+                    duplicates_removed += 1
+                else:
+                    seen_titles[clean_title] = prod.id
+            if duplicates_removed > 0:
+                db.commit()
+                print(f"Removed {duplicates_removed} duplicate products.")
+
             db.commit()
             print("Successfully checked and auto-realigned catalog categories.")
         except Exception as e:

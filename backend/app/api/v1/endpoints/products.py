@@ -35,15 +35,21 @@ CATEGORY_CROSS_KEYWORDS = {
     "womens-fashion": ["women", "dress", "saree", "kurti", "top", "gown", "jeans", "skirt", "belt", "handbag", "ladies"],
     "men": ["men", "shirt", "tshirt", "t-shirt", "polo", "jeans", "trouser", "cargo", "jogger", "hoodie", "jacket", "chinos", "kurta men", "belt"],
     "mens-fashion": ["men", "shirt", "tshirt", "polo", "jeans", "trouser", "shoes", "sneakers", "watch", "belt"],
-    "watches": ["watch", "smartwatch", "analog", "digital", "chronograph", "wrist watch"],
+    "watches": ["watch", "smartwatch", "analog", "digital", "chronograph", "wrist watch", "clock", "wall clock", "clocks", "ghadi"],
     "electronics": ["earphone", "headphone", "earbud", "speaker", "bluetooth", "charger", "tws", "cable", "gadget", "electronics"],
     "beauty-health": ["beauty", "cream", "perfume", "makeup", "serum", "lipstick", "skincare", "hair oil", "shampoo", "facewash"],
     "sports-fitness": ["gym", "fitness", "dumbbell", "yoga", "running", "sports", "sneaker", "track pant"]
 }
 
 SYNONYMS_MAP = {
-    "chappal": ["flip flop", "slipper", "sandal", "chappal"],
-    "chappals": ["flip flop", "slipper", "sandal", "chappal"],
+    "watch": ["watch", "smartwatch", "analog", "clock", "wall clock", "ghadi", "watches", "clocks"],
+    "watches": ["watch", "smartwatch", "analog", "clock", "wall clock", "ghadi", "watches", "clocks"],
+    "clock": ["clock", "wall clock", "watch", "smartwatch", "ghadi", "clocks", "watches"],
+    "clocks": ["clock", "wall clock", "watch", "smartwatch", "ghadi", "clocks", "watches"],
+    "ghadi": ["watch", "smartwatch", "clock", "wall clock", "ghadi", "watches", "clocks"],
+    "wallclock": ["clock", "wall clock", "watch", "ghadi"],
+    "chappal": ["flip flop", "slipper", "sandal", "chappal", "slide"],
+    "chappals": ["flip flop", "slipper", "sandal", "chappal", "slides"],
     "sleeper": ["slipper", "flip flop", "chappal"],
     "sleepers": ["slipper", "flip flop", "chappal"],
     "slippers": ["slipper", "flip flop", "chappal"],
@@ -53,14 +59,16 @@ SYNONYMS_MAP = {
     "joote": ["shoes", "sneakers", "footwear"],
     "shoes": ["shoe", "sneaker", "footwear"],
     "shoe": ["shoe", "sneaker", "footwear"],
-    "ghadi": ["watch", "smartwatch"],
-    "watch": ["watch", "smartwatch", "analog"],
     "belt": ["belt", "waist belt"],
     "belts": ["belt", "waist belt"],
     "toy": ["toy", "toys", "plush", "teddy", "game"],
     "toys": ["toy", "toys", "plush", "teddy", "game"],
     "kapde": ["cloth", "shirt", "tshirt", "dress", "kurti"],
     "suit": ["kurti", "salwar", "ethnic", "suit"],
+    "bedsheet": ["bedsheet", "bed sheet", "fitted sheet", "chaddar", "linen"],
+    "bedsheets": ["bedsheet", "bed sheet", "fitted sheet", "chaddar", "linen"],
+    "earphone": ["earphone", "headphone", "earbud", "airpod", "tws", "audio"],
+    "earphones": ["earphone", "headphone", "earbud", "airpod", "tws", "audio"],
 }
 
 
@@ -697,6 +705,25 @@ def quick_publish_product(
     # Permanent Server-Side Taxonomy Guardrail
     category_id = sanitize_product_category(data.name, category_id, db)
 
+    # Permanent Deduplication Guard: Check if product already exists
+    existing_product = None
+    if data.meesho_link and data.meesho_link.strip():
+        existing_product = db.query(Product).filter(Product.meesho_link == data.meesho_link.strip()).first()
+    if not existing_product and data.name and data.name.strip():
+        existing_product = db.query(Product).filter(func.lower(Product.name) == data.name.strip().lower()).first()
+
+    if existing_product:
+        existing_product.selling_price = selling_price
+        existing_product.purchase_cost = purchase_cost
+        existing_product.original_price = original_price
+        existing_product.discount_percentage = discount_pct
+        existing_product.category_id = category_id
+        if tags_to_save:
+            existing_product.tags = tags_to_save
+        db.commit()
+        db.refresh(existing_product)
+        return existing_product
+
     product = Product(
         name=data.name,
         slug=slug,
@@ -856,6 +883,24 @@ def bulk_publish_products(
 
         # Permanent Server-Side Taxonomy Guardrail
         category_id = sanitize_product_category(item.name.strip(), category_id, db)
+
+        # Permanent Deduplication Guard: Check if product already exists
+        existing_product = None
+        if item.meesho_link and item.meesho_link.strip():
+            existing_product = db.query(Product).filter(Product.meesho_link == item.meesho_link.strip()).first()
+        if not existing_product and item.name and item.name.strip():
+            existing_product = db.query(Product).filter(func.lower(Product.name) == item.name.strip().lower()).first()
+
+        if existing_product:
+            existing_product.selling_price = selling_price
+            existing_product.purchase_cost = purchase_cost
+            existing_product.original_price = original_price
+            existing_product.discount_percentage = discount_pct
+            existing_product.category_id = category_id
+            if tags_to_save:
+                existing_product.tags = tags_to_save
+            created_list.append(existing_product)
+            continue
 
         product = Product(
             name=item.name.strip(),
