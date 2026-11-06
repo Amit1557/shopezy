@@ -11,56 +11,57 @@ import toast from 'react-hot-toast'
 
 // Intelligent Title & Keyword NLP Category Classifier
 export function detectCategoryFromTitle(title = '', pageCategory = '', categories = []) {
-  const text = (title + ' ' + pageCategory).toLowerCase()
+  const t = (title || '').toLowerCase()
+  const p = (pageCategory || '').toLowerCase()
   let targetSlug = ''
 
-  // 1. Electronics & Gadgets
-  if (/speaker|earphone|headphone|earbud|airpod|tws|bluetooth|charger|usb|cable|adapter|neckband|power bank|mic|microphone|modesk|stand|holder|tripod|aux|soundbar|mouse|keyboard|gadget|smart watch|smartwatch/i.test(text)) {
+  // 1. Electronics & Audio Gadgets (Strict word boundaries, NO accidental bare "mic" or "stand")
+  if (/\b(speaker|speakers|earphone|earphones|headphone|headphones|earbud|earbuds|airpod|airpods|tws|bluetooth|charger|usb|cable|adapter|neckband|power bank|soundbar|aux cable|mouse|keyboard|gadget|smart watch|smartwatch)\b/i.test(t) || /\b(mobile stand|laptop stand|phone stand|tablet stand|mobile holder|phone holder|tripod|selfie stick)\b/i.test(t) || (/\b(mic|microphone)\b/i.test(t) && !/\bmicrofib/i.test(t))) {
     targetSlug = 'electronics'
   }
-  // 2. Watches (Analog / Formal)
-  else if (/watch|analog watch|digital watch|wrist watch|chronograph/i.test(text)) {
-    targetSlug = 'watches'
-  }
-  // 3. Footwear / Shoes / Slippers
-  else if (/shoe|sneaker|loafer|sandal|flip flop|slipper|chappal|crocs|slides|heel|boots|footwear/i.test(text)) {
-    targetSlug = 'bags-footwear'
-  }
-  // 4. Bags & Wallets
-  else if (/bag|handbag|backpack|tote|purse|wallet|clutch|sling bag|luggage|duffle/i.test(text)) {
-    targetSlug = 'bags-footwear'
-  }
-  // 5. Jewellery & Accessories
-  else if (/jewel|necklace|earring|ring|bangle|bracelet|pendant|chain|anklet|mangalsutra|belt|sunglasses|goggles|hair clip|scarf|stole|dupatta/i.test(text)) {
-    targetSlug = 'jewellery-accessories'
-  }
-  // 6. Home & Kitchen
-  else if (/kitchen|cookware|pan|kadhai|bottle|clock|curtain|bedsheet|mattress|pillow|cushion|blanket|towel|organizer|decor|lamp|mop|cleaner/i.test(text)) {
+  // 2. Home & Kitchen (Bedsheet, Cushion, Curtain, Clock, Cleaning Cloth, Mop, Plants, Cookware, etc.)
+  else if (/\b(bedsheet|bed sheet|fitted sheet|pillow|cushion|curtain|blanket|quilt|dohar|comforter|mattress|towel|mop|cloth|microfiber|microfibre|cleaning cloth|cookware|pan|kadhai|bottle|clock|wall clock|sofa cover|chair cover|bangle stand|shoe rack|organizer|artificial plant|planter|kitchen|storage container|lunch box|decor|home decor|furnishing)\b/i.test(t)) {
     targetSlug = 'home-kitchen'
   }
+  // 3. Watches (Analog / Formal)
+  else if (/\b(watch|analog watch|digital watch|wrist watch|chronograph)\b/i.test(t)) {
+    targetSlug = 'watches'
+  }
+  // 4. Footwear / Shoes / Slippers
+  else if (/\b(shoe|shoes|sneaker|sneakers|loafer|loafers|sandal|sandals|flip flop|flip flops|slipper|slippers|chappal|chappals|crocs|slides|heel|heels|boots|footwear)\b/i.test(t)) {
+    targetSlug = 'bags-footwear'
+  }
+  // 5. Bags & Wallets
+  else if (/\b(bag|bags|handbag|handbags|backpack|backpacks|tote|purse|wallet|wallets|clutch|sling bag|luggage|duffle)\b/i.test(t)) {
+    targetSlug = 'bags-footwear'
+  }
+  // 6. Jewellery & Accessories
+  else if (/\b(jewel|jewellery|jewelry|necklace|earring|earrings|ring|rings|bangle|bangles|bracelet|bracelets|pendant|chain|anklet|mangalsutra|belt|belts|sunglasses|goggles|hair clip|scrunchie|rubber band|scarf|scarves|stole|stoles|dupatta)\b/i.test(t)) {
+    targetSlug = 'jewellery-accessories'
+  }
   // 7. Beauty & Health
-  else if (/lipstick|eyeliner|kajal|foundation|makeup|cream|lotion|serum|perfume|deo|shampoo|skincare|hair oil|trimmer|shaver/i.test(text)) {
+  else if (/\b(lipstick|eyeliner|kajal|foundation|makeup|cream|lotion|serum|perfume|deo|shampoo|skincare|hair oil|trimmer|shaver)\b/i.test(t)) {
     targetSlug = 'beauty-health'
   }
   // 8. Kids & Toys
-  else if (/toy|toys|teddy|doll|playhouse|board game|puzzle|slime|clay|baby diaper|baby dress|infant|toddler/i.test(text)) {
+  else if (/\b(toy|toys|teddy|doll|dolls|playhouse|board game|puzzle|slime|clay|baby diaper|baby dress|infant|toddler)\b/i.test(t)) {
     targetSlug = 'kids-toys'
   }
   // 9. Indian Ethnic (Kurti, Saree, Lehenga)
-  else if (/saree|sari|kurti|kurta|anarkali|lehenga|salwar|sharara|ethnic set|sherwani/i.test(text)) {
-    targetSlug = (/men|boy|gents/i.test(text)) ? 'men' : 'kurti-saree-lehenga'
+  else if (/\b(saree|sari|sarees|kurti|kurtis|kurta|anarkali|lehenga|salwar|sharara|ethnic set|sherwani)\b/i.test(t)) {
+    targetSlug = (/\b(men|boy|gents)\b/i.test(t)) ? 'men' : 'kurti-saree-lehenga'
   }
   // 10. Men's Clothing
-  else if (/men|man|gents|boy/i.test(text) && /shirt|tshirt|t-shirt|pant|trouser|jean|cargo|jogger|blazer|jacket|hoodie|boxer|underwear/i.test(text)) {
+  else if (/\b(men|man|gents|boy|boys)\b/i.test(t) && /\b(shirt|shirts|tshirt|t-shirt|pant|pants|trouser|trousers|jean|jeans|cargo|jogger|joggers|blazer|jacket|hoodie|boxer|underwear)\b/i.test(t)) {
     targetSlug = 'men'
   }
   // 11. Women Western Clothing
-  else if (/top|crop top|tunic|dress|gown|skirt|jeans|jumpsuit|shrug|trousers|legging|jeggings|jacket|hoodie/i.test(text)) {
+  else if (/\b(top|tops|crop top|tunic|dress|dresses|gown|gowns|skirt|skirts|jeans|jumpsuit|shrug|trousers|legging|leggings|jeggings|jacket|hoodie)\b/i.test(t)) {
     targetSlug = 'women-western'
   }
-  // 12. Try pageCategory as slug if present
-  else if (pageCategory) {
-    const pcSlug = pageCategory.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+  // 12. Fallback to Meesho Page Category if matched
+  else if (p) {
+    const pcSlug = p.replace(/[^a-z0-9]+/g, '-')
     const match = categories.find(c => c.slug === pcSlug || c.slug.includes(pcSlug) || pcSlug.includes(c.slug))
     if (match) return match
   }
@@ -71,7 +72,21 @@ export function detectCategoryFromTitle(title = '', pageCategory = '', categorie
     if (matched) return matched
   }
 
-  return categories[0] || { id: 1, slug: 'electronics', name: 'Electronics' }
+  // Smart page-context default
+  if (/home|kitchen/i.test(p)) {
+    const hk = categories.find(c => c.slug === 'home-kitchen')
+    if (hk) return hk
+  }
+  if (/electronic/i.test(p)) {
+    const el = categories.find(c => c.slug === 'electronics')
+    if (el) return el
+  }
+  if (/scarf|stole|jewel|accessor/i.test(p)) {
+    const ja = categories.find(c => c.slug === 'jewellery-accessories')
+    if (ja) return ja
+  }
+
+  return categories[0] || { id: 1, slug: 'home-kitchen', name: 'Home & Kitchen' }
 }
 
 export default function BulkProductImporterModal({ isOpen, onClose, onSuccess, initialBulkData }) {

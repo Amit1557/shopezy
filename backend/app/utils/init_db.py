@@ -82,6 +82,67 @@ def init_db():
                 cat = Category(sort_order=i, **cat_data)
                 db.add(cat)
         db.flush()
+
+        # Auto-realign any miscategorized products across the database
+        try:
+            from sqlalchemy import or_
+            cat_map = {c.slug: c.id for c in db.query(Category).all()}
+            home_id = cat_map.get("home-kitchen")
+            elec_id = cat_map.get("electronics")
+            jewel_id = cat_map.get("jewellery-accessories")
+            kurti_id = cat_map.get("kurti-saree-lehenga")
+
+            # 1. Realign Home & Kitchen products trapped in Electronics or Kurti
+            if home_id:
+                home_kws = [
+                    "%bedsheet%", "%bed sheet%", "%fitted sheet%", "%microfiber%", "%microfibre%",
+                    "%cleaning cloth%", "%cloth pack%", "%bangle stand%", "%cushion%", "%curtain%",
+                    "%wall clock%", "%clock%", "%pillow%", "%blanket%", "%quilt%", "%mattress%",
+                    "%artificial plant%", "%planter%", "%shoe rack%", "%sofa cover%", "%mop%",
+                    "%cookware%", "%kadhai%", "%water bottle%"
+                ]
+                filters = [Product.name.ilike(kw) for kw in home_kws]
+                misplaced_home = db.query(Product).filter(
+                    Product.category_id.in_([elec_id, kurti_id] if elec_id and kurti_id else [home_id]),
+                    Product.category_id != home_id,
+                    or_(*filters)
+                ).all()
+                for prod in misplaced_home:
+                    prod.category_id = home_id
+
+            # 2. Realign Electronic Gadgets trapped in Kurti or other fashion categories
+            if elec_id:
+                elec_kws = [
+                    "%speaker%", "%earphone%", "%headphone%", "%earbud%", "%airpod%",
+                    "%tws%", "%bluetooth%", "%charger%", "%usb%", "%cable%", "%adapter%",
+                    "%neckband%", "%power bank%", "%soundbar%", "%aux cable%", "%mouse%",
+                    "%keyboard%", "%smart watch%", "%smartwatch%", "%modesk%", "%tripod%",
+                    "%portronics%", "%ubon%"
+                ]
+                filters = [Product.name.ilike(kw) for kw in elec_kws]
+                misplaced_elec = db.query(Product).filter(
+                    Product.category_id != elec_id,
+                    or_(*filters)
+                ).all()
+                for prod in misplaced_elec:
+                    prod.category_id = elec_id
+
+            # 3. Realign Scarves & Stoles trapped in Kurti into Jewellery & Accessories
+            if jewel_id and kurti_id:
+                scarf_kws = ["%scarf%", "%scarves%", "%stole%", "%stoles%"]
+                filters = [Product.name.ilike(kw) for kw in scarf_kws]
+                misplaced_scarves = db.query(Product).filter(
+                    Product.category_id == kurti_id,
+                    or_(*filters)
+                ).all()
+                for prod in misplaced_scarves:
+                    prod.category_id = jewel_id
+
+            db.commit()
+            print("Successfully checked and auto-realigned catalog categories.")
+        except Exception as e:
+            print("Auto-realign error:", e)
+            db.rollback()
         
         db.commit()
         print("Database initialized successfully!")
