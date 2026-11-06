@@ -756,6 +756,13 @@ def bulk_publish_products(
         else:
             cat = default_cat
         
+        # NLP Auto-correct: If title is explicitly an electronics/watch/gadget but got misassigned to kurti/saree
+        nlp_res = extract_nlp_categories_and_tags(item.name.strip(), item.description or "")
+        nlp_cat_slug = nlp_res.get("suggested_category")
+        if nlp_cat_slug and nlp_cat_slug in cat_by_slug:
+            if not cat or (cat.slug in ['kurti-saree-lehenga', 'women-western'] and nlp_cat_slug in ['electronics', 'watches', 'home-kitchen', 'bags-footwear', 'kids-toys', 'men']):
+                cat = cat_by_slug[nlp_cat_slug]
+
         category_id = cat.id if cat else 1
 
         selling_price = float(item.selling_price)

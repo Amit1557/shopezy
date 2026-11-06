@@ -9,6 +9,71 @@ import LoadingSpinner from '../ui/LoadingSpinner'
 import { isCleanProductImage } from './MeeshoQuickImporterModal'
 import toast from 'react-hot-toast'
 
+// Intelligent Title & Keyword NLP Category Classifier
+export function detectCategoryFromTitle(title = '', pageCategory = '', categories = []) {
+  const text = (title + ' ' + pageCategory).toLowerCase()
+  let targetSlug = ''
+
+  // 1. Electronics & Gadgets
+  if (/speaker|earphone|headphone|earbud|airpod|tws|bluetooth|charger|usb|cable|adapter|neckband|power bank|mic|microphone|modesk|stand|holder|tripod|aux|soundbar|mouse|keyboard|gadget|smart watch|smartwatch/i.test(text)) {
+    targetSlug = 'electronics'
+  }
+  // 2. Watches (Analog / Formal)
+  else if (/watch|analog watch|digital watch|wrist watch|chronograph/i.test(text)) {
+    targetSlug = 'watches'
+  }
+  // 3. Footwear / Shoes / Slippers
+  else if (/shoe|sneaker|loafer|sandal|flip flop|slipper|chappal|crocs|slides|heel|boots|footwear/i.test(text)) {
+    targetSlug = 'bags-footwear'
+  }
+  // 4. Bags & Wallets
+  else if (/bag|handbag|backpack|tote|purse|wallet|clutch|sling bag|luggage|duffle/i.test(text)) {
+    targetSlug = 'bags-footwear'
+  }
+  // 5. Jewellery & Accessories
+  else if (/jewel|necklace|earring|ring|bangle|bracelet|pendant|chain|anklet|mangalsutra|belt|sunglasses|goggles|hair clip|scarf|stole|dupatta/i.test(text)) {
+    targetSlug = 'jewellery-accessories'
+  }
+  // 6. Home & Kitchen
+  else if (/kitchen|cookware|pan|kadhai|bottle|clock|curtain|bedsheet|mattress|pillow|cushion|blanket|towel|organizer|decor|lamp|mop|cleaner/i.test(text)) {
+    targetSlug = 'home-kitchen'
+  }
+  // 7. Beauty & Health
+  else if (/lipstick|eyeliner|kajal|foundation|makeup|cream|lotion|serum|perfume|deo|shampoo|skincare|hair oil|trimmer|shaver/i.test(text)) {
+    targetSlug = 'beauty-health'
+  }
+  // 8. Kids & Toys
+  else if (/toy|toys|teddy|doll|playhouse|board game|puzzle|slime|clay|baby diaper|baby dress|infant|toddler/i.test(text)) {
+    targetSlug = 'kids-toys'
+  }
+  // 9. Indian Ethnic (Kurti, Saree, Lehenga)
+  else if (/saree|sari|kurti|kurta|anarkali|lehenga|salwar|sharara|ethnic set|sherwani/i.test(text)) {
+    targetSlug = (/men|boy|gents/i.test(text)) ? 'men' : 'kurti-saree-lehenga'
+  }
+  // 10. Men's Clothing
+  else if (/men|man|gents|boy/i.test(text) && /shirt|tshirt|t-shirt|pant|trouser|jean|cargo|jogger|blazer|jacket|hoodie|boxer|underwear/i.test(text)) {
+    targetSlug = 'men'
+  }
+  // 11. Women Western Clothing
+  else if (/top|crop top|tunic|dress|gown|skirt|jeans|jumpsuit|shrug|trousers|legging|jeggings|jacket|hoodie/i.test(text)) {
+    targetSlug = 'women-western'
+  }
+  // 12. Try pageCategory as slug if present
+  else if (pageCategory) {
+    const pcSlug = pageCategory.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    const match = categories.find(c => c.slug === pcSlug || c.slug.includes(pcSlug) || pcSlug.includes(c.slug))
+    if (match) return match
+  }
+
+  if (targetSlug && categories.length > 0) {
+    const matched = categories.find(c => c.slug === targetSlug) ||
+                    categories.find(c => c.slug.includes(targetSlug) || targetSlug.includes(c.slug))
+    if (matched) return matched
+  }
+
+  return categories[0] || { id: 1, slug: 'electronics', name: 'Electronics' }
+}
+
 export default function BulkProductImporterModal({ isOpen, onClose, onSuccess, initialBulkData }) {
   const [categories, setCategories] = useState([])
   const [tab, setTab] = useState('paste') // 'paste', 'grid', 'csv'
@@ -56,22 +121,30 @@ export default function BulkProductImporterModal({ isOpen, onClose, onSuccess, i
         const sell = cost + markup
         const orig = Math.round(sell * 1.5)
         
-        let catId = categories[0]?.id || 1
-        const catSlug = p.category_slug || (p.category ? p.category.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'women-western')
-        if (categories.length > 0) {
-          const match = categories.find(c => c.slug === catSlug) || categories[0]
-          if (match) catId = match.id
-        }
+        // Accurate NLP Category Resolution from Title & Page Context
+        const detectedCat = detectCategoryFromTitle(p.name || '', p.category || p.category_slug || '', categories)
+        const catId = detectedCat?.id || (categories[0]?.id || 1)
+        const catSlug = detectedCat?.slug || 'electronics'
 
-        // Smart sizes based on category/title
-        let itemSizes = p.sizes && p.sizes.length > 0 ? p.sizes : ['Free Size']
+        // Smart sizes based on category/title: Non-clothing items (speakers, earphones, watches, stands) NEVER get S/M/L
         const lowerName = (p.name || '').toLowerCase()
-        if (/shoe|sneaker|footwear|sandal|flip flop/i.test(lowerName)) {
+        const isNonClothing = /speaker|earphone|headphone|earbud|airpod|charger|usb|cable|stand|holder|tripod|watch|smartwatch|bottle|clock|curtain|bag|wallet|toy|toys|cream|makeup|perfume/i.test(lowerName) ||
+                              catSlug === 'electronics' ||
+                              catSlug === 'watches' ||
+                              catSlug === 'home-kitchen' ||
+                              catSlug === 'beauty-health'
+
+        let itemSizes = ['Free Size']
+        if (isNonClothing) {
+          itemSizes = ['Free Size']
+        } else if (/shoe|sneaker|footwear|sandal|flip flop|loafer|chappal/i.test(lowerName) || catSlug === 'bags-footwear') {
           itemSizes = ['IND-6', 'IND-7', 'IND-8', 'IND-9', 'IND-10']
-        } else if (/jean|cargo|jogger|pant/i.test(lowerName)) {
+        } else if (/jean|cargo|jogger|pant|trouser/i.test(lowerName)) {
           itemSizes = ['30', '32', '34', '36']
-        } else if (/shirt|kurti|dress|tshirt|top/i.test(lowerName)) {
+        } else if (/shirt|kurti|dress|tshirt|top|hoodie|jacket|kurta/i.test(lowerName) || catSlug === 'kurti-saree-lehenga' || catSlug === 'women-western' || catSlug === 'men') {
           itemSizes = ['S', 'M', 'L', 'XL', 'XXL']
+        } else if (p.sizes && p.sizes.length > 0) {
+          itemSizes = p.sizes
         }
 
         return {
@@ -364,7 +437,7 @@ Breathable Running Sports Shoes,340,699,footwear,https://images.unsplash.com/pho
   const totalExpectedProfit = totalSell - totalCost
 
   // 1-Click Deep Page Bulk Grabber: Scans full inner photos, specs & sizes for all products scrolled into view (up to 100 items)
-  const bulkBookmarkletCode = `javascript:(function(){try{var cards=Array.from(document.querySelectorAll('a[href*="/p/"]'));if(!cards||cards.length===0){cards=Array.from(document.querySelectorAll('div[class*="ProductCard"],div[class*="Card"]')).filter(function(c){return c.querySelector('img')&&c.innerText.includes('₹');});}if(!cards||cards.length===0){alert('Koi Meesho products nahi mile is page par! Kripya kisi collection ya category page (jaise Scarves, Summer Picks, Kurtis) par chalayein.');return;}var pageCat=document.querySelector('h1')?.innerText||document.title.split('|')[0].trim()||'Meesho Collection';var getCardText=function(el){if(el.innerText&&el.innerText.includes('₹'))return el.innerText;var p1=el.parentElement;if(p1&&p1.innerText&&p1.innerText.includes('₹'))return p1.innerText;var p2=p1?p1.parentElement:null;if(p2&&p2.innerText&&p2.innerText.includes('₹'))return p2.innerText;var p3=p2?p2.parentElement:null;if(p3&&p3.innerText&&p3.innerText.includes('₹'))return p3.innerText;return el.innerText||'';};var uniqueCards=[];var seenHrefs={};cards.forEach(function(c){var linkEl=c.tagName==='A'?c:c.querySelector('a[href*="/p/"]');var h=linkEl?linkEl.href:'';if(h&&h.includes('/p/')&&!seenHrefs[h]){seenHrefs[h]=true;var cardPrice=0;try{var cText=getCardText(c);var cpm=cText.match(/₹\\s*([0-9]{2,5}(?:,[0-9]+)?)/);if(cpm){var parsed=parseFloat(cpm[1].replace(/,/g,''));if(parsed>=49)cardPrice=parsed;}}catch(ce){}uniqueCards.push({card:c,href:h,cardPrice:cardPrice});}});if(uniqueCards.length===0){alert('Products nahi mile is page par.');return;}var total=Math.min(uniqueCards.length,100);var listToScan=uniqueCards.slice(0,total);var oldBox=document.getElementById('shopezy-scanner-overlay');if(oldBox)oldBox.remove();var box=document.createElement('div');box.id='shopezy-scanner-overlay';box.setAttribute('style','position:fixed;top:24px;right:24px;z-index:9999999;background:#18181b;color:#fff;padding:20px 24px;border-radius:20px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.6);font-family:system-ui,-apple-system,sans-serif;width:340px;border:1.5px solid #9333ea;');box.innerHTML='<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><div style="background:#7e22ce;color:#fff;width:28px;height:28px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;">⚡</div><div><div style="font-weight:900;font-size:13px;letter-spacing:-0.2px;">ShopEzy Deep Bulk Grabber</div><div style="font-size:11px;color:#a1a1aa;">Extracting all photos, specs & sizes...</div></div></div><div style="background:#27272a;height:8px;border-radius:4px;overflow:hidden;margin:12px 0 8px;"><div id="shopezy-pbar" style="background:linear-gradient(to right,#a855f7,#ec4899);height:100%;width:0%;transition:width 0.25s;"></div></div><div id="shopezy-status" style="font-size:11px;color:#d8b4fe;font-weight:700;">Starting deep scan (0/'+total+')...</div><div id="shopezy-action-box"></div>';document.body.appendChild(box);var updateProgress=function(done){var pct=Math.round((done/total)*100);var pbar=document.getElementById('shopezy-pbar');var st=document.getElementById('shopezy-status');if(pbar)pbar.style.width=pct+'%';if(st)st.innerText='Extracting product details ('+done+'/'+total+') - '+pct+'%';};var items=[];var completed=0;var cleanImg=function(u){if(!u||typeof u!=='string'||!u.startsWith('http'))return'';if(u.indexOf('images.meesho.com')!==-1&&u.indexOf('/products/')===-1)return'';if(/(banner|offer|promo|download|app_download|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off|marketing|growth|pow|widgets)/i.test(u))return'';return u.replace(/_[0-9]+\\.(jpg|webp|jpeg)/i,'.jpg');};var scanSingle=function(itemObj){var cardPrice=itemObj.cardPrice||0;return fetch(itemObj.href).then(function(res){return res.text();}).then(function(html){var title='';var images=[];var sizes=[];var specs={};var jsonMatches=html.match(/<script type="application\\/ld\\+json">([\\s\\S]*?)<\\/script>/gi)||[];for(var i=0;i<jsonMatches.length;i++){try{var rawJson=jsonMatches[i].replace(/<script[^>]*>|<\\/script>/gi,'');var j=JSON.parse(rawJson);var jd=Array.isArray(j)?j[0]:j;if(jd&&(jd['@type']==='Product'||jd.name)){if(jd.name)title=jd.name.trim();if(jd.image){var jImgs=Array.isArray(jd.image)?jd.image:[jd.image];jImgs.forEach(function(u){var c=cleanImg(u);if(c&&images.indexOf(c)===-1)images.push(c);});}break;}}catch(e){}}if(!title){var mPath=itemObj.href.split('/p/')[0].split('/').pop();if(mPath)title=mPath.replace(/[-_]+/g,' ').replace(/\\b\\w/g,function(l){return l.toUpperCase();});}var cost=cardPrice>=49?cardPrice:0;if(!cost){for(var i=0;i<jsonMatches.length;i++){try{var j=JSON.parse(jsonMatches[i].replace(/<script[^>]*>|<\\/script>/gi,''));var jd=Array.isArray(j)?j[0]:j;if(jd&&jd.offers&&jd.offers.price&&parseFloat(jd.offers.price)>=49){cost=parseFloat(jd.offers.price);break;}}catch(e){}}}if(!cost||cost<49){var mm=html.match(/<meta\\s+property="(?:product:price:amount|og:price:amount)"\\s+content="([0-9]+(?:\\.[0-9]+)?)"/i);if(mm&&parseFloat(mm[1])>=49)cost=parseFloat(mm[1]);}if(!cost||cost<49)cost=199;var imgMatches=html.match(/https:\\/\\/images\\.meesho\\.com\\/images\\/products\\/[a-zA-Z0-9_\\/]+\\.(jpg|webp|jpeg)/gi)||[];imgMatches.forEach(function(u){var c=cleanImg(u);if(c&&images.indexOf(c)===-1&&images.length<5)images.push(c);});var sizeMatches=html.match(/\\b(IND-\\d+|UK-\\d+|XS|S|M|L|XL|XXL|3XL|Free Size)\\b/gi)||[];sizeMatches.forEach(function(s){var up=s.toUpperCase();if(sizes.indexOf(up)===-1&&sizes.length<6)sizes.push(up);});['Pattern','Fabric','Material','Type','Sole Material','Occasion'].forEach(function(sk){var sm=html.match(new RegExp(sk+'\\\\s*:\\\\s*([^<\\\\n\\\\r"]+)','i'));if(sm&&sm[1]&&sm[1].trim().length<40)specs[sk]=sm[1].trim();});if(images.length===0){var cImg=itemObj.card.querySelector('img');if(cImg&&cImg.src){var c=cleanImg(cImg.src);if(c)images.push(c);}}return{name:title||(pageCat+' Item'),purchase_cost:cost,card_price:cardPrice||cost,meesho_link:itemObj.href,category:pageCat,images:images.slice(0,5),sizes:sizes.length?sizes:['Free Size'],specifications:specs};}).catch(function(){var cImg=itemObj.card.querySelector('img');var imgSrc=cImg?cleanImg(cImg.src):'';var fallbackCost=cardPrice>=49?cardPrice:199;return{name:pageCat+' Product',purchase_cost:fallbackCost,card_price:fallbackCost,meesho_link:itemObj.href,category:pageCat,images:imgSrc?[imgSrc]:[],sizes:['Free Size'],specifications:{}};}).then(function(prod){items.push(prod);completed++;updateProgress(completed);});};var runBatch=function(index){if(index>=listToScan.length){var pbar=document.getElementById('shopezy-pbar');if(pbar)pbar.style.width='100%';var st=document.getElementById('shopezy-status');if(st)st.innerText='🎉 All '+items.length+' products extracted!';var compressAndRedirect=function(targetBlank){var jsonStr=JSON.stringify(items);try{var stream=new Blob([jsonStr]).stream();var compressedStream=stream.pipeThrough(new CompressionStream('gzip'));new Response(compressedStream).blob().then(function(b){return b.arrayBuffer();}).then(function(buf){var binary='';var bytes=new Uint8Array(buf);for(var i=0;i<bytes.byteLength;i++)binary+=String.fromCharCode(bytes[i]);var b64=btoa(binary).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');var targetUrl='${window.location.origin}/admin/products?bulkGzip='+b64;if(targetBlank){window.open(targetUrl,'_blank');}else{window.location.href=targetUrl;}}).catch(function(){window.location.href='${window.location.origin}/admin/products?bulkImportData='+encodeURIComponent(jsonStr);});}catch(e){window.location.href='${window.location.origin}/admin/products?bulkImportData='+encodeURIComponent(jsonStr);}};var abox=document.getElementById('shopezy-action-box');if(abox){abox.innerHTML='<div style="margin-top:12px;"><button id="shopezy-open-btn" style="width:100%;background:linear-gradient(to right,#a855f7,#7e22ce);color:#fff;font-weight:900;font-size:13px;padding:12px;border:none;border-radius:12px;cursor:pointer;box-shadow:0 8px 16px rgba(147,51,234,0.4);display:block;margin-bottom:8px;">🚀 Open ShopEzy ('+items.length+' Products)</button><button id="shopezy-close-btn" style="background:transparent;border:none;color:#a1a1aa;font-size:11px;cursor:pointer;width:100%;text-align:center;">Close</button></div>';var btn=document.getElementById('shopezy-open-btn');if(btn)btn.onclick=function(){compressAndRedirect(false);};var cBtn=document.getElementById('shopezy-close-btn');if(cBtn)cBtn.onclick=function(){document.getElementById('shopezy-scanner-overlay')?.remove();};}compressAndRedirect(false);return;}var batch=listToScan.slice(index,index+4);Promise.all(batch.map(scanSingle)).then(function(){runBatch(index+4);});};runBatch(0);}catch(err){alert('Error: '+err.message);}})();`
+  const bulkBookmarkletCode = `javascript:(function(){try{var cards=Array.from(document.querySelectorAll('a[href*="/p/"]'));if(!cards||cards.length===0){cards=Array.from(document.querySelectorAll('div[class*="ProductCard"],div[class*="Card"]')).filter(function(c){return c.querySelector('img')&&c.innerText.includes('₹');});}if(!cards||cards.length===0){alert('Koi Meesho products nahi mile is page par! Kripya kisi collection ya category page (jaise Scarves, Summer Picks, Kurtis) par chalayein.');return;}var pageCat=document.querySelector('h1')?.innerText||document.title.split('|')[0].trim()||'Meesho Collection';var getCardText=function(el){if(el.innerText&&el.innerText.includes('₹'))return el.innerText;var p1=el.parentElement;if(p1&&p1.innerText&&p1.innerText.includes('₹'))return p1.innerText;var p2=p1?p1.parentElement:null;if(p2&&p2.innerText&&p2.innerText.includes('₹'))return p2.innerText;var p3=p2?p2.parentElement:null;if(p3&&p3.innerText&&p3.innerText.includes('₹'))return p3.innerText;return el.innerText||'';};var uniqueCards=[];var seenHrefs={};cards.forEach(function(c){var linkEl=c.tagName==='A'?c:c.querySelector('a[href*="/p/"]');var h=linkEl?linkEl.href:'';if(h&&h.includes('/p/')&&!seenHrefs[h]){seenHrefs[h]=true;var cardPrice=0;try{var cText=getCardText(c);var cpm=cText.match(/₹\\s*([0-9]{2,5}(?:,[0-9]+)?)/);if(cpm){var parsed=parseFloat(cpm[1].replace(/,/g,''));if(parsed>=49)cardPrice=parsed;}}catch(ce){}uniqueCards.push({card:c,href:h,cardPrice:cardPrice});}});if(uniqueCards.length===0){alert('Products nahi mile is page par.');return;}var total=Math.min(uniqueCards.length,100);var listToScan=uniqueCards.slice(0,total);var oldBox=document.getElementById('shopezy-scanner-overlay');if(oldBox)oldBox.remove();var box=document.createElement('div');box.id='shopezy-scanner-overlay';box.setAttribute('style','position:fixed;top:24px;right:24px;z-index:9999999;background:#18181b;color:#fff;padding:20px 24px;border-radius:20px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.6);font-family:system-ui,-apple-system,sans-serif;width:340px;border:1.5px solid #9333ea;');box.innerHTML='<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><div style="background:#7e22ce;color:#fff;width:28px;height:28px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;">⚡</div><div><div style="font-weight:900;font-size:13px;letter-spacing:-0.2px;">ShopEzy Deep Bulk Grabber</div><div style="font-size:11px;color:#a1a1aa;">Extracting all photos, specs & sizes...</div></div></div><div style="background:#27272a;height:8px;border-radius:4px;overflow:hidden;margin:12px 0 8px;"><div id="shopezy-pbar" style="background:linear-gradient(to right,#a855f7,#ec4899);height:100%;width:0%;transition:width 0.25s;"></div></div><div id="shopezy-status" style="font-size:11px;color:#d8b4fe;font-weight:700;">Starting deep scan (0/'+total+')...</div><div id="shopezy-action-box"></div>';document.body.appendChild(box);var updateProgress=function(done){var pct=Math.round((done/total)*100);var pbar=document.getElementById('shopezy-pbar');var st=document.getElementById('shopezy-status');if(pbar)pbar.style.width=pct+'%';if(st)st.innerText='Extracting product details ('+done+'/'+total+') - '+pct+'%';};var items=[];var completed=0;var cleanImg=function(u){if(!u||typeof u!=='string'||!u.startsWith('http'))return'';if(u.indexOf('images.meesho.com')!==-1&&u.indexOf('/products/')===-1)return'';if(/(banner|offer|promo|download|app_download|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off|marketing|growth|pow|widgets)/i.test(u))return'';return u.replace(/_[0-9]+\\.(jpg|webp|jpeg)/i,'.jpg');};var scanSingle=function(itemObj){var cardPrice=itemObj.cardPrice||0;return fetch(itemObj.href).then(function(res){return res.text();}).then(function(html){var title='';var images=[];var sizes=[];var specs={};var jsonMatches=html.match(/<script type="application\\/ld\\+json">([\\s\\S]*?)<\\/script>/gi)||[];for(var i=0;i<jsonMatches.length;i++){try{var rawJson=jsonMatches[i].replace(/<script[^>]*>|<\\/script>/gi,'');var j=JSON.parse(rawJson);var jd=Array.isArray(j)?j[0]:j;if(jd&&(jd['@type']==='Product'||jd.name)){if(jd.name)title=jd.name.trim();if(jd.image){var jImgs=Array.isArray(jd.image)?jd.image:[jd.image];jImgs.forEach(function(u){var c=cleanImg(u);if(c&&images.indexOf(c)===-1)images.push(c);});}break;}}catch(e){}}if(!title){var mPath=itemObj.href.split('/p/')[0].split('/').pop();if(mPath)title=mPath.replace(/[-_]+/g,' ').replace(/\\b\\w/g,function(l){return l.toUpperCase();});}var cost=cardPrice>=49?cardPrice:0;if(!cost){for(var i=0;i<jsonMatches.length;i++){try{var j=JSON.parse(jsonMatches[i].replace(/<script[^>]*>|<\\/script>/gi,''));var jd=Array.isArray(j)?j[0]:j;if(jd&&jd.offers&&jd.offers.price&&parseFloat(jd.offers.price)>=49){cost=parseFloat(jd.offers.price);break;}}catch(e){}}}if(!cost||cost<49){var mm=html.match(/<meta\\s+property="(?:product:price:amount|og:price:amount)"\\s+content="([0-9]+(?:\\.[0-9]+)?)"/i);if(mm&&parseFloat(mm[1])>=49)cost=parseFloat(mm[1]);}if(!cost||cost<49)cost=199;var imgMatches=html.match(/https:\\/\\/images\\.meesho\\.com\\/images\\/products\\/[a-zA-Z0-9_\\/]+\\.(jpg|webp|jpeg)/gi)||[];imgMatches.forEach(function(u){var c=cleanImg(u);if(c&&images.indexOf(c)===-1&&images.length<5)images.push(c);});var isTechOrGadget=/speaker|earphone|headphone|earbud|airpod|tws|bluetooth|charger|usb|cable|adapter|neckband|power bank|mic|modesk|stand|holder|tripod|aux|soundbar|mouse|keyboard|gadget|watch|smartwatch/i.test(title||pageCat);var sizes=[];if(isTechOrGadget){sizes=['Free Size'];}else{var sizeMatches=html.match(/\\b(IND-\\d+|UK-\\d+|XS|S|M|L|XL|XXL|3XL|Free Size)\\b/gi)||[];sizeMatches.forEach(function(s){var up=s.toUpperCase();if(sizes.indexOf(up)===-1&&sizes.length<6)sizes.push(up);});}['Pattern','Fabric','Material','Type','Sole Material','Occasion'].forEach(function(sk){var sm=html.match(new RegExp(sk+'\\\\s*:\\\\s*([^<\\\\n\\\\r"]+)','i'));if(sm&&sm[1]&&sm[1].trim().length<40)specs[sk]=sm[1].trim();});if(images.length===0){var cImg=itemObj.card.querySelector('img');if(cImg&&cImg.src){var c=cleanImg(cImg.src);if(c)images.push(c);}}return{name:title||(pageCat+' Item'),purchase_cost:cost,card_price:cardPrice||cost,meesho_link:itemObj.href,category:pageCat,images:images.slice(0,5),sizes:sizes.length?sizes:['Free Size'],specifications:specs};}).catch(function(){var cImg=itemObj.card.querySelector('img');var imgSrc=cImg?cleanImg(cImg.src):'';var fallbackCost=cardPrice>=49?cardPrice:199;return{name:pageCat+' Product',purchase_cost:fallbackCost,card_price:fallbackCost,meesho_link:itemObj.href,category:pageCat,images:imgSrc?[imgSrc]:[],sizes:['Free Size'],specifications:{}};}).then(function(prod){items.push(prod);completed++;updateProgress(completed);});};var runBatch=function(index){if(index>=listToScan.length){var pbar=document.getElementById('shopezy-pbar');if(pbar)pbar.style.width='100%';var st=document.getElementById('shopezy-status');if(st)st.innerText='🎉 All '+items.length+' products extracted!';var compressAndRedirect=function(targetBlank){var jsonStr=JSON.stringify(items);try{var stream=new Blob([jsonStr]).stream();var compressedStream=stream.pipeThrough(new CompressionStream('gzip'));new Response(compressedStream).blob().then(function(b){return b.arrayBuffer();}).then(function(buf){var binary='';var bytes=new Uint8Array(buf);for(var i=0;i<bytes.byteLength;i++)binary+=String.fromCharCode(bytes[i]);var b64=btoa(binary).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');var targetUrl='${window.location.origin}/admin/products?bulkGzip='+b64;if(targetBlank){window.open(targetUrl,'_blank');}else{window.location.href=targetUrl;}}).catch(function(){window.location.href='${window.location.origin}/admin/products?bulkImportData='+encodeURIComponent(jsonStr);});}catch(e){window.location.href='${window.location.origin}/admin/products?bulkImportData='+encodeURIComponent(jsonStr);}};var abox=document.getElementById('shopezy-action-box');if(abox){abox.innerHTML='<div style="margin-top:12px;"><button id="shopezy-open-btn" style="width:100%;background:linear-gradient(to right,#a855f7,#7e22ce);color:#fff;font-weight:900;font-size:13px;padding:12px;border:none;border-radius:12px;cursor:pointer;box-shadow:0 8px 16px rgba(147,51,234,0.4);display:block;margin-bottom:8px;">🚀 Open ShopEzy ('+items.length+' Products)</button><button id="shopezy-close-btn" style="background:transparent;border:none;color:#a1a1aa;font-size:11px;cursor:pointer;width:100%;text-align:center;">Close</button></div>';var btn=document.getElementById('shopezy-open-btn');if(btn)btn.onclick=function(){compressAndRedirect(false);};var cBtn=document.getElementById('shopezy-close-btn');if(cBtn)cBtn.onclick=function(){document.getElementById('shopezy-scanner-overlay')?.remove();};}compressAndRedirect(false);return;}var batch=listToScan.slice(index,index+4);Promise.all(batch.map(scanSingle)).then(function(){runBatch(index+4);});};runBatch(0);}catch(err){alert('Error: '+err.message);}})();`
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-fade-in">
