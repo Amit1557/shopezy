@@ -180,7 +180,29 @@ def init_db():
                 for prod in misplaced_women_in_men:
                     prod.category_id = western_id
 
-            # 5. Guarantee Color and Size ProductVariant rows for all active products
+            # 5. Realign Perfumes, Fragrances & Beauty trapped in Kurti or other fashion categories
+            beauty_id = cat_map.get("beauty-health")
+            if beauty_id:
+                beauty_kws = [
+                    "%perfume%", "%parfum%", "%eau de%", "%cologne%", "%fragrance%",
+                    "%attar%", "%ittar%", "%deodorant%", "%deo %", "%body mist%",
+                    "%body spray%", "%lipstick%", "%kajal%", "%eyeliner%", "%mascara%",
+                    "%foundation%", "%serum%", "%face wash%", "%facewash%", "%shampoo%",
+                    "%skin care%", "%skincare%", "%hair oil%", "%lotion%", "%cream%"
+                ]
+                filters = [Product.name.ilike(kw) for kw in beauty_kws]
+                misplaced_beauty = db.query(Product).filter(Product.category_id != beauty_id, or_(*filters)).all()
+                for prod in misplaced_beauty:
+                    prod.category_id = beauty_id
+                    # Clean out clothing sizes and set to Free Size
+                    for v in list(prod.variants):
+                        if v.variant_type == "size" and v.value in ["S", "M", "L", "XL", "XXL", "3XL"]:
+                            db.delete(v)
+                    existing_vals = {v.value for v in prod.variants if v.variant_type == "size"}
+                    if "Free Size" not in existing_vals and not existing_vals:
+                        db.add(ProductVariant(product_id=prod.id, variant_type="size", value="Free Size", is_available=True))
+
+            # 6. Guarantee Color and Size ProductVariant rows for all active products
             all_active = db.query(Product).filter(Product.is_active == True).all()
             for p in all_active:
                 v_types = {v.variant_type for v in p.variants}

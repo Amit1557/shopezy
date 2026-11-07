@@ -68,6 +68,19 @@ def map_meesho_category(text: str) -> str:
     """
     t = text.lower()
     
+    # 0. Beauty, Fragrances, Perfumes, Cosmetics & Skincare (Highest Priority)
+    beauty_keywords = [
+        'perfume', 'parfum', 'eau de parfum', 'eau de toilette', 'eau de cologne', 'edp', 'edt', 'edc',
+        'cologne', 'fragrance', 'attar', 'ittar', 'itar', 'scent', 'body spray', 'body mist', 'deodorant',
+        'deo', 'deos', 'roll-on', 'pocket perfume', 'lipstick', 'lip balm', 'lip gloss', 'kajal', 'eyeliner',
+        'mascara', 'foundation', 'concealer', 'compact powder', 'blush', 'makeup', 'cosmetic', 'skincare',
+        'face cream', 'moisturizer', 'lotion', 'body lotion', 'serum', 'facewash', 'face wash', 'cleanser',
+        'face scrub', 'face pack', 'sheet mask', 'toner', 'rose water', 'gulab jal', 'sunscreen', 'shampoo',
+        'conditioner', 'hair oil', 'hair serum', 'hair color', 'trimmer', 'shaver', 'soap', 'body wash'
+    ]
+    if any(k in t for k in beauty_keywords):
+        return "beauty-health"
+
     # 1. Sarees, Kurtis & Indian Ethnic (High priority)
     if any(k in t for k in ['saree', 'sari', 'kurti', 'kurta set', 'anarkali', 'lehenga', 'chaniya choli', 'dupatta', 'salwar', 'suit material', 'sharara', 'gharara', 'chunri', 'petticoat', 'blouse piece']):
         if re.search(r'\b(men|boys?|gents)\b', t) and any(k in t for k in ['kurta', 'sherwani', 'dhoti', 'pyjama']):

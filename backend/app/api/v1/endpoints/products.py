@@ -155,6 +155,12 @@ def sanitize_product_category(name: str, category_id: Optional[int], db: Session
             ww = cat_by_slug.get("women-western")
             if ww: return ww.id
 
+    # Guardrail 7: Beauty, Perfumes & Fragrances trapped in other departments
+    if current_cat.slug != "beauty-health":
+        if re.search(r'\b(perfume|perfumes|parfum|parfums|eau de parfum|eau de toilette|eau de cologne|edp|edt|edc|cologne|fragrance|fragrances|attar|ittar|itar|scent|scents|body spray|body sprays|body mist|body mists|deodorant|deodorants|deo|deos|roll-on|roll on|pocket perfume|solid perfume|mist|lipstick|lipsticks|lip gloss|lip balm|lip liner|lip tint|kajal|kohl|eyeliner|eye liner|mascara|eyeshadow|eye shadow|foundation|concealer|primer|compact powder|compact|face powder|blush|blusher|highlighter|contour|bronzer|makeup|cosmetic|cosmetics|skincare|skin care|cream|creams|face cream|cold cream|night cream|day cream|moisturizer|moisturiser|lotion|lotions|body lotion|serum|serums|face serum|facewash|face wash|cleanser|face cleanser|face scrub|scrub|scrubs|sheet mask|face mask|face pack|mud pack|toner|face toner|rose water|gulab jal|aloe vera|aloevera|sunscreen|sunblock|sun screen|bleach|facial kit|facial|shampoo|shampoos|conditioner|hair conditioner|hair oil|hair serum|hair mask|hair spa|hair color|hair colour|hair dye|henna|mehendi|mehndi|hair wax|hair gel|hair spray|hair dryer|hair straightener|trimmer|trimmers|shaver|shavers|razor|razors|shaving cream|aftershave|beard oil|beard wash|soap|soaps|body wash|shower gel|bath salt|hand wash|handwash|sanitizer|sanitiser|intimate wash|sanitary pad|sanitary pads|pads|tampon|tampons|menstrual cup|nail polish|nail paint|nail enamel|nail art|fake nails|false eyelashes|eyelashes|makeup brush|beauty blender)\b', t):
+            bh = cat_by_slug.get("beauty-health")
+            if bh: return bh.id
+
     return category_id
 
 
@@ -563,9 +569,21 @@ def auto_repair_catalog(
             p.category_id = sanitized_cat_id
             categories_fixed += 1
 
-        # B. Color Detection from Title / Specs
         p_name_lower = p.name.lower()
         p_desc_lower = (p.description or "").lower()
+
+        # Clean erroneous clothing sizes on Beauty & Non-clothing items
+        beauty_cat = cat_by_slug.get("beauty-health")
+        is_beauty_item = (p.category_id == beauty_cat.id if beauty_cat else False) or re.search(r'\b(perfume|parfum|fragrance|cologne|attar|deo|spray|mist|cream|lotion|serum|lipstick|makeup|shampoo|facewash|skincare|kajal|eyeliner|watch|clock|bottle)\b', p_name_lower)
+        if is_beauty_item:
+            for v in list(p.variants):
+                if v.variant_type == "size" and v.value in ["S", "M", "L", "XL", "XXL", "3XL"]:
+                    db.delete(v)
+            db.flush()
+            if not any(v.variant_type == "size" for v in p.variants):
+                db.add(ProductVariant(product_id=p.id, variant_type="size", value="Free Size", is_available=True))
+
+        # B. Color Detection from Title / Specs
         detected_color = None
         for k_col, proper_col in COLOR_MAP.items():
             if re.search(r'\b' + k_col + r'\b', p_name_lower) or re.search(r'\b' + k_col + r'\b', p_desc_lower):

@@ -9,12 +9,20 @@ import LoadingSpinner from '../ui/LoadingSpinner'
 import { isCleanProductImage } from './MeeshoQuickImporterModal'
 import toast from 'react-hot-toast'
 
+// Comprehensive Regex for Fragrances, Perfumes, Skincare, Makeup, Haircare & Personal Care
+export const BEAUTY_HEALTH_REGEX = /\b(perfume|perfumes|parfum|parfums|eau de parfum|eau de toilette|eau de cologne|edp|edt|edc|cologne|fragrance|fragrances|attar|ittar|itar|scent|scents|body spray|body sprays|body mist|body mists|deodorant|deodorants|deo|deos|roll-on|roll on|pocket perfume|solid perfume|mist|lipstick|lipsticks|lip gloss|lip balm|lip liner|lip tint|kajal|kohl|eyeliner|eye liner|mascara|eyeshadow|eye shadow|foundation|concealer|primer|compact powder|compact|face powder|blush|blusher|highlighter|contour|bronzer|makeup|cosmetic|cosmetics|skincare|skin care|cream|creams|face cream|cold cream|night cream|day cream|moisturizer|moisturiser|lotion|lotions|body lotion|serum|serums|face serum|facewash|face wash|cleanser|face cleanser|face scrub|scrub|scrubs|sheet mask|face mask|face pack|mud pack|toner|face toner|rose water|gulab jal|aloe vera|aloevera|sunscreen|sunblock|sun screen|bleach|facial kit|facial|shampoo|shampoos|conditioner|hair conditioner|hair oil|hair serum|hair mask|hair spa|hair color|hair colour|hair dye|henna|mehendi|mehndi|hair wax|hair gel|hair spray|hair dryer|hair straightener|trimmer|trimmers|shaver|shavers|razor|razors|shaving cream|aftershave|beard oil|beard wash|soap|soaps|body wash|shower gel|bath salt|hand wash|handwash|sanitizer|sanitiser|intimate wash|sanitary pad|sanitary pads|pads|tampon|tampons|menstrual cup|nail polish|nail paint|nail enamel|nail art|fake nails|false eyelashes|eyelashes|makeup brush|beauty blender)\b/i
+
 // Permanent Taxonomy Conflict Detector
 export function checkCategoryConflict(name = '', categorySlug = '') {
   const t = (name || '').toLowerCase()
   const slug = categorySlug || ''
 
-  // 1. Home & Kitchen items assigned to Electronics
+  // 1. Beauty, Fragrances & Cosmetics trapped in Clothing or other departments
+  if (slug !== 'beauty-health' && BEAUTY_HEALTH_REGEX.test(t)) {
+    return { hasConflict: true, targetSlug: 'beauty-health', label: 'Beauty & Health' }
+  }
+
+  // 2. Home & Kitchen items assigned to Electronics
   if (slug === 'electronics') {
     if (/\b(bedsheet|bed sheet|fitted sheet|pillow|cushion|curtain|blanket|quilt|mattress|towel|mop|cloth|microfiber|microfibre|cleaning cloth|cookware|pan|kadhai|bottle|clock|wall clock|sofa cover|chair cover|bangle stand|shoe rack|organizer|artificial plant|planter|kitchen|chopper)\b/i.test(t)) {
       return { hasConflict: true, targetSlug: 'home-kitchen', label: 'Home & Kitchen' }
@@ -24,21 +32,21 @@ export function checkCategoryConflict(name = '', categorySlug = '') {
     }
   }
 
-  // 2. Electronics audio / gadgets assigned to Clothing or Home
+  // 3. Electronics audio / gadgets assigned to Clothing or Home
   if (['kurti-saree-lehenga', 'women-western', 'men', 'home-kitchen', 'lingerie'].includes(slug)) {
     if (/\b(speaker|speakers|earphone|earphones|headphone|headphones|earbud|earbuds|airpod|airpods|tws|bluetooth|charger|power bank|soundbar|aux cable|mouse|keyboard|smart watch|smartwatch|portronics|ubon)\b/i.test(t) || (/\b(mic|microphone)\b/i.test(t) && !/\bmicrofib/i.test(t))) {
       return { hasConflict: true, targetSlug: 'electronics', label: 'Electronics' }
     }
   }
 
-  // 3. Scarves / Stoles / Jewellery assigned to Kurti
+  // 4. Scarves / Stoles / Jewellery assigned to Kurti
   if (slug === 'kurti-saree-lehenga') {
     if (/\b(scarf|scarves|stole|stoles|necklace|earring|earrings|ring|bracelet|bangle|anklet|jewel|jewellery)\b/i.test(t) && !/\b(saree|sari|kurti|lehenga|salwar|suit|sharara)\b/i.test(t)) {
       return { hasConflict: true, targetSlug: 'jewellery-accessories', label: 'Jewellery & Accessories' }
     }
   }
 
-  // 4. Watches
+  // 5. Watches
   if (slug !== 'watches' && /\b(analog watch|digital watch|wrist watch|chronograph)\b/i.test(t)) {
     return { hasConflict: true, targetSlug: 'watches', label: 'Watches' }
   }
@@ -52,33 +60,33 @@ export function detectCategoryFromTitle(title = '', pageCategory = '', categorie
   const p = (pageCategory || '').toLowerCase()
   let targetSlug = ''
 
-  // 1. Footwear / Shoes / Slippers / Flats / Heels (High Priority)
-  if (/\b(shoe|shoes|sneaker|sneakers|loafer|loafers|sandal|sandals|flip flop|flip flops|slipper|slippers|chappal|chappals|crocs|slides|slide|heel|heels|flat|flats|boots|footwear|bellies|mojari|jutti|kolhapuri|wedge|wedges)\b/i.test(t) || /\b(footwear|shoes|sandals|slippers|flats|heels)\b/i.test(p)) {
+  // 1. Beauty, Perfumes & Fragrances & Cosmetics (High Priority)
+  if (BEAUTY_HEALTH_REGEX.test(t) || /\b(beauty|fragrance|perfume|perfumes|cosmetic|cosmetics|skincare|personal care)\b/i.test(p)) {
+    targetSlug = 'beauty-health'
+  }
+  // 2. Footwear / Shoes / Slippers / Flats / Heels (High Priority)
+  else if (/\b(shoe|shoes|sneaker|sneakers|loafer|loafers|sandal|sandals|flip flop|flip flops|slipper|slippers|chappal|chappals|crocs|slides|slide|heel|heels|flat|flats|boots|footwear|bellies|mojari|jutti|kolhapuri|wedge|wedges)\b/i.test(t) || /\b(footwear|shoes|sandals|slippers|flats|heels)\b/i.test(p)) {
     targetSlug = categories.some(c => c.slug === 'footwear') ? 'footwear' : 'bags-footwear'
   }
-  // 2. Electronics & Audio Gadgets (Strict word boundaries, NO accidental bare "mic" or "stand")
+  // 3. Electronics & Audio Gadgets (Strict word boundaries, NO accidental bare "mic" or "stand")
   else if (/\b(speaker|speakers|earphone|earphones|headphone|headphones|earbud|earbuds|airpod|airpods|tws|bluetooth|charger|usb|cable|adapter|neckband|power bank|soundbar|aux cable|mouse|keyboard|gadget|smart watch|smartwatch)\b/i.test(t) || /\b(mobile stand|laptop stand|phone stand|tablet stand|mobile holder|phone holder|tripod|selfie stick)\b/i.test(t) || (/\b(mic|microphone)\b/i.test(t) && !/\bmicrofib/i.test(t))) {
     targetSlug = 'electronics'
   }
-  // 3. Home & Kitchen / Home Decor (Bedsheet, Cushion, Curtain, Clock, Cleaning Cloth, Mop, Plants, Cookware, etc.)
+  // 4. Home & Kitchen / Home Decor (Bedsheet, Cushion, Curtain, Clock, Cleaning Cloth, Mop, Plants, Cookware, etc.)
   else if (/\b(bedsheet|bed sheet|fitted sheet|pillow|cushion|curtain|blanket|quilt|dohar|comforter|mattress|towel|mop|cloth|microfiber|microfibre|cleaning cloth|cookware|pan|kadhai|bottle|clock|wall clock|sofa cover|chair cover|bangle stand|shoe rack|organizer|artificial plant|planter|kitchen|storage container|lunch box|decor|home decor|furnishing)\b/i.test(t)) {
     targetSlug = 'home-kitchen'
   }
-  // 4. Watches (Analog / Digital / Smartwatch)
+  // 5. Watches (Analog / Digital / Smartwatch)
   else if (/\b(watch|analog watch|digital watch|wrist watch|chronograph)\b/i.test(t)) {
     targetSlug = 'watches'
   }
-  // 5. Bags & Wallets
+  // 6. Bags & Wallets
   else if (/\b(bag|bags|handbag|handbags|backpack|backpacks|tote|purse|wallet|wallets|clutch|sling bag|luggage|duffle)\b/i.test(t)) {
     targetSlug = categories.some(c => c.slug === 'jewellery-accessories') ? 'jewellery-accessories' : 'bags-footwear'
   }
-  // 6. Jewellery & Accessories
+  // 7. Jewellery & Accessories
   else if (/\b(jewel|jewellery|jewelry|necklace|earring|earrings|ring|rings|bangle|bangles|bracelet|bracelets|pendant|chain|anklet|mangalsutra|belt|belts|sunglasses|goggles|hair clip|scrunchie|rubber band|scarf|scarves|stole|stoles|dupatta)\b/i.test(t)) {
     targetSlug = 'jewellery-accessories'
-  }
-  // 7. Beauty & Health / Personal Care
-  else if (/\b(lipstick|eyeliner|kajal|foundation|makeup|cream|lotion|serum|perfume|deo|shampoo|skincare|hair oil|trimmer|shaver|facewash)\b/i.test(t)) {
-    targetSlug = 'beauty-health'
   }
   // 8. Kids & Toys
   else if (/\b(toy|toys|teddy|doll|dolls|playhouse|board game|puzzle|slime|clay|baby diaper|baby dress|infant|toddler)\b/i.test(t)) {
@@ -114,6 +122,10 @@ export function detectCategoryFromTitle(title = '', pageCategory = '', categorie
   }
 
   // Smart page-context default
+  if (/beauty|perfume|fragrance|cosmetic/i.test(p)) {
+    const bh = categories.find(c => c.slug === 'beauty-health')
+    if (bh) return bh
+  }
   if (/footwear|shoe|sandal|slipper/i.test(p)) {
     const fw = categories.find(c => c.slug === 'footwear' || c.slug === 'bags-footwear')
     if (fw) return fw
@@ -131,7 +143,8 @@ export function detectCategoryFromTitle(title = '', pageCategory = '', categorie
     if (ja) return ja
   }
 
-  return categories[0] || { id: 1, slug: 'home-kitchen', name: 'Home & Kitchen' }
+  // Safe neutral fallback: Home & Kitchen rather than Kurti
+  return categories.find(c => c.slug === 'home-kitchen') || categories.find(c => c.slug === 'beauty-health') || categories[0] || { id: 1, slug: 'home-kitchen', name: 'Home & Kitchen' }
 }
 
 export default function BulkProductImporterModal({ isOpen, onClose, onSuccess, initialBulkData }) {
@@ -237,17 +250,21 @@ export default function BulkProductImporterModal({ isOpen, onClose, onSuccess, i
         const catId = detectedCat?.id || (categories[0]?.id || 1)
         const catSlug = detectedCat?.slug || 'electronics'
 
-        // Smart sizes based on category/title: Non-clothing items (speakers, earphones, watches, stands, footwear) NEVER get S/M/L
+        // Smart sizes based on category/title: Non-clothing items (perfumes, cosmetics, speakers, earphones, watches, stands, footwear) NEVER get S/M/L
         const lowerName = (p.name || '').toLowerCase()
+        const isBeautyOrPersonalCare = BEAUTY_HEALTH_REGEX.test(lowerName) || catSlug === 'beauty-health'
         const isFootwear = /shoe|sneaker|footwear|sandal|flip flop|loafer|chappal|flat|flats|heel|heels|wedge|wedges|crocs|slide|slides|mojari|jutti|bellies|boots/i.test(lowerName) ||
                            catSlug === 'footwear' ||
                            catSlug === 'bags-footwear'
 
-        const isNonClothing = /speaker|earphone|headphone|earbud|airpod|charger|usb|cable|stand|holder|tripod|watch|smartwatch|bottle|clock|curtain|bag|wallet|toy|toys|cream|makeup|perfume/i.test(lowerName) ||
+        const isNonClothing = isBeautyOrPersonalCare ||
+                              /speaker|earphone|headphone|earbud|airpod|charger|usb|cable|stand|holder|tripod|watch|smartwatch|bottle|clock|curtain|bag|wallet|toy|toys|cream|makeup|perfume|parfum|edp|edt|fragrance|cologne|attar|deo|mist|lipstick|kajal|eyeliner|foundation/i.test(lowerName) ||
                               catSlug === 'electronics' ||
                               catSlug === 'watches' ||
                               catSlug === 'home-kitchen' ||
-                              catSlug === 'beauty-health'
+                              catSlug === 'beauty-health' ||
+                              catSlug === 'jewellery-accessories' ||
+                              catSlug === 'kids-toys'
 
         let itemSizes = ['Free Size']
         if (isFootwear) {
@@ -260,7 +277,9 @@ export default function BulkProductImporterModal({ isOpen, onClose, onSuccess, i
           itemSizes = ['Free Size']
         } else if (/jean|cargo|jogger|pant|trouser/i.test(lowerName)) {
           itemSizes = ['30', '32', '34', '36']
-        } else if (/shirt|kurti|dress|tshirt|top|hoodie|jacket|kurta/i.test(lowerName) || catSlug === 'kurti-saree-lehenga' || catSlug === 'women-western' || catSlug === 'men') {
+        } else if (/shirt|kurti|dress|tshirt|top|hoodie|jacket|kurta|lehenga|saree|anarkali|salwar/i.test(lowerName)) {
+          itemSizes = ['S', 'M', 'L', 'XL', 'XXL']
+        } else if (['kurti-saree-lehenga', 'women-western', 'men'].includes(catSlug) && !isNonClothing) {
           itemSizes = ['S', 'M', 'L', 'XL', 'XXL']
         } else if (p.sizes && p.sizes.length > 0) {
           itemSizes = p.sizes
@@ -559,7 +578,7 @@ Breathable Running Sports Shoes,340,699,footwear,https://images.unsplash.com/pho
   const totalExpectedProfit = totalSell - totalCost
 
   // 1-Click Deep Page Bulk Grabber: Scans full inner photos, specs & sizes for all products scrolled into view (up to 100 items)
-  const bulkBookmarkletCode = `javascript:(function(){try{var cards=Array.from(document.querySelectorAll('a[href*="/p/"]'));if(!cards||cards.length===0){cards=Array.from(document.querySelectorAll('div[class*="ProductCard"],div[class*="Card"]')).filter(function(c){return c.querySelector('img')&&c.innerText.includes('₹');});}if(!cards||cards.length===0){alert('Koi Meesho products nahi mile is page par! Kripya kisi collection ya category page (jaise Scarves, Summer Picks, Kurtis) par chalayein.');return;}var pageCat=document.querySelector('h1')?.innerText||document.title.split('|')[0].trim()||'Meesho Collection';var getCardText=function(el){if(el.innerText&&el.innerText.includes('₹'))return el.innerText;var p1=el.parentElement;if(p1&&p1.innerText&&p1.innerText.includes('₹'))return p1.innerText;var p2=p1?p1.parentElement:null;if(p2&&p2.innerText&&p2.innerText.includes('₹'))return p2.innerText;var p3=p2?p2.parentElement:null;if(p3&&p3.innerText&&p3.innerText.includes('₹'))return p3.innerText;return el.innerText||'';};var uniqueCards=[];var seenHrefs={};cards.forEach(function(c){var linkEl=c.tagName==='A'?c:c.querySelector('a[href*="/p/"]');var h=linkEl?linkEl.href:'';if(h&&h.includes('/p/')&&!seenHrefs[h]){seenHrefs[h]=true;var cardPrice=0;try{var cText=getCardText(c);var cpm=cText.match(/₹\\s*([0-9]{2,5}(?:,[0-9]+)?)/);if(cpm){var parsed=parseFloat(cpm[1].replace(/,/g,''));if(parsed>=49)cardPrice=parsed;}}catch(ce){}uniqueCards.push({card:c,href:h,cardPrice:cardPrice});}});if(uniqueCards.length===0){alert('Products nahi mile is page par.');return;}var total=Math.min(uniqueCards.length,100);var listToScan=uniqueCards.slice(0,total);var oldBox=document.getElementById('shopezy-scanner-overlay');if(oldBox)oldBox.remove();var box=document.createElement('div');box.id='shopezy-scanner-overlay';box.setAttribute('style','position:fixed;top:24px;right:24px;z-index:9999999;background:#18181b;color:#fff;padding:20px 24px;border-radius:20px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.6);font-family:system-ui,-apple-system,sans-serif;width:340px;border:1.5px solid #9333ea;');box.innerHTML='<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><div style="background:#7e22ce;color:#fff;width:28px;height:28px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;">⚡</div><div><div style="font-weight:900;font-size:13px;letter-spacing:-0.2px;">ShopEzy Deep Bulk Grabber</div><div style="font-size:11px;color:#a1a1aa;">Extracting all photos, specs & sizes...</div></div></div><div style="background:#27272a;height:8px;border-radius:4px;overflow:hidden;margin:12px 0 8px;"><div id="shopezy-pbar" style="background:linear-gradient(to right,#a855f7,#ec4899);height:100%;width:0%;transition:width 0.25s;"></div></div><div id="shopezy-status" style="font-size:11px;color:#d8b4fe;font-weight:700;">Starting deep scan (0/'+total+')...</div><div id="shopezy-action-box"></div>';document.body.appendChild(box);var updateProgress=function(done){var pct=Math.round((done/total)*100);var pbar=document.getElementById('shopezy-pbar');var st=document.getElementById('shopezy-status');if(pbar)pbar.style.width=pct+'%';if(st)st.innerText='Extracting product details ('+done+'/'+total+') - '+pct+'%';};var items=[];var completed=0;var cleanImg=function(u){if(!u||typeof u!=='string'||!u.startsWith('http'))return'';if(u.indexOf('images.meesho.com')!==-1&&u.indexOf('/products/')===-1)return'';if(/(banner|offer|promo|download|app_download|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off|marketing|growth|pow|widgets)/i.test(u))return'';return u.replace(/_[0-9]+\\.(jpg|webp|jpeg)/i,'.jpg');};var scanSingle=function(itemObj){var cardPrice=itemObj.cardPrice||0;return fetch(itemObj.href).then(function(res){return res.text();}).then(function(html){var title='';var images=[];var sizes=[];var specs={};var jsonMatches=html.match(/<script type="application\\/ld\\+json">([\\s\\S]*?)<\\/script>/gi)||[];for(var i=0;i<jsonMatches.length;i++){try{var rawJson=jsonMatches[i].replace(/<script[^>]*>|<\\/script>/gi,'');var j=JSON.parse(rawJson);var jd=Array.isArray(j)?j[0]:j;if(jd&&(jd['@type']==='Product'||jd.name)){if(jd.name)title=jd.name.trim();if(jd.image){var jImgs=Array.isArray(jd.image)?jd.image:[jd.image];jImgs.forEach(function(u){var c=cleanImg(u);if(c&&images.indexOf(c)===-1)images.push(c);});}break;}}catch(e){}}if(!title){var mPath=itemObj.href.split('/p/')[0].split('/').pop();if(mPath)title=mPath.replace(/[-_]+/g,' ').replace(/\\b\\w/g,function(l){return l.toUpperCase();});}var cost=cardPrice>=49?cardPrice:0;if(!cost){for(var i=0;i<jsonMatches.length;i++){try{var j=JSON.parse(jsonMatches[i].replace(/<script[^>]*>|<\\/script>/gi,''));var jd=Array.isArray(j)?j[0]:j;if(jd&&jd.offers&&jd.offers.price&&parseFloat(jd.offers.price)>=49){cost=parseFloat(jd.offers.price);break;}}catch(e){}}}if(!cost||cost<49){var mm=html.match(/<meta\\s+property="(?:product:price:amount|og:price:amount)"\\s+content="([0-9]+(?:\\.[0-9]+)?)"/i);if(mm&&parseFloat(mm[1])>=49)cost=parseFloat(mm[1]);}if(!cost||cost<49)cost=199;var imgMatches=html.match(/https:\\/\\/images\\.meesho\\.com\\/images\\/products\\/[a-zA-Z0-9_\\/]+\\.(jpg|webp|jpeg)/gi)||[];imgMatches.forEach(function(u){var c=cleanImg(u);if(c&&images.indexOf(c)===-1&&images.length<5)images.push(c);});var isTechOrGadget=/speaker|earphone|headphone|earbud|airpod|tws|bluetooth|charger|usb|cable|adapter|neckband|power bank|mic|modesk|stand|holder|tripod|aux|soundbar|mouse|keyboard|gadget|watch|smartwatch/i.test(title||pageCat);var sizes=[];if(isTechOrGadget){sizes=['Free Size'];}else{var sizeMatches=html.match(/\\b(IND-\\d+|UK-\\d+|XS|S|M|L|XL|XXL|3XL|Free Size)\\b/gi)||[];sizeMatches.forEach(function(s){var up=s.toUpperCase();if(sizes.indexOf(up)===-1&&sizes.length<6)sizes.push(up);});}['Pattern','Fabric','Material','Type','Sole Material','Occasion'].forEach(function(sk){var sm=html.match(new RegExp(sk+'\\\\s*:\\\\s*([^<\\\\n\\\\r"]+)','i'));if(sm&&sm[1]&&sm[1].trim().length<40)specs[sk]=sm[1].trim();});if(images.length===0){var cImg=itemObj.card.querySelector('img');if(cImg&&cImg.src){var c=cleanImg(cImg.src);if(c)images.push(c);}}return{name:title||(pageCat+' Item'),purchase_cost:cost,card_price:cardPrice||cost,meesho_link:itemObj.href,category:pageCat,images:images.slice(0,5),sizes:sizes.length?sizes:['Free Size'],specifications:specs};}).catch(function(){var cImg=itemObj.card.querySelector('img');var imgSrc=cImg?cleanImg(cImg.src):'';var fallbackCost=cardPrice>=49?cardPrice:199;return{name:pageCat+' Product',purchase_cost:fallbackCost,card_price:fallbackCost,meesho_link:itemObj.href,category:pageCat,images:imgSrc?[imgSrc]:[],sizes:['Free Size'],specifications:{}};}).then(function(prod){items.push(prod);completed++;updateProgress(completed);});};var runBatch=function(index){if(index>=listToScan.length){var pbar=document.getElementById('shopezy-pbar');if(pbar)pbar.style.width='100%';var st=document.getElementById('shopezy-status');if(st)st.innerText='🎉 All '+items.length+' products extracted!';var compressAndRedirect=function(targetBlank){var jsonStr=JSON.stringify(items);try{window.name=jsonStr;}catch(we){}try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(jsonStr);}}catch(ce){}var targetUrl='${window.location.origin}/admin/products?bulkImport=1';if(targetBlank){window.open(targetUrl,'_blank');}else{window.location.href=targetUrl;}};var abox=document.getElementById('shopezy-action-box');if(abox){abox.innerHTML='<div style="margin-top:12px;"><button id="shopezy-open-btn" style="width:100%;background:linear-gradient(to right,#a855f7,#7e22ce);color:#fff;font-weight:900;font-size:13px;padding:12px;border:none;border-radius:12px;cursor:pointer;box-shadow:0 8px 16px rgba(147,51,234,0.4);display:block;margin-bottom:8px;">🚀 Open ShopEzy ('+items.length+' Products)</button><button id="shopezy-close-btn" style="background:transparent;border:none;color:#a1a1aa;font-size:11px;cursor:pointer;width:100%;text-align:center;">Close</button></div>';var btn=document.getElementById('shopezy-open-btn');if(btn)btn.onclick=function(){compressAndRedirect(false);};var cBtn=document.getElementById('shopezy-close-btn');if(cBtn)cBtn.onclick=function(){document.getElementById('shopezy-scanner-overlay')?.remove();};}compressAndRedirect(false);return;}var batch=listToScan.slice(index,index+4);Promise.all(batch.map(scanSingle)).then(function(){runBatch(index+4);});};runBatch(0);}catch(err){alert('Error: '+err.message);}})();`
+  const bulkBookmarkletCode = `javascript:(function(){try{var cards=Array.from(document.querySelectorAll('a[href*="/p/"]'));if(!cards||cards.length===0){cards=Array.from(document.querySelectorAll('div[class*="ProductCard"],div[class*="Card"]')).filter(function(c){return c.querySelector('img')&&c.innerText.includes('₹');});}if(!cards||cards.length===0){alert('Koi Meesho products nahi mile is page par! Kripya kisi collection ya category page (jaise Scarves, Summer Picks, Kurtis) par chalayein.');return;}var pageCat=document.querySelector('h1')?.innerText||document.title.split('|')[0].trim()||'Meesho Collection';var getCardText=function(el){if(el.innerText&&el.innerText.includes('₹'))return el.innerText;var p1=el.parentElement;if(p1&&p1.innerText&&p1.innerText.includes('₹'))return p1.innerText;var p2=p1?p1.parentElement:null;if(p2&&p2.innerText&&p2.innerText.includes('₹'))return p2.innerText;var p3=p2?p2.parentElement:null;if(p3&&p3.innerText&&p3.innerText.includes('₹'))return p3.innerText;return el.innerText||'';};var uniqueCards=[];var seenHrefs={};cards.forEach(function(c){var linkEl=c.tagName==='A'?c:c.querySelector('a[href*="/p/"]');var h=linkEl?linkEl.href:'';if(h&&h.includes('/p/')&&!seenHrefs[h]){seenHrefs[h]=true;var cardPrice=0;try{var cText=getCardText(c);var cpm=cText.match(/₹\\s*([0-9]{2,5}(?:,[0-9]+)?)/);if(cpm){var parsed=parseFloat(cpm[1].replace(/,/g,''));if(parsed>=49)cardPrice=parsed;}}catch(ce){}uniqueCards.push({card:c,href:h,cardPrice:cardPrice});}});if(uniqueCards.length===0){alert('Products nahi mile is page par.');return;}var total=Math.min(uniqueCards.length,100);var listToScan=uniqueCards.slice(0,total);var oldBox=document.getElementById('shopezy-scanner-overlay');if(oldBox)oldBox.remove();var box=document.createElement('div');box.id='shopezy-scanner-overlay';box.setAttribute('style','position:fixed;top:24px;right:24px;z-index:9999999;background:#18181b;color:#fff;padding:20px 24px;border-radius:20px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.6);font-family:system-ui,-apple-system,sans-serif;width:340px;border:1.5px solid #9333ea;');box.innerHTML='<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><div style="background:#7e22ce;color:#fff;width:28px;height:28px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;">⚡</div><div><div style="font-weight:900;font-size:13px;letter-spacing:-0.2px;">ShopEzy Deep Bulk Grabber</div><div style="font-size:11px;color:#a1a1aa;">Extracting all photos, specs & sizes...</div></div></div><div style="background:#27272a;height:8px;border-radius:4px;overflow:hidden;margin:12px 0 8px;"><div id="shopezy-pbar" style="background:linear-gradient(to right,#a855f7,#ec4899);height:100%;width:0%;transition:width 0.25s;"></div></div><div id="shopezy-status" style="font-size:11px;color:#d8b4fe;font-weight:700;">Starting deep scan (0/'+total+')...</div><div id="shopezy-action-box"></div>';document.body.appendChild(box);var updateProgress=function(done){var pct=Math.round((done/total)*100);var pbar=document.getElementById('shopezy-pbar');var st=document.getElementById('shopezy-status');if(pbar)pbar.style.width=pct+'%';if(st)st.innerText='Extracting product details ('+done+'/'+total+') - '+pct+'%';};var items=[];var completed=0;var cleanImg=function(u){if(!u||typeof u!=='string'||!u.startsWith('http'))return'';if(u.indexOf('images.meesho.com')!==-1&&u.indexOf('/products/')===-1)return'';if(/(banner|offer|promo|download|app_download|campaign|strip|badge|coupon|supplier|header|footer|35%|35_off|marketing|growth|pow|widgets)/i.test(u))return'';return u.replace(/_[0-9]+\\.(jpg|webp|jpeg)/i,'.jpg');};var scanSingle=function(itemObj){var cardPrice=itemObj.cardPrice||0;return fetch(itemObj.href).then(function(res){return res.text();}).then(function(html){var title='';var images=[];var sizes=[];var specs={};var jsonMatches=html.match(/<script type="application\\/ld\\+json">([\\s\\S]*?)<\\/script>/gi)||[];for(var i=0;i<jsonMatches.length;i++){try{var rawJson=jsonMatches[i].replace(/<script[^>]*>|<\\/script>/gi,'');var j=JSON.parse(rawJson);var jd=Array.isArray(j)?j[0]:j;if(jd&&(jd['@type']==='Product'||jd.name)){if(jd.name)title=jd.name.trim();if(jd.image){var jImgs=Array.isArray(jd.image)?jd.image:[jd.image];jImgs.forEach(function(u){var c=cleanImg(u);if(c&&images.indexOf(c)===-1)images.push(c);});}break;}}catch(e){}}if(!title){var mPath=itemObj.href.split('/p/')[0].split('/').pop();if(mPath)title=mPath.replace(/[-_]+/g,' ').replace(/\\b\\w/g,function(l){return l.toUpperCase();});}var cost=cardPrice>=49?cardPrice:0;if(!cost){for(var i=0;i<jsonMatches.length;i++){try{var j=JSON.parse(jsonMatches[i].replace(/<script[^>]*>|<\\/script>/gi,''));var jd=Array.isArray(j)?j[0]:j;if(jd&&jd.offers&&jd.offers.price&&parseFloat(jd.offers.price)>=49){cost=parseFloat(jd.offers.price);break;}}catch(e){}}}if(!cost||cost<49){var mm=html.match(/<meta\\s+property="(?:product:price:amount|og:price:amount)"\\s+content="([0-9]+(?:\\.[0-9]+)?)"/i);if(mm&&parseFloat(mm[1])>=49)cost=parseFloat(mm[1]);}if(!cost||cost<49)cost=199;var imgMatches=html.match(/https:\\/\\/images\\.meesho\\.com\\/images\\/products\\/[a-zA-Z0-9_\\/]+\\.(jpg|webp|jpeg)/gi)||[];imgMatches.forEach(function(u){var c=cleanImg(u);if(c&&images.indexOf(c)===-1&&images.length<5)images.push(c);});var isNonClothing=/speaker|earphone|headphone|earbud|airpod|tws|bluetooth|charger|usb|cable|adapter|neckband|power bank|mic|stand|holder|tripod|aux|soundbar|mouse|keyboard|gadget|watch|smartwatch|perfume|parfum|fragrance|cologne|eau de|edp|edt|attar|deo|spray|mist|cream|lotion|serum|lipstick|makeup|shampoo|facewash|skincare|kajal|eyeliner|mascara|bottle|clock|curtain|bedsheet|cushion|pillow|blanket|cookware|bag|handbag|wallet|jewel|necklace|earring|ring|bangle|toy/i.test(title+' '+(pageCat||''));var isFootwear=/shoe|sneaker|footwear|sandal|flip flop|loafer|chappal|flat|flats|heel|heels|wedge|crocs|slide|mojari|jutti|bellies/i.test(title+' '+(pageCat||''));var sizes=[];if(isNonClothing){sizes=['Free Size'];}else if(isFootwear){var isFem=/women|girl|ladies|flat|heel|wedge|belli/i.test(title+' '+(pageCat||''));sizes=isFem?['IND-4','IND-5','IND-6','IND-7','IND-8']:['IND-6','IND-7','IND-8','IND-9','IND-10'];}else{var sizeMatches=html.match(/\\b(IND-\\d+|UK-\\d+|XS|S|M|L|XL|XXL|3XL|Free Size)\\b/gi)||[];sizeMatches.forEach(function(s){var up=s.toUpperCase();if(sizes.indexOf(up)===-1&&sizes.length<6)sizes.push(up);});}['Pattern','Fabric','Material','Type','Sole Material','Occasion'].forEach(function(sk){var sm=html.match(new RegExp(sk+'\\\\s*:\\\\s*([^<\\\\n\\\\r"]+)','i'));if(sm&&sm[1]&&sm[1].trim().length<40)specs[sk]=sm[1].trim();});if(images.length===0){var cImg=itemObj.card.querySelector('img');if(cImg&&cImg.src){var c=cleanImg(cImg.src);if(c)images.push(c);}}var isBeauty=/perfume|parfum|fragrance|cologne|eau de|edp|edt|attar|deo|spray|mist|cream|lotion|serum|lipstick|makeup|shampoo|facewash|skincare|kajal|eyeliner/i.test(title+' '+(pageCat||''));var finalCat=isBeauty?'Beauty':(pageCat||'Meesho Collection');return{name:title||(pageCat+' Item'),purchase_cost:cost,card_price:cardPrice||cost,meesho_link:itemObj.href,category:finalCat,images:images.slice(0,5),sizes:sizes.length?sizes:['Free Size'],specifications:specs};}).catch(function(){var cImg=itemObj.card.querySelector('img');var imgSrc=cImg?cleanImg(cImg.src):'';var fallbackCost=cardPrice>=49?cardPrice:199;return{name:pageCat+' Product',purchase_cost:fallbackCost,card_price:fallbackCost,meesho_link:itemObj.href,category:pageCat,images:imgSrc?[imgSrc]:[],sizes:['Free Size'],specifications:{}};}).then(function(prod){items.push(prod);completed++;updateProgress(completed);});};var runBatch=function(index){if(index>=listToScan.length){var pbar=document.getElementById('shopezy-pbar');if(pbar)pbar.style.width='100%';var st=document.getElementById('shopezy-status');if(st)st.innerText='🎉 All '+items.length+' products extracted!';var compressAndRedirect=function(targetBlank){var jsonStr=JSON.stringify(items);try{window.name=jsonStr;}catch(we){}try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(jsonStr);}}catch(ce){}var targetUrl='${window.location.origin}/admin/products?bulkImport=1';if(targetBlank){window.open(targetUrl,'_blank');}else{window.location.href=targetUrl;}};var abox=document.getElementById('shopezy-action-box');if(abox){abox.innerHTML='<div style="margin-top:12px;"><button id="shopezy-open-btn" style="width:100%;background:linear-gradient(to right,#a855f7,#7e22ce);color:#fff;font-weight:900;font-size:13px;padding:12px;border:none;border-radius:12px;cursor:pointer;box-shadow:0 8px 16px rgba(147,51,234,0.4);display:block;margin-bottom:8px;">🚀 Open ShopEzy ('+items.length+' Products)</button><button id="shopezy-close-btn" style="background:transparent;border:none;color:#a1a1aa;font-size:11px;cursor:pointer;width:100%;text-align:center;">Close</button></div>';var btn=document.getElementById('shopezy-open-btn');if(btn)btn.onclick=function(){compressAndRedirect(false);};var cBtn=document.getElementById('shopezy-close-btn');if(cBtn)cBtn.onclick=function(){document.getElementById('shopezy-scanner-overlay')?.remove();};}compressAndRedirect(false);return;}var batch=listToScan.slice(index,index+4);Promise.all(batch.map(scanSingle)).then(function(){runBatch(index+4);});};runBatch(0);}catch(err){alert('Error: '+err.message);}})();`
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-fade-in">
