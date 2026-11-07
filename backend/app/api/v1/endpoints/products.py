@@ -499,151 +499,6 @@ def create_product(
     return product
 
 
-@router.get("/admin/{product_id}", response_model=ProductAdmin)
-def get_admin_product(
-    product_id: int,
-    db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
-):
-    product = (
-        db.query(Product)
-        .options(joinedload(Product.images), joinedload(Product.variants))
-        .filter(Product.id == product_id)
-        .first()
-    )
-    if not product:
-        raise HTTPException(404, "Product not found")
-    return product
-
-
-@router.put("/admin/{product_id}", response_model=ProductAdmin)
-def update_product(
-    product_id: int,
-    data: ProductUpdate,
-    db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
-):
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
-        raise HTTPException(404, "Product not found")
-
-    update_dict = data.dict(exclude_none=True)
-    images_list = update_dict.pop("images", None)
-    sizes_list = update_dict.pop("sizes", None)
-
-    for k, v in update_dict.items():
-        setattr(product, k, v)
-
-    # Permanent Server-Side Taxonomy Guardrail
-    product.category_id = sanitize_product_category(product.name, product.category_id, db)
-
-    # Update product images if provided
-    if images_list is not None:
-        db.query(ProductImage).filter(ProductImage.product_id == product_id).delete()
-        for idx, img_url in enumerate(images_list):
-            if img_url and isinstance(img_url, str):
-                db.add(ProductImage(
-                    product_id=product_id,
-                    image_url=img_url,
-                    is_primary=(idx == 0),
-                    sort_order=idx
-                ))
-
-    # Update product size variants if provided
-    if sizes_list is not None:
-        db.query(ProductVariant).filter(
-            ProductVariant.product_id == product_id,
-            ProductVariant.variant_type == "size"
-        ).delete()
-        for sz in sizes_list:
-            if sz and isinstance(sz, str):
-                db.add(ProductVariant(
-                    product_id=product_id,
-                    variant_type="size",
-                    value=sz.strip(),
-                    is_available=True
-                ))
-
-    # Update product color variants if provided
-    colors_list = getattr(data, "colors", None)
-    if colors_list is not None:
-        db.query(ProductVariant).filter(
-            ProductVariant.product_id == product_id,
-            ProductVariant.variant_type == "color"
-        ).delete()
-        for clr in colors_list:
-            if clr and isinstance(clr, str):
-                db.add(ProductVariant(
-                    product_id=product_id,
-                    variant_type="color",
-                    value=clr.strip().capitalize(),
-                    is_available=True
-                ))
-
-    db.commit()
-    db.refresh(product)
-    return product
-
-
-@router.delete("/admin/{product_id}")
-def delete_product(
-    product_id: int,
-    db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
-):
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
-        raise HTTPException(404, "Product not found")
-    db.delete(product)
-    db.commit()
-    return {"message": "Product deleted"}
-
-
-@router.post("/admin/{product_id}/variants")
-def add_variants(
-    product_id: int,
-    variants: List[ProductVariantCreate],
-    db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
-):
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
-        raise HTTPException(404, "Product not found")
-    # Clear existing variants
-    db.query(ProductVariant).filter(ProductVariant.product_id == product_id).delete()
-    for v in variants:
-        variant = ProductVariant(
-            product_id=product_id,
-            variant_type=v.variant_type,
-            value=v.value,
-            is_available=v.is_available,
-        )
-        db.add(variant)
-    db.commit()
-    return {"message": "Variants updated"}
-
-
-@router.post("/admin/{product_id}/images")
-def add_product_image(
-    product_id: int,
-    image_url: str,
-    is_primary: bool = False,
-    db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin),
-):
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
-        raise HTTPException(404, "Product not found")
-    if is_primary:
-        db.query(ProductImage).filter(ProductImage.product_id == product_id).update(
-            {"is_primary": False}
-        )
-    img = ProductImage(product_id=product_id, image_url=image_url, is_primary=is_primary)
-    db.add(img)
-    db.commit()
-    return {"message": "Image added"}
-
-
 @router.post("/admin/auto-repair-catalog")
 def auto_repair_catalog(
     db: Session = Depends(get_db),
@@ -891,6 +746,269 @@ def sync_meesho_availability(
         "message": f"Stock audit complete! {total_checked} products audited. {deactivated_count} out-of-stock items hidden from store."
     }
 
+
+
+
+
+@router.get("/admin/backup-all")
+def backup_all_products(
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
+    products = db.query(Product).options(
+        joinedload(Product.images),
+        joinedload(Product.variants),
+        joinedload(Product.category)
+    ).all()
+
+    backup_data = []
+    for p in products:
+        backup_data.append({
+            "name": p.name,
+            "description": p.description,
+            "category_slug": p.category.slug if p.category else None,
+            "purchase_cost": p.purchase_cost,
+            "selling_price": p.selling_price,
+            "original_price": p.original_price,
+            "discount_percentage": p.discount_percentage,
+            "meesho_link": p.meesho_link,
+            "is_featured": p.is_featured,
+            "is_active": p.is_active,
+            "cod_available": p.cod_available,
+            "stock_quantity": p.stock_quantity,
+            "images": [img.image_url for img in p.images],
+            "sizes": [v.value for v in p.variants if v.variant_type == "size"],
+            "colors": [v.value for v in p.variants if v.variant_type == "color"]
+        })
+
+    return {"count": len(backup_data), "products": backup_data}
+
+
+class RestoreProductsRequest(BaseModel):
+    products: List[Dict[str, Any]]
+
+
+@router.post("/admin/restore-all")
+def restore_all_products(
+    data: RestoreProductsRequest,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin)
+):
+    from ....models.category import Category
+    restored_count = 0
+
+    for item in data.products:
+        name = item.get("name")
+        if not name:
+            continue
+
+        existing = db.query(Product).filter(Product.name == name).first()
+        if existing:
+            continue
+
+        cat_slug = item.get("category_slug")
+        cat = db.query(Category).filter(Category.slug == cat_slug).first() if cat_slug else None
+
+        slug = make_slug(name, db)
+        cost = float(item.get("purchase_cost", 0.0))
+        selling = float(item.get("selling_price", 0.0))
+        orig = float(item.get("original_price") or (selling + 200))
+        disc = round(((orig - selling) / orig) * 100, 1) if orig > selling else 0.0
+
+        p = Product(
+            name=name,
+            slug=slug,
+            description=item.get("description"),
+            category_id=cat.id if cat else None,
+            purchase_cost=cost,
+            selling_price=selling,
+            original_price=orig,
+            discount_percentage=disc,
+            meesho_link=item.get("meesho_link"),
+            is_active=item.get("is_active", True),
+            is_featured=item.get("is_featured", False),
+            cod_available=item.get("cod_available", True),
+            stock_quantity=item.get("stock_quantity", 100)
+        )
+        db.add(p)
+        db.flush()
+
+        for idx, img_url in enumerate(item.get("images", [])):
+            if img_url:
+                db.add(ProductImage(
+                    product_id=p.id,
+                    image_url=img_url,
+                    is_primary=(idx == 0),
+                    sort_order=idx
+                ))
+
+        for s in item.get("sizes", []):
+            if s:
+                db.add(ProductVariant(
+                    product_id=p.id,
+                    variant_type="size",
+                    value=s,
+                    is_available=True
+                ))
+
+        for c in item.get("colors", []):
+            if c:
+                db.add(ProductVariant(
+                    product_id=p.id,
+                    variant_type="color",
+                    value=c,
+                    is_available=True
+                ))
+
+        restored_count += 1
+
+    db.commit()
+    return {"success": True, "restored_count": restored_count}
+
+
+@router.get("/admin/{product_id}", response_model=ProductAdmin)
+def get_admin_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
+    product = (
+        db.query(Product)
+        .options(joinedload(Product.images), joinedload(Product.variants))
+        .filter(Product.id == product_id)
+        .first()
+    )
+    if not product:
+        raise HTTPException(404, "Product not found")
+    return product
+
+
+@router.put("/admin/{product_id}", response_model=ProductAdmin)
+def update_product(
+    product_id: int,
+    data: ProductUpdate,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(404, "Product not found")
+
+    update_dict = data.dict(exclude_none=True)
+    images_list = update_dict.pop("images", None)
+    sizes_list = update_dict.pop("sizes", None)
+
+    for k, v in update_dict.items():
+        setattr(product, k, v)
+
+    # Permanent Server-Side Taxonomy Guardrail
+    product.category_id = sanitize_product_category(product.name, product.category_id, db)
+
+    # Update product images if provided
+    if images_list is not None:
+        db.query(ProductImage).filter(ProductImage.product_id == product_id).delete()
+        for idx, img_url in enumerate(images_list):
+            if img_url and isinstance(img_url, str):
+                db.add(ProductImage(
+                    product_id=product_id,
+                    image_url=img_url,
+                    is_primary=(idx == 0),
+                    sort_order=idx
+                ))
+
+    # Update product size variants if provided
+    if sizes_list is not None:
+        db.query(ProductVariant).filter(
+            ProductVariant.product_id == product_id,
+            ProductVariant.variant_type == "size"
+        ).delete()
+        for sz in sizes_list:
+            if sz and isinstance(sz, str):
+                db.add(ProductVariant(
+                    product_id=product_id,
+                    variant_type="size",
+                    value=sz.strip(),
+                    is_available=True
+                ))
+
+    # Update product color variants if provided
+    colors_list = getattr(data, "colors", None)
+    if colors_list is not None:
+        db.query(ProductVariant).filter(
+            ProductVariant.product_id == product_id,
+            ProductVariant.variant_type == "color"
+        ).delete()
+        for clr in colors_list:
+            if clr and isinstance(clr, str):
+                db.add(ProductVariant(
+                    product_id=product_id,
+                    variant_type="color",
+                    value=clr.strip().capitalize(),
+                    is_available=True
+                ))
+
+    db.commit()
+    db.refresh(product)
+    return product
+
+
+@router.delete("/admin/{product_id}")
+def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(404, "Product not found")
+    db.delete(product)
+    db.commit()
+    return {"message": "Product deleted"}
+
+
+@router.post("/admin/{product_id}/variants")
+def add_variants(
+    product_id: int,
+    variants: List[ProductVariantCreate],
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(404, "Product not found")
+    # Clear existing variants
+    db.query(ProductVariant).filter(ProductVariant.product_id == product_id).delete()
+    for v in variants:
+        variant = ProductVariant(
+            product_id=product_id,
+            variant_type=v.variant_type,
+            value=v.value,
+            is_available=v.is_available,
+        )
+        db.add(variant)
+    db.commit()
+    return {"message": "Variants updated"}
+
+
+@router.post("/admin/{product_id}/images")
+def add_product_image(
+    product_id: int,
+    image_url: str,
+    is_primary: bool = False,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(get_current_admin),
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(404, "Product not found")
+    if is_primary:
+        db.query(ProductImage).filter(ProductImage.product_id == product_id).update(
+            {"is_primary": False}
+        )
+    img = ProductImage(product_id=product_id, image_url=image_url, is_primary=is_primary)
+    db.add(img)
+    db.commit()
+    return {"message": "Image added"}
 
 
 @router.post("/upload-image")
@@ -1332,117 +1450,3 @@ def bulk_parse_meesho_products(
     return {"items": parsed_items, "count": len(parsed_items)}
 
 
-@router.get("/admin/backup-all")
-def backup_all_products(
-    db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
-):
-    products = db.query(Product).options(
-        joinedload(Product.images),
-        joinedload(Product.variants),
-        joinedload(Product.category)
-    ).all()
-
-    backup_data = []
-    for p in products:
-        backup_data.append({
-            "name": p.name,
-            "description": p.description,
-            "category_slug": p.category.slug if p.category else None,
-            "purchase_cost": p.purchase_cost,
-            "selling_price": p.selling_price,
-            "original_price": p.original_price,
-            "discount_percentage": p.discount_percentage,
-            "meesho_link": p.meesho_link,
-            "is_featured": p.is_featured,
-            "is_active": p.is_active,
-            "cod_available": p.cod_available,
-            "stock_quantity": p.stock_quantity,
-            "images": [img.image_url for img in p.images],
-            "sizes": [v.value for v in p.variants if v.variant_type == "size"],
-            "colors": [v.value for v in p.variants if v.variant_type == "color"]
-        })
-
-    return {"count": len(backup_data), "products": backup_data}
-
-
-class RestoreProductsRequest(BaseModel):
-    products: List[Dict[str, Any]]
-
-
-@router.post("/admin/restore-all")
-def restore_all_products(
-    data: RestoreProductsRequest,
-    db: Session = Depends(get_db),
-    admin: Admin = Depends(get_current_admin)
-):
-    from ....models.category import Category
-    restored_count = 0
-
-    for item in data.products:
-        name = item.get("name")
-        if not name:
-            continue
-
-        existing = db.query(Product).filter(Product.name == name).first()
-        if existing:
-            continue
-
-        cat_slug = item.get("category_slug")
-        cat = db.query(Category).filter(Category.slug == cat_slug).first() if cat_slug else None
-
-        slug = make_slug(name, db)
-        cost = float(item.get("purchase_cost", 0.0))
-        selling = float(item.get("selling_price", 0.0))
-        orig = float(item.get("original_price") or (selling + 200))
-        disc = round(((orig - selling) / orig) * 100, 1) if orig > selling else 0.0
-
-        p = Product(
-            name=name,
-            slug=slug,
-            description=item.get("description"),
-            category_id=cat.id if cat else None,
-            purchase_cost=cost,
-            selling_price=selling,
-            original_price=orig,
-            discount_percentage=disc,
-            meesho_link=item.get("meesho_link"),
-            is_active=item.get("is_active", True),
-            is_featured=item.get("is_featured", False),
-            cod_available=item.get("cod_available", True),
-            stock_quantity=item.get("stock_quantity", 100)
-        )
-        db.add(p)
-        db.flush()
-
-        for idx, img_url in enumerate(item.get("images", [])):
-            if img_url:
-                db.add(ProductImage(
-                    product_id=p.id,
-                    image_url=img_url,
-                    is_primary=(idx == 0),
-                    sort_order=idx
-                ))
-
-        for s in item.get("sizes", []):
-            if s:
-                db.add(ProductVariant(
-                    product_id=p.id,
-                    variant_type="size",
-                    value=s,
-                    is_available=True
-                ))
-
-        for c in item.get("colors", []):
-            if c:
-                db.add(ProductVariant(
-                    product_id=p.id,
-                    variant_type="color",
-                    value=c,
-                    is_available=True
-                ))
-
-        restored_count += 1
-
-    db.commit()
-    return {"success": True, "restored_count": restored_count}
